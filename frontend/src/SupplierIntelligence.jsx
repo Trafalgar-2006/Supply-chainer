@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Activity, ArrowLeft, Database, ShieldAlert } from 'lucide-react';
 
-// Number inputs can be empty or mid-edit; never send NaN or a negative count.
+// Inputs keep whatever the user typed (possibly empty mid-edit); requests use a
+// clean count, never NaN or a negative number.
 const toCount = value => Math.max(0, Number.parseInt(value, 10) || 0);
+const REQUEST_DELAY_MS = 300;
 
 export default function SupplierIntelligence({ onNavigate }) {
   const [suppliers, setSuppliers] = useState([]);
   const [advice, setAdvice] = useState(null);
   const [disruptions, setDisruptions] = useState({});
-  const [inventory, setInventory] = useState(1000);
-  const [safetyStock, setSafetyStock] = useState(1500);
-  const [forecast, setForecast] = useState(800);
+  const [inventory, setInventory] = useState('1000');
+  const [safetyStock, setSafetyStock] = useState('1500');
+  const [forecast, setForecast] = useState('800');
   const [category, setCategory] = useState('Electronics');
   const [scenario, setScenario] = useState(null);
   const [scenarios, setScenarios] = useState([]);
@@ -24,15 +26,16 @@ export default function SupplierIntelligence({ onNavigate }) {
   }, []);
 
   useEffect(() => {
+    // Wait for typing to pause before asking the API, and drop superseded requests.
     const controller = new AbortController();
-    fetch('/api/suppliers', {
+    const timer = setTimeout(() => fetch('/api/suppliers', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         category,
-        current_inventory: inventory,
-        safety_stock: safetyStock,
-        demand_forecast: forecast,
+        current_inventory: toCount(inventory),
+        safety_stock: toCount(safetyStock),
+        demand_forecast: toCount(forecast),
         scenario
       }),
       signal: controller.signal,
@@ -45,8 +48,8 @@ export default function SupplierIntelligence({ onNavigate }) {
         setDisruptions(data.active_disruptions || {});
         setError(null);
       })
-      .catch(e => { if (e.name !== 'AbortError') setError(e.message); });
-    return () => controller.abort();
+      .catch(e => { if (e.name !== 'AbortError') setError(e.message); }), REQUEST_DELAY_MS);
+    return () => { clearTimeout(timer); controller.abort(); };
   }, [category, scenario, inventory, safetyStock, forecast]);
 
   const critical = advice && advice.urgency_level === 'CRITICAL';
@@ -79,15 +82,15 @@ export default function SupplierIntelligence({ onNavigate }) {
           </div>
           <div className="sc-input-group">
             <label className="sc-label">Current Inventory (units)</label>
-            <input type="number" min="0" value={inventory} onChange={e => setInventory(toCount(e.target.value))} className="sc-input" />
+            <input type="number" min="0" value={inventory} onChange={e => setInventory(e.target.value)} className="sc-input" />
           </div>
           <div className="sc-input-group">
             <label className="sc-label">Safety Stock Target (units)</label>
-            <input type="number" min="0" value={safetyStock} onChange={e => setSafetyStock(toCount(e.target.value))} className="sc-input" />
+            <input type="number" min="0" value={safetyStock} onChange={e => setSafetyStock(e.target.value)} className="sc-input" />
           </div>
           <div className="sc-input-group">
             <label className="sc-label">Demand Forecast (units)</label>
-            <input type="number" min="0" value={forecast} onChange={e => setForecast(toCount(e.target.value))} className="sc-input" />
+            <input type="number" min="0" value={forecast} onChange={e => setForecast(e.target.value)} className="sc-input" />
           </div>
           <div className="sc-input-group">
             <label className="sc-label">Disruption Scenario</label>

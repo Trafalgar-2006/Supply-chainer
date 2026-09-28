@@ -33,6 +33,8 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
   const [avoid, setAvoid] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
   const [intelReports, setIntelReports] = useState([]);
+  // What the displayed routes were computed with; the controls may have changed since.
+  const [resultContext, setResultContext] = useState(null);
   const [selected, setSelected] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -59,14 +61,17 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
     () => hubs.filter(h => h.type === 'choke_point').sort((a, b) => a.display_name.localeCompare(b.display_name)),
     [hubs]
   );
-  const activeScenario = scenarios.find(s => s.id === operationalConfig);
-  const disruptedHubs = activeScenario ? activeScenario.affected_nodes : [];
-  const liveHubs = intelReports.filter(r => r.score > 0).flatMap(r => r.hubs);
+  const resultScenario = scenarios.find(s => s.id === resultContext?.scenario);
+  const selectedScenario = operationalConfig !== 'NORMAL' ? operationalConfig : null;
+  const scenarioChanged = resultContext && resultContext.scenario !== selectedScenario;
+  const disruptedHubs = useMemo(() => (resultScenario ? resultScenario.affected_nodes : []), [resultScenario]);
+  const liveHubs = useMemo(() => intelReports.filter(r => r.score > 0).flatMap(r => r.hubs), [intelReports]);
   const route = recommendations[selected];
 
   const getRecommendations = async () => {
     setLoading(true);
     setError(null);
+    const request = { scenario: selectedScenario, liveIntel };
     try {
       const res = await fetch('/api/recommend', {
         method: 'POST',
@@ -78,8 +83,8 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
           routing_policy: routingPolicy,
           cargo_type: cargoType,
           priority: priority,
-          scenario: operationalConfig !== 'NORMAL' ? operationalConfig : null,
-          live_intel: liveIntel,
+          scenario: request.scenario,
+          live_intel: request.liveIntel,
           overrides: avoid.length ? { avoid_chokepoints: avoid } : null
         })
       });
@@ -89,9 +94,11 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
         setError(data.error || detail || `Request failed (${res.status})`);
         setRecommendations([]);
         setIntelReports([]);
+        setResultContext(null);
       } else {
         setRecommendations(data.recommendations);
         setIntelReports(data.live_intel || []);
+        setResultContext(request);
         setSelected(0);
       }
     } catch (err) {
@@ -114,6 +121,8 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
 
   const handleSearch = async (type, query) => {
     setSearchQuery(prev => ({ ...prev, [type]: query }));
+    // Editing the text un-selects the hub, so a stale choice is never submitted.
+    if (type === 'source') setSource(''); else setDestination('');
     latestQuery.current[type] = query;
     if (query.length < 2) {
       setSearchResults(prev => ({ ...prev, [type]: [] }));
@@ -167,12 +176,13 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
   );
 
   const renderDrivers = drivers => {
-    if (!drivers) return null;
-    const peak = Math.max(...drivers.drivers.map(d => Math.abs(d.hours)), 1);
+    const rows = drivers ? drivers.drivers.filter(d => Math.abs(d.hours) >= 0.5).slice(0, 4) : [];
+    if (!rows.length) return null;
+    const peak = Math.max(...rows.map(d => Math.abs(d.hours)), 1);
     return (
       <div className="drivers">
         <div className="drivers-title">Why the p85 delay (Shapley, vs a short road hop)</div>
-        {drivers.drivers.filter(d => Math.abs(d.hours) >= 0.5).slice(0, 4).map(d => (
+        {rows.map(d => (
           <div key={d.factor} className="driver-row" title={`${d.factor}: ${d.hours > 0 ? '+' : ''}${d.hours}h`}>
             <span className="driver-label">{d.factor}</span>
             <span className="driver-track">
@@ -286,14 +296,17 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
 
       {/* Main Area */}
       <main className="main-content">
-        {activeScenario && (
+        {resultScenario && (
           <div className="scenario-banner animate-slide-in">
             <AlertTriangle size={20} />
             <div>
-              <span style={{fontWeight: 800, fontSize: '0.75rem', display: 'block'}}>ACTIVE DISRUPTION SCENARIO</span>
-              <span style={{fontSize: '0.875rem'}}>{activeScenario.name}: {activeScenario.reason}</span>
+              <span style={{fontWeight: 800, fontSize: '0.75rem', display: 'block'}}>ROUTES COMPUTED UNDER DISRUPTION SCENARIO</span>
+              <span style={{fontSize: '0.875rem'}}>{resultScenario.name}: {resultScenario.reason}</span>
             </div>
           </div>
+        )}
+        {scenarioChanged && (
+          <div className="stale-note">Scenario changed: generate again to apply it to the routes.</div>
         )}
 
         {error && <div className="error-box">{error}</div>}
@@ -408,8 +421,9 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
 
         <div>
           <h2 className="panel-title"><Radio size={14} /> Live Intelligence</h2>
-          {!liveIntel && <p className="muted-note">Live news is off.</p>}
-          {liveIntel && recommendations.length > 0 && intelReports.length === 0 && (
+          {!resultContext && <p className="muted-note">Live reports for the origin and destination appear here after a run.</p>}
+          {resultContext && !resultContext.liveIntel && <p className="muted-note">These routes were generated with live news off.</p>}
+          {resultContext?.liveIntel && intelReports.length === 0 && (
             <p className="muted-note">No live reports: the feed is quiet, offline, or the NLP engine is still warming up.</p>
           )}
           {intelReports.map(r => (
