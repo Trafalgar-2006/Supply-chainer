@@ -5,6 +5,7 @@ extra hours a leg takes beyond its nominal transit time (dwell, handling,
 variability, weather and disruption), at three quantiles.
 """
 import hashlib
+import io
 import json
 import os
 from itertools import combinations
@@ -18,6 +19,9 @@ from .delay_features import ARRIVALS, CONDITIONS, FEATURES, MODES, QUANTILES, en
 EXECUTION_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "Execution")
 MODEL_PATH = os.path.join(EXECUTION_DIR, "delay_quantile_model.joblib")
 REPORT_PATH = os.path.join(EXECUTION_DIR, "delay_quantile_model.json")
+# Pinned in code, so whoever can write the artifact cannot also update its hash.
+# Retraining prints the new digest; updating it here is a reviewed code change.
+EXPECTED_SHA256 = "85248c56c50f386f0de13916ef935d2360e5a3e94877c23659cbf2454f80cf35"
 
 # Shapley reference: a short road hop into a terminal in clear weather with no news.
 # Each feature's contribution is measured against this leg.
@@ -43,19 +47,20 @@ class DelayQuantileModel:
         ]
 
     @classmethod
-    def load(cls, model_path=MODEL_PATH, report_path=REPORT_PATH):
-        """Load the model after checking its SHA-256 against the training report.
+    def load(cls, model_path=MODEL_PATH, report_path=REPORT_PATH, expected_sha256=EXPECTED_SHA256):
+        """Load the model after checking its SHA-256 against the pinned digest.
 
         Unpickling runs code, so a tampered or swapped artifact is refused before
-        it is ever deserialised.
+        it is ever deserialised. The bytes that are hashed are the bytes that are
+        loaded, so the file cannot be swapped between the check and the load.
         """
         with open(report_path, encoding="utf-8") as f:
             report = json.load(f)
         with open(model_path, "rb") as f:
-            digest = hashlib.sha256(f.read()).hexdigest()
-        if digest != report.get("sha256"):
-            raise ModelIntegrityError(f"{os.path.basename(model_path)} does not match its recorded SHA-256")
-        bundle = joblib.load(model_path)
+            blob = f.read()
+        if hashlib.sha256(blob).hexdigest() != expected_sha256:
+            raise ModelIntegrityError(f"{os.path.basename(model_path)} does not match the pinned SHA-256")
+        bundle = joblib.load(io.BytesIO(blob))
         return cls(bundle["models"], report)
 
     def _predict_matrix(self, X):

@@ -72,6 +72,25 @@ def model_rows(legs):
     return encode(*[[l[f] for l in legs] for f in FEATURES])
 
 
+def test_the_artifact_matches_the_digest_pinned_in_code():
+    import hashlib
+    from backend.engine.delay_model import EXPECTED_SHA256
+    assert hashlib.sha256(open(MODEL_PATH, "rb").read()).hexdigest() == EXPECTED_SHA256
+    assert json.loads(open(REPORT_PATH).read())["sha256"] == EXPECTED_SHA256
+
+
+def test_a_rewritten_report_hash_does_not_bypass_the_pin(tmp_path):
+    import hashlib
+    tampered = tmp_path / "model.joblib"
+    tampered.write_bytes(open(MODEL_PATH, "rb").read() + b"payload")
+    report = json.loads(open(REPORT_PATH).read())
+    report["sha256"] = hashlib.sha256(tampered.read_bytes()).hexdigest()
+    forged = tmp_path / "report.json"
+    forged.write_text(json.dumps(report))
+    with pytest.raises(ModelIntegrityError):
+        DelayQuantileModel.load(model_path=str(tampered), report_path=str(forged))
+
+
 def test_tampered_artifact_is_refused_before_unpickling(tmp_path):
     tampered = tmp_path / "model.joblib"
     shutil.copy(MODEL_PATH, tampered)

@@ -97,6 +97,8 @@ def main():
     report["sha256"] = hashlib.sha256(ARTIFACT.read_bytes()).hexdigest()
     REPORT.write_text(json.dumps(report, indent=2) + "\n")
     print(json.dumps(report, indent=2))
+    print(f"\nPin the new artifact: set EXPECTED_SHA256 = \"{report['sha256']}\" "
+          "in backend/engine/delay_model.py", file=sys.stderr)
 
 
 if __name__ == "__main__":
