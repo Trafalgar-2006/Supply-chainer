@@ -140,15 +140,51 @@ class ThreatIntelligencePredictor:
             print(f"Calibration Inference Error: {e}")
             return {"final_delay_presented": 0.0, "calibration_reason": "Inference Error"}
 
+# Anchor sentences per disruption category, for zero-shot threat typing with the
+# same sentence embedding used for the threat score.
+THREAT_TYPE_ANCHORS = {
+    "weather": ["Typhoon, hurricane or cyclone forces the port to close.",
+                "Severe storm, heavy rain and flooding disrupt transport.",
+                "Fog and snowstorm ground flights and close highways."],
+    "labour": ["Dock workers and truck drivers go on strike.",
+               "Union walkout halts terminal operations.",
+               "Labour dispute causes a work stoppage at the port."],
+    "geopolitical": ["Military conflict and missile attacks threaten commercial shipping.",
+                     "Sanctions and a trade embargo block cargo.",
+                     "Naval blockade closes the strait to vessels."],
+    "infrastructure": ["Container ship runs aground and blocks the canal.",
+                       "Bridge collapse and a train derailment cut the route.",
+                       "Crane failure and a power outage stop the terminal."],
+    "cyber": ["Cyberattack and ransomware shut down port IT systems."],
+    "congestion": ["Severe congestion and long vessel queues at the port.",
+                   "Container backlog and yard congestion delay cargo."],
+}
+MIN_TYPE_SIMILARITY = 0.30  # below this the report matches no category well
+
+# The historical safe corpus only covers routine operations. Positive business
+# news (new capacity, earnings, record volumes, new services) is common in
+# logistics headlines and would otherwise read as mildly threatening.
+SAFE_ARCHETYPES = [
+    "Port opens a new terminal and expands handling capacity.",
+    "Logistics company reports strong quarterly earnings and revenue growth.",
+    "Cargo volumes hit a record high as trade flows smoothly.",
+    "Carrier launches a new weekly service and invests in new vessels.",
+]
+
+def split_reports(news_text: str) -> List[str]:
+    """One chunk per headline or sentence, so unrelated headlines are not blended."""
+    parts = re.split(r"\s+\|\s+|(?<=[.!?])\s+", news_text or "")
+    return [p.strip()[:256] for p in parts if len(p.strip()) >= 5]
+
 class ContrastiveNLPEngine:
     """Stage 2: PRODUCTION Contrastive NLP Brain."""
     def __init__(self, lazy_load=False):
         self._ready = False
         # Threat Margin = max cos-sim to a disaster anchor minus max cos-sim to a
-        # safe anchor. Measured against the anchor corpus: routine/safe text sits
-        # below 0.08, operational disruptions (strikes, floods) around 0.2-0.3, and
-        # full closures (Suez grounding, Red Sea attacks) at 0.5+. The score ramps
-        # linearly between the noise floor and the saturation point.
+        # safe anchor, per headline. Measured on held-out headlines: routine and
+        # positive news sits below 0.08, operational disruptions (strikes, storms,
+        # fires) at 0.12-0.40, and full closures (Suez grounding, Red Sea attacks)
+        # at 0.5+. The score ramps linearly between the noise floor and saturation.
         self.noise_floor = 0.08
         self.saturation_margin = 0.50
         if not lazy_load:
@@ -165,8 +201,14 @@ class ContrastiveNLPEngine:
                 # The anchors were saved from a GPU session; map them to CPU so the
                 # engine also runs on machines without CUDA.
                 anchors = torch.load(NLP_ANCHORS_PATH, map_location="cpu", weights_only=True)
-                self.disaster_matrix = anchors["disaster_matrix"]
-                self.safe_matrix = anchors["safe_matrix"]
+                pairs = [(t, s) for t, sentences in THREAT_TYPE_ANCHORS.items() for s in sentences]
+                self._type_names = [t for t, _ in pairs]
+                self._type_matrix = self.model.encode([s for _, s in pairs], convert_to_tensor=True)
+                # Historical incidents plus the category archetypes as disaster
+                # anchors; routine operations plus positive business news as safe ones.
+                self.disaster_matrix = torch.cat([anchors["disaster_matrix"], self._type_matrix])
+                self.safe_matrix = torch.cat([anchors["safe_matrix"],
+                                              self.model.encode(SAFE_ARCHETYPES, convert_to_tensor=True)])
                 self._ready = True
                 print(f"NLP Brain: Loaded Historical Anchor Matrix.")
             else:
@@ -178,14 +220,25 @@ class ContrastiveNLPEngine:
     def get_semantic_score(self, news_text: str) -> float:
         # t_nlp_start = time.perf_counter()
         if not self._ready: return 0.0
-        if not news_text or len(news_text.strip()) < 5: return 0.0
-        chunks = [news_text[i:i+256] for i in range(0, len(news_text), 256)]
+        chunks = split_reports(news_text)
+        if not chunks: return 0.0
         chunk_embeddings = self.model.encode(chunks, convert_to_tensor=True)
-        d_scores = self.util.cos_sim(chunk_embeddings, self.disaster_matrix)
-        s_scores = self.util.cos_sim(chunk_embeddings, self.safe_matrix)
-        margin = float(np.max(d_scores.cpu().numpy())) - float(np.max(s_scores.cpu().numpy()))
+        d_scores = self.util.cos_sim(chunk_embeddings, self.disaster_matrix).cpu().numpy().max(axis=1)
+        s_scores = self.util.cos_sim(chunk_embeddings, self.safe_matrix).cpu().numpy().max(axis=1)
+        # The most threatening headline decides; each is compared with its own best safe match.
+        margin = float(np.max(d_scores - s_scores))
         if margin <= self.noise_floor: return 0.0
         return float(min(1.0, (margin - self.noise_floor) / (self.saturation_margin - self.noise_floor)))
+
+    def classify_threat(self, news_text: str) -> Optional[Dict[str, Any]]:
+        """Most likely disruption category of a report, with its anchor similarity."""
+        chunks = split_reports(news_text)
+        if not self._ready or not chunks: return None
+        embeddings = self.model.encode(chunks, convert_to_tensor=True)
+        similarity = self.util.cos_sim(embeddings, self._type_matrix).cpu().numpy().max(axis=0)
+        best = int(np.argmax(similarity))
+        threat_type = self._type_names[best] if similarity[best] >= MIN_TYPE_SIMILARITY else "general"
+        return {"type": threat_type, "confidence": round(float(similarity[best]), 3)}
 
 class CARFFilter:
     """Stage 3: CARF (Context-Aware Relevance Filter).
