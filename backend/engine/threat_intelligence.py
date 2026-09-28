@@ -1,6 +1,7 @@
 import numpy as np
 import joblib
 import os
+import re
 import torch
 import json
 import time
@@ -187,20 +188,31 @@ class ContrastiveNLPEngine:
         return float(min(1.0, (margin - self.noise_floor) / (self.saturation_margin - self.noise_floor)))
 
 class CARFFilter:
-    """Stage 3: TRUE CARF (Context-Aware Relevance Filter)."""
+    """Stage 3: CARF (Context-Aware Relevance Filter).
+
+    A threat is dropped when the news is clearly about a different transport mode:
+    it names another mode's infrastructure and none of this leg's own. News that
+    names no mode (weather, conflict, cyberattacks) stays relevant to every mode.
+    """
     def __init__(self):
-        self.relevance_map = {"air": ["airport", "flight", "airspace", "aviation", "sky", "terminal"],
-                              "sea": ["port", "vessel", "ship", "canal", "ocean", "maritime", "dock"],
-                              "rail": ["rail", "track", "locomotive", "station"],
-                              "road": ["highway", "truck", "traffic", "bridge", "road", "delivery"]}
+        self.relevance_map = {
+            "air": {"airport", "flight", "airspace", "aviation", "airline", "aircraft"},
+            "sea": {"port", "seaport", "vessel", "ship", "shipping", "canal", "ocean", "maritime",
+                    "dock", "berth", "berthing", "harbor", "harbour", "strait", "tanker"},
+            "rail": {"rail", "railway", "railroad", "track", "locomotive", "train", "station", "derailment"},
+            "road": {"highway", "motorway", "truck", "trucker", "lorry", "bridge", "road", "delivery"},
+        }
+
+    def modes_mentioned(self, news_context: str) -> set:
+        tokens = set(re.findall(r"[a-z]+", (news_context or "").lower()))
+        tokens |= {t[:-1] for t in tokens if t.endswith("s")}
+        return {mode for mode, keywords in self.relevance_map.items() if tokens & keywords}
 
     def apply_filter(self, semantic_score: float, news_context: str, transport_mode: str) -> float:
         if semantic_score <= 0: return 0.0
-        news_words = news_context.lower().split()
-        if transport_mode == "sea" and any(kw in news_words for kw in ["port", "vessel", "canal", "ocean", "maritime"]):
-            if not any(kw in news_words for kw in ["airport", "flight"]): return 0.0
-        if transport_mode == "air" and any(kw in news_words for kw in ["airport", "flight"]):
-            if not any(kw in news_words for kw in ["port", "vessel", "maritime"]): return 0.0
+        mentioned = self.modes_mentioned(news_context)
+        if mentioned and transport_mode in self.relevance_map and transport_mode not in mentioned:
+            return 0.0
         return semantic_score
 
     def max_pool_threats(self, scores: List[float]) -> float:
