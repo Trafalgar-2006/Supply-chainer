@@ -1,1 +1,2 @@
 pytest==8.4.2
+global-land-mask==1.0.0

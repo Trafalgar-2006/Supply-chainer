@@ -53,6 +53,89 @@ TRANSFER_PROFILES = {
     "default": {"delay": 4.0, "cost": 100, "risk": 0.03}
 }
 
+# Enclosed seas, and the Atlantic / Indo-Pacific split, can only be crossed through
+# real straits. The hub data lists direct lanes such as Jebel Ali -> Haifa that
+# would sail across the Arabian Peninsula; every cross-basin lane is routed through
+# its chokepoints instead, so a Hormuz, Bab el-Mandeb, Suez or Gibraltar disruption
+# reaches every ship that actually passes it.
+SEA_GATES = {
+    "CHOKE-HORMUZ": ("PERSIAN_GULF", "INDO_PACIFIC"),
+    "CHOKE-BABEL": ("RED_SEA", "INDO_PACIFIC"),
+    "CHOKE-SUEZ": ("RED_SEA", "MEDITERRANEAN"),
+    "CHOKE-GIBRAL": ("MEDITERRANEAN", "ATLANTIC"),
+    "CHOKE-DARDANELLES": ("MEDITERRANEAN", "MARMARA"),
+    "CHOKE-BOSPHO": ("MARMARA", "BLACK_SEA"),
+    "CHOKE-CAPEGOOD": ("INDO_PACIFIC", "ATLANTIC"),
+    "CHOKE-PANAMA": ("INDO_PACIFIC", "ATLANTIC"),
+}
+
+def sea_basin(lat, lon):
+    """Coarse ocean basin of a coastal point; the most enclosed seas are checked first."""
+    if 38.0 <= lat <= 47.5 and 46.5 <= lon <= 55.0: return "CASPIAN"  # landlocked
+    if 23.5 <= lat <= 30.5 and 47.5 <= lon < 56.3: return "PERSIAN_GULF"
+    if 12.7 <= lat < 30.0 and 32.2 <= lon <= 43.6: return "RED_SEA"
+    if 40.3 <= lat <= 41.08 and 26.5 <= lon <= 30.0: return "MARMARA"
+    if 40.9 < lat <= 47.5 and 27.4 <= lon <= 42.0: return "BLACK_SEA"
+    if 30.0 <= lat <= 46.0 and -5.7 <= lon <= 36.5 and not (lon < 3.0 and lat > 42.5): return "MEDITERRANEAN"
+    if lon < -30:  # the Americas: Pacific coast vs Atlantic / Caribbean / Gulf of Mexico
+        pacific = lon < -100 or (lat < 9.2 and lon < -77) or (lat < 7 and lon < -70)
+        return "INDO_PACIFIC" if pacific else "ATLANTIC"
+    if lat > 50 and lon < 60: return "ATLANTIC"  # North Sea, Baltic, Barents
+    return "ATLANTIC" if lon < 20 else "INDO_PACIFIC"
+
+# Road and rail cannot cross open sea. Islands are reachable over land only through
+# a fixed link, and the Channel Tunnel is the only one between an island in the
+# registry and a continent.
+ISLAND_LANDMASSES = {"UK", "Ireland", "Japan", "Taiwan", "Sri Lanka", "Indonesia", "Philippines",
+                     "Australia", "New Zealand", "Madagascar", "Iceland"}
+CHANNEL_TUNNEL_PORTALS = ((51.096, 1.137), (50.925, 1.813))  # Folkestone (UK), Coquelles (FR)
+TUNNEL_REACH_KM = 150
+
+def landmass(hub):
+    if hub["country"] in ISLAND_LANDMASSES:
+        return hub["country"]
+    return "AMERICAS" if hub["lon"] < -30 else "AFRO_EURASIA"
+
+def land_link_possible(h1, h2):
+    a, b = landmass(h1), landmass(h2)
+    if a == b:
+        return True
+    if {a, b} == {"UK", "AFRO_EURASIA"}:
+        uk, mainland = (h1, h2) if a == "UK" else (h2, h1)
+        return (_haversine(uk["lat"], uk["lon"], *CHANNEL_TUNNEL_PORTALS[0]) <= TUNNEL_REACH_KM
+                and _haversine(mainland["lat"], mainland["lon"], *CHANNEL_TUNNEL_PORTALS[1]) <= TUNNEL_REACH_KM)
+    return False
+
+def _hub_basins(hub):
+    return set(SEA_GATES[hub["id"]]) if hub["id"] in SEA_GATES else {sea_basin(hub["lat"], hub["lon"])}
+
+def _strait_chain(h1, h2, hub_lookup):
+    """Shortest sequence of straits a ship must pass between two sea hubs.
+
+    Returns [] for a lane inside one basin, the gate ids for a cross-basin lane,
+    or None when no sea passage exists (e.g. the landlocked Caspian).
+    """
+    goal = _hub_basins(h2)
+    best = None
+
+    def walk(basin, pos, chain, dist, used):
+        nonlocal best
+        if basin in goal:
+            total = dist + _haversine(*pos, h2["lat"], h2["lon"])
+            if best is None or total < best[0]:
+                best = (total, chain)
+        for gate, sides in SEA_GATES.items():
+            if gate in used or basin not in sides:
+                continue
+            g = hub_lookup[gate]
+            nxt = sides[1] if basin == sides[0] else sides[0]
+            walk(nxt, (g["lat"], g["lon"]), chain + [gate],
+                 dist + _haversine(*pos, g["lat"], g["lon"]), used | {gate})
+
+    for basin in _hub_basins(h1):
+        walk(basin, (h1["lat"], h1["lon"]), [], 0.0, frozenset({h1["id"], h2["id"]}))
+    return None if best is None else best[1]
+
 def create_multimodal_network():
     """
     Supplychainer Unified Multimodal Optimization Graph.
@@ -76,8 +159,9 @@ def create_multimodal_network():
                 lat=hub["lat"], 
                 lon=hub["lon"],
                 importance=hub.get("importance", 5),
-                mode=mode, 
-                parent_city=hub.get("parent_city"))
+                mode=mode,
+                parent_city=hub.get("parent_city"),
+                basins=sorted(_hub_basins(hub)) if mode == "sea" else None)
 
     # 2. Add Intra-Hub Transfer Edges (The Friction Layer)
     for hub in hubs:
@@ -104,29 +188,41 @@ def create_multimodal_network():
                            cost=profile["cost"], risk=profile["risk"])
 
     # 3. Add Strategic Intra-Mode Transit Edges
+    # `connections` is an undirected adjacency list: most lanes are listed on only
+    # one of their two hubs, so every lane is added in both directions.
     for hub in hubs:
         u_base = hub["id"]
         for conn in hub.get("connections", []):
             v_base = conn["to"]
             mode = conn["mode"]
-            
+
             u_vnode = f"{u_base}:{mode}"
             v_vnode = f"{v_base}:{mode}"
-            
+
             if G.has_node(u_vnode) and G.has_node(v_vnode):
-                h1, h2 = hub, hub_lookup[v_base]
-                dist = _haversine(h1["lat"], h1["lon"], h2["lat"], h2["lon"])
-                t = _travel_time(dist, mode)
-                cost = dist * MODE_PROFILES[mode]["cost_per_km"]
-                
-                G.add_edge(u_vnode, v_vnode, baseline_time=t, distance=round(dist, 1), 
-                           transport_mode=mode, type="transit", cost=cost)
+                waypoints = [hub, hub_lookup[v_base]]
+                if mode in ("road", "rail") and not land_link_possible(hub, hub_lookup[v_base]):
+                    continue
+                if mode == "sea":
+                    chain = _strait_chain(hub, hub_lookup[v_base], hub_lookup)
+                    if chain is None:
+                        continue  # no sea passage between these basins
+                    waypoints[1:1] = [hub_lookup[g] for g in chain]
+
+                for h1, h2 in zip(waypoints, waypoints[1:]):
+                    dist = _haversine(h1["lat"], h1["lon"], h2["lat"], h2["lon"])
+                    t = _travel_time(dist, mode)
+                    cost = dist * MODE_PROFILES[mode]["cost_per_km"]
+                    a, b = f"{h1['id']}:{mode}", f"{h2['id']}:{mode}"
+                    for x, y in ((a, b), (b, a)):
+                        G.add_edge(x, y, baseline_time=t, distance=round(dist, 1),
+                                   transport_mode=mode, type="transit", cost=cost)
 
     # 4. Local Road Auto-wire (<200km)
     for i, h1 in enumerate(hubs):
         if "road" not in h1["modes"]: continue
         for h2 in hubs[i+1:]:
-            if "road" not in h2["modes"]: continue
+            if "road" not in h2["modes"] or not land_link_possible(h1, h2): continue
             d = _haversine(h1["lat"], h1["lon"], h2["lat"], h2["lon"])
             if d < 200:
                 u, v = f"{h1['id']}:road", f"{h2['id']}:road"
