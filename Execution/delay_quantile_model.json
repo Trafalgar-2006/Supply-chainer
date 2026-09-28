@@ -1,0 +1,62 @@
+{
+  "n_train": 48000,
+  "n_test": 12000,
+  "features": [
+    "mode",
+    "distance_km",
+    "arrival",
+    "condition",
+    "nlp_score"
+  ],
+  "quantile_crossing_rate": 0.0006,
+  "quantiles": {
+    "p50": {
+      "coverage": 0.492,
+      "coverage_by_mode": {
+        "air": 0.51,
+        "rail": 0.507,
+        "road": 0.489,
+        "sea": 0.471
+      },
+      "pinball_loss": 8.012,
+      "naive_pinball_loss": 9.098,
+      "improvement_vs_naive": 0.119,
+      "iterations": 139
+    },
+    "p85": {
+      "coverage": 0.845,
+      "coverage_by_mode": {
+        "air": 0.865,
+        "rail": 0.847,
+        "road": 0.843,
+        "sea": 0.824
+      },
+      "pinball_loss": 7.873,
+      "naive_pinball_loss": 10.078,
+      "improvement_vs_naive": 0.219,
+      "iterations": 119
+    },
+    "p95": {
+      "coverage": 0.951,
+      "coverage_by_mode": {
+        "air": 0.954,
+        "rail": 0.945,
+        "road": 0.956,
+        "sea": 0.936
+      },
+      "pinball_loss": 5.171,
+      "naive_pinball_loss": 7.238,
+      "improvement_vs_naive": 0.286,
+      "iterations": 103
+    }
+  },
+  "p85_permutation_importance": {
+    "mode": 11.033,
+    "condition": 2.155,
+    "nlp_score": 1.43,
+    "arrival": 1.028,
+    "distance_km": 0.632
+  },
+  "artifact": "delay_quantile_model.joblib",
+  "sha256": "85248c56c50f386f0de13916ef935d2360e5a3e94877c23659cbf2454f80cf35"
+}
