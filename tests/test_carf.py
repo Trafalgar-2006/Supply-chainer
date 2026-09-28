@@ -38,6 +38,20 @@ def test_mode_neutral_threat_is_kept_for_every_mode(mode):
     assert carf.apply_filter(0.6, NEUTRAL_NEWS, mode) == 0.6
 
 
+@pytest.mark.parametrize("news", [
+    "Typhoon warning issued by the weather station; heavy rain expected.",
+    "Forecasters track the storm as it heads for the coast.",
+    "Home delivery demand surges ahead of the holidays.",
+])
+@pytest.mark.parametrize("mode", ["sea", "air", "rail", "road"])
+def test_generic_words_do_not_misfile_mode_neutral_news(news, mode):
+    assert carf.apply_filter(0.6, news, mode) == 0.6
+
+
+def test_ies_plurals_are_recognised():
+    assert carf.modes_mentioned("Lorries stranded at the border") == {"road"}
+
+
 def test_news_about_both_modes_is_kept():
     news = "Storm closes the airport and the container port."
     assert carf.apply_filter(0.7, news, "sea") == 0.7

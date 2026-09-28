@@ -195,17 +195,21 @@ class CARFFilter:
     names no mode (weather, conflict, cyberattacks) stays relevant to every mode.
     """
     def __init__(self):
+        # Only words that name one mode's infrastructure. Generic words such as
+        # "station" (weather station), "track" (track a storm) or "bridge" (road or
+        # rail) would misfile mode-neutral news and wrongly drop it for other modes.
         self.relevance_map = {
             "air": {"airport", "flight", "airspace", "aviation", "airline", "aircraft"},
             "sea": {"port", "seaport", "vessel", "ship", "shipping", "canal", "ocean", "maritime",
                     "dock", "berth", "berthing", "harbor", "harbour", "strait", "tanker"},
-            "rail": {"rail", "railway", "railroad", "track", "locomotive", "train", "station", "derailment"},
-            "road": {"highway", "motorway", "truck", "trucker", "lorry", "bridge", "road", "delivery"},
+            "rail": {"rail", "railway", "railroad", "locomotive", "train", "derailment"},
+            "road": {"highway", "motorway", "truck", "trucker", "trucking", "lorry", "road"},
         }
 
     def modes_mentioned(self, news_context: str) -> set:
         tokens = set(re.findall(r"[a-z]+", (news_context or "").lower()))
-        tokens |= {t[:-1] for t in tokens if t.endswith("s")}
+        tokens |= {t[:-3] + "y" for t in tokens if t.endswith("ies")}  # lorries -> lorry
+        tokens |= {t[:-1] for t in tokens if t.endswith("s")}         # vessels -> vessel
         return {mode for mode, keywords in self.relevance_map.items() if tokens & keywords}
 
     def apply_filter(self, semantic_score: float, news_context: str, transport_mode: str) -> float:
