@@ -47,7 +47,7 @@ All tests referenced here are in `tests/test_security.py` unless stated otherwis
 | idna | 3.13 → 3.15 | Used by the news fetcher |
 | anyio | 4.13.0 → 4.14.2 | Security fixes |
 | pillow | 12.2.0 → 12.3.0 | Security fixes |
-| transformers | 5.6.2 → 5.10.0 | Path traversal in `save_pretrained` |
+| transformers | 5.6.2 → 5.10.2 | Path traversal in `save_pretrained`. pip-audit suggested 5.10.0, but that release was later yanked, so we use its patch release 5.10.2. |
 | **vite** | 5 → 6.4.3 | The esbuild dev server let any website read dev-server responses |
 
 The full test suite passes on the upgraded versions.
