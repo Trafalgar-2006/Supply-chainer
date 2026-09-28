@@ -99,6 +99,8 @@ pip install -r requirements.txt
 uvicorn backend.main:app --port 8000
 ```
 
+If PowerShell refuses to run `Activate.ps1`, run `Set-ExecutionPolicy -Scope Process Bypass` first. If `pip` fails with "The filename or extension is too long", clone the repository to a shorter path such as `C:\src`; one file inside setuptools passes Windows' 260-character path limit when the folder is nested deeply.
+
 macOS and Linux:
 
 ```bash
