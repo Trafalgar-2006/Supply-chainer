@@ -313,6 +313,3 @@ class CARFFilter:
         if mentioned and transport_mode in self.relevance_map and transport_mode not in mentioned:
             return 0.0
         return semantic_score
-
-    def max_pool_threats(self, scores: List[float]) -> float:
-        return float(np.max(scores)) if scores else 0.0

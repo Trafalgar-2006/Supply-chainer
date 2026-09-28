@@ -3,7 +3,6 @@ import pytest
 from backend.engine.multimodal_network import create_multimodal_network
 from backend.engine.route_recommender import RouteRecommender
 from backend.engine.scenario_manager import ScenarioManager
-from backend.engine.threat_intelligence import ThreatIntelligencePredictor
 
 
 def recommend(recommender, src="Shanghai", dst="Rotterdam", **kw):
@@ -76,8 +75,7 @@ def test_urgent_priority_trades_cost_for_time(recommender):
 
 @pytest.fixture(scope="module")
 def live_recommender(nlp):
-    rec = RouteRecommender(create_multimodal_network(), ThreatIntelligencePredictor(lazy_load=True), None,
-                           ScenarioManager(), demo_mode=True)
+    rec = RouteRecommender(create_multimodal_network(), ScenarioManager(), demo_mode=True)
     rec.nlp = nlp
     return rec
 

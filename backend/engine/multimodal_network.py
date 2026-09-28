@@ -11,11 +11,6 @@ MODE_PROFILES = {
     "sea": {"speed": 35, "cost_per_km": 0.15, "cargo_restrictions": ["perishable_urgent"]}
 }
 
-PRIORITY_MULTIPLIERS = {
-    "low": 1.2,
-    "normal": 1.0,
-    "urgent": 0.7
-}
 
 def _haversine(lat1, lon1, lat2, lon2):
     R = 6371
@@ -279,19 +274,3 @@ def create_multimodal_network():
 
     print(f"Split-Node Multimodal Network: {G.number_of_nodes()} virtual nodes, {G.number_of_edges()} edges")
     return G
-
-def get_city_capabilities(G):
-    city_data = {}
-    for node, data in G.nodes(data=True):
-        city = data.get("parent_city", data.get("display_name"))
-        if city not in city_data:
-            city_data[city] = {"id": data.get("physical_id"), "display_name": city, "country": data.get("country"), 
-                               "has_port": False, "has_airport": False, "has_rail": False, "nodes": []}
-        
-        city_data[city]["nodes"].append(node)
-        mode = data.get("mode")
-        if mode == "sea": city_data[city]["has_port"] = True
-        if mode == "air": city_data[city]["has_airport"] = True
-        if mode == "rail": city_data[city]["has_rail"] = True
-
-    return sorted(list(city_data.values()), key=lambda c: c["display_name"])

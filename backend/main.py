@@ -3,35 +3,22 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from typing import List, Literal, Optional
 import asyncio
 import json
-import random
 import os
 from contextlib import asynccontextmanager
 
 from fastapi.middleware.cors import CORSMiddleware
 from . import security
-from .engine.graph_model import create_logistics_network
-from .engine.simulator import LogisticsSimulator
-from .engine.threat_intelligence import ThreatIntelligencePredictor
-from .engine.baseline import BaselineRouter
-from .engine.weather_integration import APIWeatherProvider
-from .engine.multimodal_network import create_multimodal_network, get_city_capabilities, load_canonical_hubs
+from .engine.multimodal_network import create_multimodal_network, load_canonical_hubs
 from .engine.route_recommender import RouteRecommender
 from .engine.scenario_manager import ScenarioManager
 from .engine.supplier_scorer import SupplierScorer
 
-# Global Engine State
-network = create_logistics_network() # Still US-only simulator
-simulator = LogisticsSimulator(network, weather_provider=APIWeatherProvider())
-# Legacy predictor, kept for the scripts in scratch/: the router uses the delay
-# quantile model, so its unverified pickles are never loaded by the API.
-predictor = ThreatIntelligencePredictor(lazy_load=True)
-baseline = BaselineRouter(network)
-
-# Product layer (Supplychainer Architecture) - Now using Canonical Hubs
+# Global engine state. The legacy US-only prototype in engine/ (simulator,
+# baseline router, risk_model.pkl predictor) is not loaded by the API.
 multimodal_net = create_multimodal_network()
 scenario_mgr = ScenarioManager()
 DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
-recommender = RouteRecommender(multimodal_net, predictor, simulator, scenario_mgr, demo_mode=DEMO_MODE)
+recommender = RouteRecommender(multimodal_net, scenario_mgr, demo_mode=DEMO_MODE)
 canonical_hubs = load_canonical_hubs()
 supplier_scorer = SupplierScorer(os.path.join(os.path.dirname(__file__), 'data', 'suppliers.json'))
 
@@ -154,8 +141,6 @@ def get_status():
     return {
         "ml_trained": recommender.delay_model is not None,
         "delay_model_error": recommender.delay_model_error,
-        "active_trips": len(simulator.active_trips),
-        "tick": simulator.time_tick,
         "is_supplychainer": True,
         "geo_scope": "Global (Canonical)",
         "hub_count": len(canonical_hubs)
@@ -185,7 +170,6 @@ async def websocket_endpoint(websocket: WebSocket):
                 status_msg = "FULLY OPERATIONAL"
                 
             state = {
-                "tick": simulator.time_tick,
                 "ml_trained": recommender.delay_model is not None,
                 "engine_status": status_msg,
                 "hub_registry": "Synchronized"

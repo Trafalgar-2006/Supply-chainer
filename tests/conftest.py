@@ -28,12 +28,8 @@ def recommender():
     from backend.engine.multimodal_network import create_multimodal_network
     from backend.engine.route_recommender import RouteRecommender
     from backend.engine.scenario_manager import ScenarioManager
-    from backend.engine.threat_intelligence import ThreatIntelligencePredictor
-
     return RouteRecommender(
         create_multimodal_network(),
-        ThreatIntelligencePredictor(lazy_load=True),
-        None,
         ScenarioManager(),
         demo_mode=True,
     )

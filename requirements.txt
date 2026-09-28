@@ -40,7 +40,6 @@ pydantic_core==2.46.3
 Pygments==2.20.0
 pyparsing==3.3.2
 python-dateutil==2.9.0.post0
-python-dotenv==1.2.2
 PyYAML==6.0.3
 regex==2026.4.4
 requests==2.33.1
@@ -48,7 +47,6 @@ rich==15.0.0
 safetensors==0.7.0
 scikit-learn==1.8.0
 scipy==1.17.1
-seaborn==0.13.2
 sentence-transformers==5.4.1
 setuptools==81.0.0
 sgmllib3k==1.0.0

@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-export const PERSONA_COLOURS = { FASTEST: '#f59e0b', SAFEST: '#10b981', BALANCED: '#3b82f6' };
+const PERSONA_COLOURS = { FASTEST: '#f59e0b', SAFEST: '#10b981', BALANCED: '#3b82f6' };
 const EXPOSURE_COLOURS = { SCENARIO: '#ef4444', LIVE: '#a855f7' };
 
 // Continue a longitude from the previous one: shift by +-360 so consecutive

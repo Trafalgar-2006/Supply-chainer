@@ -37,10 +37,7 @@ class RouteRecommender:
     V8: Virtual-Node Forensic Edition.
     """
 
-    def __init__(self, network, predictor, simulator, scenario_mgr, demo_mode=False):
-        self.network = network # Legacy
-        self.predictor = predictor
-        self.simulator = simulator
+    def __init__(self, network, scenario_mgr, demo_mode=False):
         self.scenario_mgr = scenario_mgr
         self.demo_mode = demo_mode
         self.is_warmed_up = False

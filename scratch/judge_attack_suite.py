@@ -14,7 +14,7 @@ t0 = time.time()
 G = create_multimodal_network()
 predictor = ThreatIntelligencePredictor()
 scenario_mgr = ScenarioManager()
-recommender = RouteRecommender(G, predictor, None, scenario_mgr, demo_mode=True)
+recommender = RouteRecommender(G, scenario_mgr, demo_mode=True)
 cold_start_time = time.time() - t0
 
 report = []
