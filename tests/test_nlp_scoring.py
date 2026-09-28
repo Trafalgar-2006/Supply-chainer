@@ -12,13 +12,35 @@ SAFE = [
 ]
 
 
+def test_a_full_canal_closure_scores_near_maximum(nlp):
+    assert nlp.get_semantic_score(CATASTROPHIC[0]) >= 0.9
+
+
 @pytest.mark.parametrize("text", CATASTROPHIC)
-def test_catastrophic_disruptions_saturate(nlp, text):
-    assert nlp.get_semantic_score(text) >= 0.9
+def test_catastrophic_disruptions_score_high(nlp, text):
+    assert nlp.get_semantic_score(text) >= 0.6
+
+
+def test_a_strike_stays_well_below_a_canal_closure(nlp):
+    # The score feeds the delay model as incident severity, so a local strike
+    # must not read like a full closure.
+    strike = nlp.get_semantic_score(OPERATIONAL)
+    assert 0.3 <= strike <= 0.8
+    assert nlp.get_semantic_score(CATASTROPHIC[0]) - strike >= 0.2
 
 
 def test_minor_nuisance_scores_far_below_a_port_shutdown(nlp):
     assert nlp.get_semantic_score(MINOR) < 0.3 < nlp.get_semantic_score(OPERATIONAL)
+
+
+def test_short_fragments_are_ignored(nlp):
+    assert nlp.get_semantic_score("Rotterdam port reports record volumes | Light rain forecast") == 0.0
+
+
+def test_threat_type_comes_from_the_headline_that_set_the_score(nlp):
+    feed = "Port of Rotterdam reports record quarterly throughput | Typhoon Haikui forces closure of Kaohsiung and Xiamen ports"
+    result = nlp.assess(feed)
+    assert result["headline"].startswith("Typhoon Haikui") and result["type"] == "weather"
 
 
 @pytest.mark.parametrize("text", SAFE)

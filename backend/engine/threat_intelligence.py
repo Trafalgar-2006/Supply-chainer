@@ -13,7 +13,6 @@ import pandas as pd
 EXECUTION_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "Execution")
 MODEL_PATH = os.path.join(EXECUTION_DIR, "risk_model.pkl")
 ENCODER_PATH = os.path.join(EXECUTION_DIR, "label_encoders.pkl")
-NLP_ANCHORS_PATH = os.path.join(EXECUTION_DIR, "nlp_anchors.pt")
 CALIBRATION_PATH = os.path.join(EXECUTION_DIR, "calibration_profiles.json")
 
 class ThreatIntelligencePredictor:
@@ -198,10 +197,12 @@ SAFE_ARCHETYPES = [
     "Carrier launches a new weekly service and invests in new vessels.",
 ]
 
+MIN_REPORT_WORDS = 4  # shorter fragments ("Light rain forecast") carry no reliable signal
+
 def split_reports(news_text: str) -> List[str]:
     """One chunk per headline or sentence, so unrelated headlines are not blended."""
     parts = re.split(r"\s+\|\s+|(?<=[.!?])\s+", news_text or "")
-    return [p.strip()[:256] for p in parts if len(p.strip()) >= 5]
+    return [p.strip()[:256] for p in parts if len(p.split()) >= MIN_REPORT_WORDS]
 
 class ContrastiveNLPEngine:
     """Stage 2: PRODUCTION Contrastive NLP Brain."""
@@ -209,12 +210,12 @@ class ContrastiveNLPEngine:
         self._ready = False
         # Threat Margin = max cos-sim to a disaster anchor minus max cos-sim to a
         # safe anchor, per headline. On a labelled set of 33 headlines, safe and
-        # positive news stays below 0.10 and disruptions median ~0.2 (AUC 0.995).
-        # The margin says how clearly a report describes a disruption; it is not a
-        # fine-grained severity scale. The score ramps linearly from the noise
-        # floor to full strength at a typical severe-disruption margin.
+        # positive news stays below 0.10 (AUC 0.995 against disruptions). Full
+        # closures reach ~0.5, strikes ~0.35, weather and congestion ~0.15-0.25, so
+        # the ramp to 0.50 keeps a strike well below a canal closure. The score
+        # feeds the delay model as incident severity.
         self.noise_floor = 0.10
-        self.saturation_margin = 0.35
+        self.saturation_margin = 0.50
         if not lazy_load:
             self.warmup()
 
@@ -245,28 +246,41 @@ class ContrastiveNLPEngine:
             print(f"[NLP ENGINE] Warmup failed: {e}")
             self._ready = False
 
-    def get_semantic_score(self, news_text: str) -> float:
-        # t_nlp_start = time.perf_counter()
-        if not self._ready: return 0.0
-        chunks = split_reports(news_text)
-        if not chunks: return 0.0
-        chunk_embeddings = self.model.encode(chunks, convert_to_tensor=True)
-        d_scores = self.util.cos_sim(chunk_embeddings, self.disaster_matrix).cpu().numpy().max(axis=1)
-        s_scores = self.util.cos_sim(chunk_embeddings, self.safe_matrix).cpu().numpy().max(axis=1)
-        # The most threatening headline decides; each is compared with its own best safe match.
-        margin = float(np.max(d_scores - s_scores))
-        if margin <= self.noise_floor: return 0.0
-        return float(min(1.0, (margin - self.noise_floor) / (self.saturation_margin - self.noise_floor)))
+    @property
+    def ready(self) -> bool:
+        return self._ready
 
-    def classify_threat(self, news_text: str) -> Optional[Dict[str, Any]]:
-        """Most likely disruption category of a report, with its anchor similarity."""
+    def assess(self, news_text: str) -> Dict[str, Any]:
+        """Threat score and type of a report, both taken from its most threatening headline.
+
+        Each headline is compared with its own best safe match, so an unrelated
+        headline can neither dilute the threat nor lend it a different type.
+        """
         chunks = split_reports(news_text)
-        if not self._ready or not chunks: return None
+        if not self._ready or not chunks:
+            return {"score": 0.0, "type": "none", "confidence": 0.0, "headline": None}
         embeddings = self.model.encode(chunks, convert_to_tensor=True)
-        similarity = self.util.cos_sim(embeddings, self._type_matrix).cpu().numpy().max(axis=0)
+        d_scores = self.util.cos_sim(embeddings, self.disaster_matrix).cpu().numpy().max(axis=1)
+        s_scores = self.util.cos_sim(embeddings, self.safe_matrix).cpu().numpy().max(axis=1)
+        margins = d_scores - s_scores
+        top = int(np.argmax(margins))
+        margin = float(margins[top])
+        score = 0.0 if margin <= self.noise_floor else float(
+            min(1.0, (margin - self.noise_floor) / (self.saturation_margin - self.noise_floor)))
+        similarity = self.util.cos_sim(embeddings[top:top + 1], self._type_matrix).cpu().numpy()[0]
         best = int(np.argmax(similarity))
         threat_type = self._type_names[best] if similarity[best] >= MIN_TYPE_SIMILARITY else "general"
-        return {"type": threat_type, "confidence": round(float(similarity[best]), 3)}
+        return {"score": score, "type": threat_type, "confidence": round(float(similarity[best]), 3),
+                "headline": chunks[top]}
+
+    def get_semantic_score(self, news_text: str) -> float:
+        return self.assess(news_text)["score"]
+
+    def classify_threat(self, news_text: str) -> Optional[Dict[str, Any]]:
+        """Disruption category of a report's most threatening headline."""
+        if not self._ready or not split_reports(news_text): return None
+        result = self.assess(news_text)
+        return {"type": result["type"], "confidence": result["confidence"]}
 
 class CARFFilter:
     """Stage 3: CARF (Context-Aware Relevance Filter).
