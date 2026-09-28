@@ -1,4 +1,3 @@
-import json
 from typing import Dict, List, Any, Optional
 
 class ScenarioManager:
@@ -63,9 +62,6 @@ class ScenarioManager:
         }
     }
 
-    def __init__(self):
-        self.active_scenario_id = None
-
     def get_scenario(self, scenario_id: Optional[str]) -> Optional[Dict[str, Any]]:
         return self.SCENARIOS.get(scenario_id) if scenario_id else None
 
@@ -87,13 +83,6 @@ class ScenarioManager:
             }
             for node in scenario["affected_nodes"]
         }
-
-    def activate_scenario(self, scenario_id: Optional[str]):
-        self.active_scenario_id = scenario_id if self.get_scenario(scenario_id) else None
-        return self.get_scenario(self.active_scenario_id)
-
-    def get_active_disruptions(self) -> Dict[str, Any]:
-        return self.get_disruptions(self.active_scenario_id)
 
     def get_all_scenarios(self) -> List[Dict[str, Any]]:
         return [{"id": k, **v} for k, v in self.SCENARIOS.items()]

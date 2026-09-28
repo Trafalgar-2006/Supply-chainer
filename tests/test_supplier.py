@@ -36,10 +36,10 @@ def test_procurement_advice_status(inventory, safety, forecast, status):
     assert scorer.get_procurement_advice(inventory, safety, forecast)["status"] == status
 
 
-def test_supplier_endpoint_does_not_change_global_scenario(client):
-    from backend.main import scenario_mgr
-    before = scenario_mgr.active_scenario_id
+def test_supplier_scenario_does_not_leak_into_route_requests(client):
     r = client.post("/api/suppliers", json={"category": "Electronics", "scenario": "SUEZ_BLOCK"})
     assert r.status_code == 200
-    assert r.json()["active_disruptions"]
-    assert scenario_mgr.active_scenario_id == before
+    assert "CHOKE-SUEZ" in r.json()["active_disruptions"]
+    route = client.post("/api/recommend", json={"source": "Shanghai", "destination": "Rotterdam"}).json()
+    assert route["active_scenario"] is None
+    assert all(rec["audit_trace"]["eta"]["scenario"] == 0 for rec in route["recommendations"])

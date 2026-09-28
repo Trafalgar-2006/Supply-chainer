@@ -28,8 +28,7 @@ def run_adversarial_procurement_test():
     # 2. Disruption Sensitivity Test (Suez Block)
     print("\n[TEST 2] Disruption Sensitivity: Injecting 'SUEZ_BLOCK' impact on Global Suppliers")
     # Global Dynamics (SUP-GLOBAL-01) uses SUEZ.
-    sm.activate_scenario("SUEZ_BLOCK")
-    disruptions = sm.get_active_disruptions()
+    disruptions = sm.get_disruptions("SUEZ_BLOCK")
     
     r_normal = scorer.get_ranked_suppliers("Electronics")
     r_disrupted = scorer.get_ranked_suppliers("Electronics", disruptions)
