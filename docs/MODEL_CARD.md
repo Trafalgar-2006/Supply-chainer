@@ -89,7 +89,16 @@ At prediction time the model enforces `p50 ≤ p85 ≤ p95` and clips delays at 
 | BALANCED | p85 delay | buffered commitment |
 | SAFEST | p95 delay | worst case, times the risk penalty |
 
-Every route reports an ETA band: p50 / p85 / p95. The band adds up leg quantiles, which assumes delays on one route move together. That makes p85 and p95 a **conservative upper bound**, which suits a planning buffer. The audit trace separates nominal transit, transfers, typical delay (p50) and scenario delay, and these add up exactly to the ETA.
+Every route reports an ETA band (p50 / p85 / p95) for the **whole route**, estimated by Monte Carlo with 4,000 seeded samples:
+
+- Each leg's delay is modelled as log-normal, fitted to that leg's p50 and p95.
+- Legs are correlated through a Gaussian copula (ρ = 0.5), because delays on one route share weather, congestion and carrier performance.
+
+Adding leg quantiles instead would assume every leg hits its bad case at once, and would make a route look worse just because it has more legs.
+
+The typical ETA (`adjusted_eta`) adds each leg's median delay. The audit trace splits it into nominal transit, transfers, typical delay and scenario delay, and these parts add up exactly.
+
+Planning is additive: for Dijkstra, SAFEST adds each leg's p95. That's a risk-averse heuristic. The reported band is the simulated one.
 
 ### Explainability
 
@@ -98,24 +107,29 @@ Each route has a `delay_drivers` breakdown of its p85 delay, made of **exact Sha
 - Each leg's contributions are measured against a reference leg: a short road hop into a terminal, in clear weather, with no news.
 - Contributions add up exactly: `prediction(leg) − prediction(reference)`.
 - A feature equal to its reference value contributes exactly 0 (tested).
-- At route level, contributions are summed by factor. Example: "SEA leg +120 h, Weather: rainy +30 h".
+- At route level, contributions are summed by factor. The response lists the five largest factors and pools the rest as "Other factors". Example: "SEA leg +120 h, Weather: rainy +30 h".
+- `reference_hours` plus the drivers equals `total_hours` (tested).
 
 ### Integrity
 
-The report stores the artifact's SHA-256. `DelayQuantileModel.load` checks it **before** unpickling, because unpickling a tampered file can run arbitrary code. If the file is missing or tampered with, the router falls back to nominal transit times and `/api/status` reports why.
+The artifact's SHA-256 is **pinned in code** (`EXPECTED_SHA256` in `backend/engine/delay_model.py`), so write access to `Execution/` alone cannot swap the model. Retraining prints the new digest, and updating the pin is a reviewed code change.
+
+`DelayQuantileModel.load` hashes the file's bytes and unpickles **those same bytes**. It refuses a mismatch before deserialising anything, because unpickling a tampered file can run arbitrary code.
+
+If the file is missing or tampered with, the router falls back to nominal transit times and `/api/status` reports why. The legacy `risk_model.pkl` is no longer unpickled by the API at all.
 
 ---
 
 ## 2. Threat intelligence (NLP)
 
-- **Score:** each headline is embedded with `all-MiniLM-L6-v2`. Its margin is the best cosine similarity to a *disaster* anchor minus the best similarity to a *safe* anchor, and the worst headline in a feed decides the score. The margin maps linearly to 0–1, starting at 0.10 and reaching 1 at 0.35.
+- **Score:** each headline of four words or more is embedded with `all-MiniLM-L6-v2`. Its margin is the best cosine similarity to a *disaster* anchor minus the best similarity to a *safe* anchor, and the worst headline in a feed decides the score. The margin maps linearly to 0–1, starting at 0.10 and reaching 1 at 0.50. The resulting scale: Suez closure 0.96 > Red Sea attacks 0.72 > dock strike 0.61 > routine congestion 0.11. The score feeds the delay model as incident severity, so a strike has to stay well below a closure.
 - **Anchors:** the original historical corpus with **place and company names removed**, plus category archetypes. The named originals leaked location: every Rotterdam report resembled "Port of Rotterdam operating normally", so "Strike halts Rotterdam port operations" scored 0. The safe anchors also gained positive business news, such as new capacity and earnings.
 - **Measured performance:**
   - AUC 0.995 separating safe from disrupted headlines, on a labelled set of 33.
   - On 14 held-out headlines never used for tuning: **no false alarms, 6 of 8 disruptions detected.** The misses were a bridge collapse and a cyclone, both just under the floor.
-- **Threat type:** zero-shot, classified by nearest category archetype: weather, labour, geopolitical, infrastructure, cyber or congestion. Weather reports set the delay model's `condition` feature: rainy, or stormy when the score is 0.5 or higher.
+- **Threat type:** zero-shot, classified by nearest category archetype: weather, labour, geopolitical, infrastructure, cyber or congestion. The type is taken from **the same headline that set the score**. Weather reports set the delay model's `condition` feature: rainy from a score of 0.25, stormy from 0.6.
 - **CARF:** a report is dropped for a leg when it names another mode's infrastructure and none of the leg's own. Mode-neutral news (weather, conflict) applies to every mode.
-- **Live news:** Google News RSS for the origin and destination cities. Fetches use a 2 s timeout, results are cached for 15 minutes, and a failure is retried after a minute. A report applies to every hub in its city. With no network, there's no live signal; the static fallback texts are never passed off as news.
+- **Live news:** Google News RSS for the origin and destination cities, fetched only once the NLP engine is ready. The whole fetch has a 3 s budget. Results are cached for 15 minutes, and a failure is retried after five minutes. A report applies to every hub in its city. A leg shows the report that actually raised its threat, and a transfer is filtered for both modes it joins. With no network, there's no live signal; the static fallback texts are never passed off as news.
 
 ### Limitations
 
