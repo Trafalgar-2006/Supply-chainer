@@ -110,7 +110,7 @@ def get_network():
 @app.get("/api/status")
 def get_status():
     return {
-        "ml_trained": True,
+        "ml_trained": predictor.is_trained,
         "active_trips": len(simulator.active_trips),
         "tick": simulator.time_tick,
         "is_supplychainer": True,
@@ -132,7 +132,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 
             state = {
                 "tick": simulator.time_tick,
-                "ml_trained": True,
+                "ml_trained": predictor.is_trained,
                 "engine_status": status_msg,
                 "hub_registry": "Synchronized"
             }
@@ -166,11 +166,8 @@ def recommend_routes(req: RecommendRequest):
 
 @app.post("/api/suppliers")
 def get_suppliers(req: SourcingRequest):
-    # Get active disruptions from scenario manager
-    active_disruptions = {}
-    if req.scenario:
-        scenario_mgr.activate_scenario(req.scenario)
-        active_disruptions = scenario_mgr.get_active_disruptions()
+    # Per-request lookup: never mutate the scenario shared by concurrent requests
+    active_disruptions = scenario_mgr.get_disruptions(req.scenario)
     
     ranked_suppliers = supplier_scorer.get_ranked_suppliers(req.category, active_disruptions)
     advice = supplier_scorer.get_procurement_advice(req.current_inventory, req.safety_stock, req.demand_forecast)
