@@ -59,6 +59,16 @@ def test_enclosed_seas_are_only_reachable_through_their_straits(sea, inside, out
     assert not nx.has_path(sealed, f"{inside}:sea", f"{outside}:sea")
 
 
+@pytest.mark.parametrize("a, b, strait", [
+    ("PORT-SHANGHAI", "PORT-COLOMBO", "CHOKE-MALACCA"),
+    ("PORT-SHANGHAI", "PORT-JEBEL", "CHOKE-HORMUZ"),
+    ("PORT-FREMANTLE", "PORT-MELBOURNE", "CHOKE-CAPELEEUWIN"),
+])
+def test_shortest_sea_route_passes_the_real_strait(sea, a, b, strait):
+    path = nx.shortest_path(sea, f"{a}:sea", f"{b}:sea", weight="distance")
+    assert f"{strait}:sea" in path
+
+
 def test_landlocked_caspian_has_no_ocean_lanes(sea):
     for port in ("PORT-BAKU:sea", "RAIL-AKTAU:sea"):
         neighbours = set(sea.successors(port)) | set(sea.predecessors(port))
@@ -67,26 +77,33 @@ def test_landlocked_caspian_has_no_ocean_lanes(sea):
 
 @pytest.mark.parametrize("lat, lon, basin", [
     (25.01, 55.06, "PERSIAN_GULF"),   # Jebel Ali
-    (25.12, 56.34, "INDO_PACIFIC"),   # Fujairah, outside Hormuz
+    (25.12, 56.34, "INDIAN_OCEAN"),   # Fujairah, outside Hormuz
     (21.49, 39.18, "RED_SEA"),        # Jeddah
-    (11.59, 43.15, "INDO_PACIFIC"),   # Djibouti, outside Bab el-Mandeb
+    (11.59, 43.15, "INDIAN_OCEAN"),   # Djibouti, outside Bab el-Mandeb
     (31.26, 32.30, "MEDITERRANEAN"),  # Port Said
     (36.13, -5.45, "MEDITERRANEAN"),  # Algeciras
     (43.26, -2.93, "ATLANTIC"),       # Bilbao
     (59.93, 30.30, "ATLANTIC"),       # St Petersburg (Baltic)
     (9.36, -79.90, "ATLANTIC"),       # Colon
-    (8.95, -79.57, "INDO_PACIFIC"),   # Balboa
+    (8.95, -79.57, "PACIFIC"),   # Balboa
     (40.37, 49.85, "CASPIAN"),        # Baku
-    (16.17, -95.20, "INDO_PACIFIC"),  # Salina Cruz
-    (13.92, -90.79, "INDO_PACIFIC"),  # Puerto Quetzal
-    (12.48, -87.17, "INDO_PACIFIC"),  # Corinto
-    (9.98, -84.83, "INDO_PACIFIC"),   # Puntarenas
-    (3.88, -77.07, "INDO_PACIFIC"),   # Buenaventura
+    (16.17, -95.20, "PACIFIC"),  # Salina Cruz
+    (13.92, -90.79, "PACIFIC"),  # Puerto Quetzal
+    (12.48, -87.17, "PACIFIC"),  # Corinto
+    (9.98, -84.83, "PACIFIC"),   # Puntarenas
+    (3.88, -77.07, "PACIFIC"),   # Buenaventura
     (19.20, -96.13, "ATLANTIC"),      # Veracruz
     (18.14, -94.41, "ATLANTIC"),      # Coatzacoalcos
     (10.00, -83.03, "ATLANTIC"),      # Puerto Limon
     (23.14, -82.36, "ATLANTIC"),      # Havana
     (10.40, -75.50, "ATLANTIC"),      # Cartagena
+    (3.00, 101.39, "INDIAN_OCEAN"),   # Port Klang, Strait of Malacca
+    (1.26, 103.82, "PACIFIC"),        # Singapore, east of the Malacca chokepoint
+    (13.08, 100.88, "PACIFIC"),       # Laem Chabang, Gulf of Thailand
+    (6.94, 79.84, "INDIAN_OCEAN"),    # Colombo
+    (-32.06, 115.74, "INDIAN_OCEAN"), # Fremantle
+    (-37.82, 144.91, "PACIFIC"),      # Melbourne
+    (-6.10, 106.89, "PACIFIC"),       # Jakarta, Java Sea
 ])
 def test_sea_basin_classification(lat, lon, basin):
     assert sea_basin(lat, lon) == basin

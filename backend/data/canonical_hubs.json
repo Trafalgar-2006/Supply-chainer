@@ -76,6 +76,14 @@
       {
         "to": "PORT-PIRAEUS",
         "mode": "sea"
+      },
+      {
+        "to": "CHOKE-GIBRAL",
+        "mode": "sea"
+      },
+      {
+        "to": "CHOKE-DARDANELLES",
+        "mode": "sea"
       }
     ]
   },
@@ -134,6 +142,18 @@
       {
         "to": "PORT-COLOMBO",
         "mode": "sea"
+      },
+      {
+        "to": "CHOKE-BABEL",
+        "mode": "sea"
+      },
+      {
+        "to": "CHOKE-HORMUZ",
+        "mode": "sea"
+      },
+      {
+        "to": "CHOKE-CAPEGOOD",
+        "mode": "sea"
       }
     ]
   },
@@ -160,6 +180,10 @@
       },
       {
         "to": "PORT-COLOMBO",
+        "mode": "sea"
+      },
+      {
+        "to": "CHOKE-BABEL",
         "mode": "sea"
       }
     ]
@@ -188,6 +212,10 @@
       },
       {
         "to": "PORT-COLOMBO",
+        "mode": "sea"
+      },
+      {
+        "to": "CHOKE-SUEZ",
         "mode": "sea"
       }
     ]
@@ -239,6 +267,18 @@
       },
       {
         "to": "PORT-ROTTERDAM",
+        "mode": "sea"
+      },
+      {
+        "to": "CHOKE-DOVER",
+        "mode": "sea"
+      },
+      {
+        "to": "CHOKE-CAPEGOOD",
+        "mode": "sea"
+      },
+      {
+        "to": "CHOKE-PANAMA",
         "mode": "sea"
       }
     ]
@@ -8800,6 +8840,10 @@
       {
         "to": "PORT-COLOMBO",
         "mode": "sea"
+      },
+      {
+        "to": "CHOKE-CAPEGOOD",
+        "mode": "sea"
       }
     ]
   },
@@ -8826,6 +8870,14 @@
       },
       {
         "to": "PORT-BUSAN",
+        "mode": "sea"
+      },
+      {
+        "to": "CHOKE-MALACCA",
+        "mode": "sea"
+      },
+      {
+        "to": "CHOKE-PANAMA",
         "mode": "sea"
       }
     ]
@@ -8880,6 +8932,10 @@
       },
       {
         "to": "PORT-ALGECIRAS",
+        "mode": "sea"
+      },
+      {
+        "to": "CHOKE-GIBRAL",
         "mode": "sea"
       }
     ]
@@ -21997,5 +22053,32 @@
     "importance": 5,
     "parent_city": "Sambalpur",
     "connections": []
+  },
+  {
+    "id": "CHOKE-CAPELEEUWIN",
+    "display_name": "Cape Leeuwin",
+    "aliases": [
+      "Leeuwin"
+    ],
+    "type": "choke_point",
+    "modes": [
+      "sea"
+    ],
+    "lat": -34.37,
+    "lon": 115.14,
+    "country": "Australia",
+    "importance": 6,
+    "strategic_role": "South-west cape of Australia on the Indian Ocean - Southern Ocean passage",
+    "parent_city": "Cape Leeuwin",
+    "connections": [
+      {
+        "to": "PORT-FREMANTLE",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-MELBOURNE",
+        "mode": "sea"
+      }
+    ]
   }
 ]

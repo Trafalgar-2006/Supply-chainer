@@ -53,20 +53,24 @@ TRANSFER_PROFILES = {
     "default": {"delay": 4.0, "cost": 100, "risk": 0.03}
 }
 
-# Enclosed seas, and the Atlantic / Indo-Pacific split, can only be crossed through
-# real straits. The hub data lists direct lanes such as Jebel Ali -> Haifa that
-# would sail across the Arabian Peninsula; every cross-basin lane is routed through
-# its chokepoints instead, so a Hormuz, Bab el-Mandeb, Suez or Gibraltar disruption
-# reaches every ship that actually passes it.
+# Enclosed seas and the ocean basins can only be crossed through real straits and
+# capes. The hub data lists direct lanes such as Jebel Ali -> Haifa, which would sail
+# across the Arabian Peninsula, or Shanghai -> Jebel Ali, which would cross China and
+# India. Every cross-basin lane is routed through its chokepoints instead, so a
+# Hormuz, Bab el-Mandeb, Suez, Gibraltar or Malacca disruption reaches every ship
+# that actually passes it.
 SEA_GATES = {
-    "CHOKE-HORMUZ": ("PERSIAN_GULF", "INDO_PACIFIC"),
-    "CHOKE-BABEL": ("RED_SEA", "INDO_PACIFIC"),
+    "CHOKE-HORMUZ": ("PERSIAN_GULF", "INDIAN_OCEAN"),
+    "CHOKE-BABEL": ("RED_SEA", "INDIAN_OCEAN"),
     "CHOKE-SUEZ": ("RED_SEA", "MEDITERRANEAN"),
     "CHOKE-GIBRAL": ("MEDITERRANEAN", "ATLANTIC"),
     "CHOKE-DARDANELLES": ("MEDITERRANEAN", "MARMARA"),
     "CHOKE-BOSPHO": ("MARMARA", "BLACK_SEA"),
-    "CHOKE-CAPEGOOD": ("INDO_PACIFIC", "ATLANTIC"),
-    "CHOKE-PANAMA": ("INDO_PACIFIC", "ATLANTIC"),
+    "CHOKE-CAPEGOOD": ("INDIAN_OCEAN", "ATLANTIC"),
+    "CHOKE-PANAMA": ("PACIFIC", "ATLANTIC"),
+    "CHOKE-MALACCA": ("INDIAN_OCEAN", "PACIFIC"),
+    "CHOKE-LOMBOK": ("INDIAN_OCEAN", "PACIFIC"),
+    "CHOKE-CAPELEEUWIN": ("INDIAN_OCEAN", "PACIFIC"),  # south of Australia
 }
 
 def sea_basin(lat, lon):
@@ -78,12 +82,25 @@ def sea_basin(lat, lon):
     if 40.9 < lat <= 47.5 and 27.4 <= lon <= 42.0: return "BLACK_SEA"
     if 30.0 <= lat <= 46.0 and -5.7 <= lon <= 36.5 and not (lon < 3.0 and lat > 42.5): return "MEDITERRANEAN"
     if lon < -30:
-        return "INDO_PACIFIC" if _pacific_americas(lat, lon) else "ATLANTIC"
+        return "PACIFIC" if _pacific_americas(lat, lon) else "ATLANTIC"
     # North Sea, Baltic and Barents. The Arctic Northern Sea Route (CHOKE-NSR) is a
     # seasonal, ice-class passage, kept as a Pacific-side spur rather than a
     # year-round Asia-Europe gate.
     if lat > 50 and lon < 60: return "ATLANTIC"
-    return "ATLANTIC" if lon < 20 else "INDO_PACIFIC"
+    if lon < 20: return "ATLANTIC"
+    return "PACIFIC" if _pacific_asia(lat, lon) else "INDIAN_OCEAN"
+
+def _pacific_asia(lat, lon):
+    """East of the Malacca Strait / Indonesian archipelago, and eastern Australia."""
+    if lon < 97.5:
+        return False                      # Arabian Sea, Bay of Bengal, Andaman Sea
+    if lat < -10:
+        return lon >= 118.0               # Australia: west coast faces the Indian Ocean
+    if lon < 104.0:
+        # Malay Peninsula: the Gulf of Thailand and the coast east of the Malacca
+        # chokepoint face the South China Sea; the Strait of Malacca coast does not.
+        return lat > 10.5 or lon > 102.25
+    return True
 
 # Continental divide of Central America as (lon, lat) points, from the Isthmus of
 # Tehuantepec to Panama: a coast south-west of this line faces the Pacific.
