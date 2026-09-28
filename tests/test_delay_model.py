@@ -1,5 +1,6 @@
 import json
 import shutil
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -25,7 +26,7 @@ def predict(model, *legs):
 
 
 def test_held_out_coverage_matches_each_quantile():
-    report = json.loads(open(REPORT_PATH).read())
+    report = json.loads(Path(REPORT_PATH).read_text())
     for q in QUANTILES:
         stats = report["quantiles"][f"p{int(q * 100)}"]
         assert stats["coverage"] == pytest.approx(q, abs=0.03)
@@ -75,15 +76,15 @@ def model_rows(legs):
 def test_the_artifact_matches_the_digest_pinned_in_code():
     import hashlib
     from backend.engine.delay_model import EXPECTED_SHA256
-    assert hashlib.sha256(open(MODEL_PATH, "rb").read()).hexdigest() == EXPECTED_SHA256
-    assert json.loads(open(REPORT_PATH).read())["sha256"] == EXPECTED_SHA256
+    assert hashlib.sha256(Path(MODEL_PATH).read_bytes()).hexdigest() == EXPECTED_SHA256
+    assert json.loads(Path(REPORT_PATH).read_text())["sha256"] == EXPECTED_SHA256
 
 
 def test_a_rewritten_report_hash_does_not_bypass_the_pin(tmp_path):
     import hashlib
     tampered = tmp_path / "model.joblib"
-    tampered.write_bytes(open(MODEL_PATH, "rb").read() + b"payload")
-    report = json.loads(open(REPORT_PATH).read())
+    tampered.write_bytes(Path(MODEL_PATH).read_bytes() + b"payload")
+    report = json.loads(Path(REPORT_PATH).read_text())
     report["sha256"] = hashlib.sha256(tampered.read_bytes()).hexdigest()
     forged = tmp_path / "report.json"
     forged.write_text(json.dumps(report))
