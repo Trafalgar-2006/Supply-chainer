@@ -1,9 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { Activity, ArrowLeft, Brain } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
-const AXIS = { stroke: '#64748b', fontSize: 11 };
-const TOOLTIP = { contentStyle: { background: '#0f172a', border: '1px solid #1e293b', fontSize: 12 } };
+// Chart colours from the palette in index.css.
+const MUTED = '#8FA3B5';
+const GRID = '#22384D';
+const AXIS = { fill: MUTED, fontSize: 12 };
+const TOOLTIP = {
+  contentStyle: { background: '#0B1622', border: `1px solid ${GRID}`, fontSize: 13 },
+  cursor: { fill: 'rgba(24, 48, 71, 0.6)' },
+};
+const QUANTILE_COLOURS = { p50: '#DCE6EE', p85: '#6CC3D5', p95: '#E3A83B' };
 
 export default function ModelEvaluation({ onNavigate }) {
   const [report, setReport] = useState(null);
@@ -12,8 +19,8 @@ export default function ModelEvaluation({ onNavigate }) {
   useEffect(() => {
     fetch('/api/model')
       .then(r => r.json())
-      .then(data => (data.available ? setReport(data) : setError(data.error || 'Delay model unavailable')))
-      .catch(() => setError('Engine connection failed. Verify backend status.'));
+      .then(data => (data.available ? setReport(data) : setError(data.error || 'The delay model is not loaded.')))
+      .catch(() => setError('Could not reach the routing engine. Check that the backend is running.'));
   }, []);
 
   const quantiles = report ? Object.entries(report.quantiles) : [];
@@ -21,107 +28,106 @@ export default function ModelEvaluation({ onNavigate }) {
     name, target: Number(name.slice(1)), measured: +(q.coverage * 100).toFixed(1),
   }));
   const byMode = report ? Object.keys(quantiles[0][1].coverage_by_mode).map(mode => ({
-    mode: mode.toUpperCase(),
+    mode: mode.charAt(0).toUpperCase() + mode.slice(1),
     ...Object.fromEntries(quantiles.map(([name, q]) => [name, +(q.coverage_by_mode[mode] * 100).toFixed(1)])),
   })) : [];
   const loss = quantiles.map(([name, q]) => ({ name, model: q.pinball_loss, naive: q.naive_pinball_loss }));
   const importance = report ? Object.entries(report.p85_permutation_importance).map(([feature, value]) => ({ feature, value })) : [];
 
   return (
-    <div className="model-layout">
-      <header className="dashboard-header" style={{ gridColumn: 'auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <Brain size={28} color="#8b5cf6" />
-          <div>
-            <h1 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Delay Model Evaluation</h1>
-            <p style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>
-              P50 / P85 / P95 QUANTILE MODELS · HELD-OUT TEST SET{report ? ` · ${report.n_test.toLocaleString()} LEGS` : ''}
-            </p>
-          </div>
+    <div className="page">
+      <header className="topbar">
+        <div className="brand">
+          <h1>Delay model evaluation</h1>
+          <p>
+            p50, p85 and p95 quantile models, scored on a held-out test set
+            {report ? ` of ${report.n_test.toLocaleString()} legs` : ''}
+          </p>
         </div>
-        <button className="sc-badge-active" onClick={() => onNavigate('recommend')} style={{ cursor: 'pointer' }}>
-          <ArrowLeft size={14} /> ROUTE RECOMMENDER
-        </button>
+        <nav>
+          <button type="button" className="nav-button" onClick={() => onNavigate('recommend')}>
+            <ArrowLeft size={15} aria-hidden="true" /> Route planner
+          </button>
+        </nav>
       </header>
 
-      <main className="model-grid">
-        {error && <div className="error-box">{error}</div>}
-        {!report && !error && <p style={{ color: '#64748b' }}>Loading evaluation…</p>}
+      <main className="page-body">
+        {error && <div className="error" role="alert">{error}</div>}
+        {!report && !error && <p className="muted">Loading the evaluation…</p>}
         {report && (
-          <>
-            <section className="model-card">
-              <h2 className="panel-title"><Activity size={14} /> Calibration: coverage vs target</h2>
-              <p className="model-note">Share of held-out delays at or below each predicted quantile. Well calibrated means measured ≈ target.</p>
+          <div className="model-grid">
+            <section className="panel">
+              <h2>Calibration: measured coverage against target</h2>
+              <p className="note">Share of held-out delays at or below each predicted quantile. A calibrated model measures close to its target.</p>
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={coverage}>
-                  <CartesianGrid stroke="#1e293b" vertical={false} />
-                  <XAxis dataKey="name" tick={AXIS} />
-                  <YAxis domain={[0, 100]} unit="%" tick={AXIS} />
+                  <CartesianGrid stroke={GRID} vertical={false} />
+                  <XAxis dataKey="name" tick={AXIS} stroke={GRID} />
+                  <YAxis domain={[0, 100]} unit="%" tick={AXIS} stroke={GRID} />
                   <Tooltip {...TOOLTIP} />
                   <Legend />
-                  <Bar dataKey="target" fill="#334155" name="Target" />
-                  <Bar dataKey="measured" fill="#8b5cf6" name="Measured" />
+                  <Bar dataKey="target" fill={MUTED} name="Target" />
+                  <Bar dataKey="measured" fill="#6CC3D5" name="Measured" />
                 </BarChart>
               </ResponsiveContainer>
             </section>
 
-            <section className="model-card">
-              <h2 className="panel-title">Coverage by transport mode</h2>
+            <section className="panel">
+              <h2>Coverage by transport mode</h2>
+              <p className="note">The same check within each mode, so no mode hides behind the average.</p>
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={byMode}>
-                  <CartesianGrid stroke="#1e293b" vertical={false} />
-                  <XAxis dataKey="mode" tick={AXIS} />
-                  <YAxis domain={[0, 100]} unit="%" tick={AXIS} />
+                  <CartesianGrid stroke={GRID} vertical={false} />
+                  <XAxis dataKey="mode" tick={AXIS} stroke={GRID} />
+                  <YAxis domain={[0, 100]} unit="%" tick={AXIS} stroke={GRID} />
                   <Tooltip {...TOOLTIP} />
                   <Legend />
-                  <Bar dataKey="p50" fill="#3b82f6" />
-                  <Bar dataKey="p85" fill="#8b5cf6" />
-                  <Bar dataKey="p95" fill="#ef4444" />
+                  {quantiles.map(([name]) => <Bar key={name} dataKey={name} fill={QUANTILE_COLOURS[name] || MUTED} />)}
                 </BarChart>
               </ResponsiveContainer>
             </section>
 
-            <section className="model-card">
-              <h2 className="panel-title">Pinball loss vs naive baseline</h2>
-              <p className="model-note">Naive baseline: the empirical quantile of each (mode, arrival) group. Lower is better.</p>
+            <section className="panel">
+              <h2>Pinball loss against a naive baseline</h2>
+              <p className="note">The baseline predicts the empirical quantile of each mode and arrival group. Lower is better.</p>
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={loss}>
-                  <CartesianGrid stroke="#1e293b" vertical={false} />
-                  <XAxis dataKey="name" tick={AXIS} />
-                  <YAxis tick={AXIS} />
+                  <CartesianGrid stroke={GRID} vertical={false} />
+                  <XAxis dataKey="name" tick={AXIS} stroke={GRID} />
+                  <YAxis tick={AXIS} stroke={GRID} />
                   <Tooltip {...TOOLTIP} />
                   <Legend />
-                  <Bar dataKey="naive" fill="#334155" name="Naive baseline" />
-                  <Bar dataKey="model" fill="#10b981" name="Quantile model" />
+                  <Bar dataKey="naive" fill={MUTED} name="Naive baseline" />
+                  <Bar dataKey="model" fill="#49B083" name="Quantile model" />
                 </BarChart>
               </ResponsiveContainer>
             </section>
 
-            <section className="model-card">
-              <h2 className="panel-title">What drives the p85 delay</h2>
-              <p className="model-note">Permutation importance: rise in p85 pinball loss when a feature is shuffled.</p>
+            <section className="panel">
+              <h2>What drives the p85 delay</h2>
+              <p className="note">Permutation importance: how much the p85 pinball loss rises when a feature is shuffled.</p>
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={importance} layout="vertical" margin={{ left: 30 }}>
-                  <CartesianGrid stroke="#1e293b" horizontal={false} />
-                  <XAxis type="number" tick={AXIS} />
-                  <YAxis type="category" dataKey="feature" tick={AXIS} width={90} />
+                  <CartesianGrid stroke={GRID} horizontal={false} />
+                  <XAxis type="number" tick={AXIS} stroke={GRID} />
+                  <YAxis type="category" dataKey="feature" tick={AXIS} stroke={GRID} width={90} />
                   <Tooltip {...TOOLTIP} />
-                  <Bar dataKey="value" fill="#f59e0b" name="Importance" />
+                  <Bar dataKey="value" fill="#E3A83B" name="Importance" />
                 </BarChart>
               </ResponsiveContainer>
             </section>
 
-            <section className="model-card model-facts">
-              <h2 className="panel-title">Model facts</h2>
-              <ul>
+            <section className="panel">
+              <h2>About the model</h2>
+              <ul className="facts">
                 <li>One gradient-boosted quantile regressor per quantile, trained on {report.n_train.toLocaleString()} legs sampled from the live routing graph.</li>
-                <li>Monotonic in distance, weather and news severity; p50 ≤ p85 ≤ p95 enforced (raw crossing rate {(report.quantile_crossing_rate * 100).toFixed(2)}%).</li>
-                <li>Pinball loss vs the naive baseline: {quantiles.map(([name, q]) => `${name} ${Math.round(q.improvement_vs_naive * 100)}% better`).join(', ')}.</li>
-                <li>Artifact SHA-256 pinned in code and verified before loading: <code>{report.sha256.slice(0, 16)}…</code></li>
-                <li>Training data is synthetic and physics-informed; see docs/MODEL_CARD.md for assumptions and limitations.</li>
+                <li>Monotonic in distance, weather and news severity; p50 ≤ p85 ≤ p95 is enforced (raw crossing rate {(report.quantile_crossing_rate * 100).toFixed(2)}%).</li>
+                <li>Pinball loss against the naive baseline: {quantiles.map(([name, q]) => `${name} ${Math.round(q.improvement_vs_naive * 100)}% lower`).join(', ')}.</li>
+                <li>The artifact's SHA-256 is pinned in code and checked before loading: <code>{report.sha256.slice(0, 16)}…</code></li>
+                <li>Training data is synthetic and physics-informed. docs/MODEL_CARD.md lists the assumptions and limits.</li>
               </ul>
             </section>
-          </>
+          </div>
         )}
       </main>
     </div>

@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import RouteRecommender from './RouteRecommender.jsx';
 import SupplierIntelligence from './SupplierIntelligence.jsx';
-import ModelEvaluation from './ModelEvaluation.jsx';
+
+// The charts library is only needed on this page, so it loads on first visit.
+const ModelEvaluation = lazy(() => import('./ModelEvaluation.jsx'));
 
 export default function App() {
   const [currentView, setCurrentView] = useState('recommend');
@@ -30,7 +32,11 @@ export default function App() {
     return <SupplierIntelligence onNavigate={setCurrentView} />;
   }
   if (currentView === 'model') {
-    return <ModelEvaluation onNavigate={setCurrentView} />;
+    return (
+      <Suspense fallback={<p className="muted" style={{ padding: '1.5rem' }}>Loading the evaluation…</p>}>
+        <ModelEvaluation onNavigate={setCurrentView} />
+      </Suspense>
+    );
   }
   return <RouteRecommender onNavigate={setCurrentView} engineStatus={engineStatus} />;
 }

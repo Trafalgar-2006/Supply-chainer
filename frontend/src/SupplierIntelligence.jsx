@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, ArrowLeft, Database, ShieldAlert } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 // Inputs keep whatever the user typed (possibly empty mid-edit); requests use a
 // clean count, never NaN or a negative number.
 const toCount = value => Math.max(0, Number.parseInt(value, 10) || 0);
 const REQUEST_DELAY_MS = 300;
+const sentence = s => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase().replace(/_/g, ' ');
 
 export default function SupplierIntelligence({ onNavigate }) {
   const [suppliers, setSuppliers] = useState([]);
@@ -16,14 +17,20 @@ export default function SupplierIntelligence({ onNavigate }) {
   const [category, setCategory] = useState('Electronics');
   const [scenario, setScenario] = useState(null);
   const [scenarios, setScenarios] = useState([]);
+  const [hubNames, setHubNames] = useState({});
   const [error, setError] = useState(null);
 
   useEffect(() => {
     fetch('/api/scenarios')
       .then(r => r.json())
       .then(setScenarios)
-      .catch(e => console.error(e));
+      .catch(e => console.error('Failed to load scenarios', e));
+    fetch('/api/hubs')
+      .then(r => r.json())
+      .then(hubs => setHubNames(Object.fromEntries(hubs.map(h => [h.id, h.display_name]))))
+      .catch(e => console.error('Failed to load hubs', e));
   }, []);
+  const hubName = id => hubNames[id] || id;
 
   useEffect(() => {
     // Wait for typing to pause before asking the API, and drop superseded requests.
@@ -42,7 +49,7 @@ export default function SupplierIntelligence({ onNavigate }) {
     })
       .then(async res => {
         const data = await res.json();
-        if (!res.ok) throw new Error(Array.isArray(data.detail) ? data.detail.map(d => d.msg).join('; ') : `Request failed (${res.status})`);
+        if (!res.ok) throw new Error(Array.isArray(data.detail) ? data.detail.map(d => d.msg).join('; ') : data.detail || `Request failed (${res.status})`);
         setSuppliers(data.suppliers || []);
         setAdvice(data.advice);
         setDisruptions(data.active_disruptions || {});
@@ -53,124 +60,108 @@ export default function SupplierIntelligence({ onNavigate }) {
   }, [category, scenario, inventory, safetyStock, forecast]);
 
   const critical = advice && advice.urgency_level === 'CRITICAL';
-  const accent = critical ? '#ef4444' : '#8b5cf6';
 
   return (
-    <div className="supplier-layout">
-      <header className="dashboard-header" style={{ gridColumn: 'auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <Database size={28} color="#8b5cf6" />
-          <div>
-            <h1 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Supplier Intelligence</h1>
-            <p style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>DISRUPTION-AWARE SOURCING DECISION MATRIX</p>
-          </div>
+    <div className="page">
+      <header className="topbar">
+        <div className="brand">
+          <h1>Supplier intelligence</h1>
+          <p>Suppliers ranked by cost, lead time and reliability under disruption</p>
         </div>
-        <button className="sc-badge-active" style={{ cursor: 'pointer', borderColor: '#8b5cf6', color: '#8b5cf6' }} onClick={() => onNavigate('recommend')}>
-          <ArrowLeft size={14} /> ROUTE RECOMMENDER
-        </button>
+        <nav>
+          <button type="button" className="nav-button" onClick={() => onNavigate('recommend')}>
+            <ArrowLeft size={15} aria-hidden="true" /> Route planner
+          </button>
+        </nav>
       </header>
 
-      <main className="supplier-body">
-        <section className="supplier-controls">
-          <div className="sc-input-group">
-            <label className="sc-label">Product Category</label>
-            <select value={category} onChange={e => setCategory(e.target.value)} className="sc-select">
+      <main className="page-body">
+        <section className="supplier-controls" aria-label="Sourcing inputs">
+          <div className="field">
+            <label htmlFor="category">Product category</label>
+            <select id="category" value={category} onChange={e => setCategory(e.target.value)} className="control">
               <option value="Electronics">Electronics</option>
-              <option value="Raw Materials">Raw Materials</option>
+              <option value="Raw Materials">Raw materials</option>
               <option value="Chemicals">Chemicals</option>
             </select>
           </div>
-          <div className="sc-input-group">
-            <label className="sc-label">Current Inventory (units)</label>
-            <input type="number" min="0" value={inventory} onChange={e => setInventory(e.target.value)} className="sc-input" />
+          <div className="field">
+            <label htmlFor="inventory">Current inventory (units)</label>
+            <input id="inventory" type="number" min="0" value={inventory} onChange={e => setInventory(e.target.value)} className="control" />
           </div>
-          <div className="sc-input-group">
-            <label className="sc-label">Safety Stock Target (units)</label>
-            <input type="number" min="0" value={safetyStock} onChange={e => setSafetyStock(e.target.value)} className="sc-input" />
+          <div className="field">
+            <label htmlFor="safety">Safety stock target (units)</label>
+            <input id="safety" type="number" min="0" value={safetyStock} onChange={e => setSafetyStock(e.target.value)} className="control" />
           </div>
-          <div className="sc-input-group">
-            <label className="sc-label">Demand Forecast (units)</label>
-            <input type="number" min="0" value={forecast} onChange={e => setForecast(e.target.value)} className="sc-input" />
+          <div className="field">
+            <label htmlFor="forecast">Demand forecast (units)</label>
+            <input id="forecast" type="number" min="0" value={forecast} onChange={e => setForecast(e.target.value)} className="control" />
           </div>
-          <div className="sc-input-group">
-            <label className="sc-label">Disruption Scenario</label>
-            <select value={scenario || ''} onChange={e => setScenario(e.target.value || null)} className="sc-select">
-              <option value="">Operational Normal</option>
+          <div className="field">
+            <label htmlFor="supplier-scenario">Disruption scenario</label>
+            <select id="supplier-scenario" value={scenario || ''} onChange={e => setScenario(e.target.value || null)}
+                    className={`control ${scenario ? 'alert' : ''}`}>
+              <option value="">Normal operations</option>
               {scenarios.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>
         </section>
 
-        {error && <div className="error-box">{error}</div>}
+        {error && <div className="error" role="alert">{error}</div>}
 
-        <section className="supplier-results">
+        <div className="supplier-results">
           {advice && (
-            <div className="path-card" style={{ borderColor: accent, cursor: 'default' }}>
-              <div className="card-header" style={{ background: critical ? 'rgba(239, 68, 68, 0.1)' : 'rgba(139, 92, 246, 0.1)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: accent }}>
-                  <ShieldAlert size={18} />
-                  <span style={{ fontWeight: 800, fontSize: '0.75rem' }}>{advice.urgency_level} URGENCY</span>
-                </div>
-              </div>
-              <div style={{ padding: '1.25rem' }}>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '0.75rem' }}>{advice.recommendation}</h3>
-                <p style={{ fontSize: '0.85rem', color: '#94a3b8', lineHeight: 1.6 }}>
-                  Status: {advice.status.replace(/_/g, ' ')} · Projected inventory after demand: {advice.projected_inventory} units
-                  {advice.shortage_quantity > 0 && ` · Shortfall vs. safety stock: ${advice.shortage_quantity} units`}
-                </p>
-                {Object.keys(disruptions).length > 0 && (
-                  <p style={{ fontSize: '0.8rem', color: '#ef4444', marginTop: '0.75rem' }}>
-                    Disrupted: {Object.keys(disruptions).join(', ')}
-                  </p>
-                )}
-              </div>
-            </div>
+            <section className={`panel advice ${critical ? 'critical' : ''}`}>
+              <span className="urgency">{sentence(advice.urgency_level)} urgency</span>
+              <h2>{advice.recommendation}</h2>
+              <p className="note">
+                Status: {sentence(advice.status)}. Projected inventory after demand: {advice.projected_inventory.toLocaleString()} units.
+                {advice.shortage_quantity > 0 && ` Short of the safety stock by ${advice.shortage_quantity.toLocaleString()} units.`}
+              </p>
+              {Object.keys(disruptions).length > 0 && (
+                <p className="disrupted">Disrupted hubs: {Object.keys(disruptions).map(hubName).join(', ')}</p>
+              )}
+            </section>
           )}
 
-          <div className="path-card" style={{ cursor: 'default' }}>
-            <div className="card-header">
-              <h3 style={{ fontSize: '0.9rem', fontWeight: 700 }}>Qualified Suppliers, ranked</h3>
-            </div>
-            <div style={{ overflowX: 'auto' }}>
+          <section className="panel">
+            <h2>Qualified suppliers, best first</h2>
+            <div className="table-wrap">
               <table className="supplier-table">
                 <thead>
                   <tr>
-                    <th>#</th>
-                    <th>Supplier</th>
-                    <th>Unit cost</th>
-                    <th>Effective lead time</th>
-                    <th>Reliability (disruption-adjusted)</th>
-                    <th>Decision score</th>
+                    <th scope="col">Rank</th>
+                    <th scope="col">Supplier</th>
+                    <th scope="col">Unit cost</th>
+                    <th scope="col">Lead time</th>
+                    <th scope="col">Reliability</th>
+                    <th scope="col">Score</th>
                   </tr>
                 </thead>
                 <tbody>
                   {suppliers.length === 0 && (
-                    <tr><td colSpan={6} style={{ color: '#64748b' }}>No suppliers in this category.</td></tr>
+                    <tr><td colSpan={6} className="muted">No suppliers in this category.</td></tr>
                   )}
                   {suppliers.map(s => {
                     const reliability = s.audit_trace.effective_metrics.stability_index;
                     const penalty = s.audit_trace.penalties.lead_time_impact;
                     return (
                       <tr key={s.id}>
-                        <td style={{ color: '#64748b' }}>{s.rank}</td>
+                        <td className="num muted">{s.rank}</td>
                         <td>
-                          <div style={{ fontWeight: 700 }}>{s.name}</div>
-                          <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{s.location_hub}</div>
+                          {s.name}
+                          <small>{hubName(s.location_hub)}</small>
                         </td>
-                        <td className="mono">${s.unit_cost.toLocaleString()}</td>
-                        <td className="mono">
+                        <td className="num">${s.unit_cost.toLocaleString()}</td>
+                        <td className="num">
                           {s.effective_lead_time} days
-                          {penalty > 0 && <span style={{ color: '#ef4444' }}> (+{penalty})</span>}
+                          {penalty > 0 && <span className="added"> (+{penalty} from disruption)</span>}
                         </td>
+                        <td className={`num ${reliability < 80 ? 'low' : ''}`}>{reliability}%</td>
                         <td>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: reliability < 80 ? '#ef4444' : '#10b981' }}>
-                            <Activity size={14} /> {reliability}%
-                          </span>
-                        </td>
-                        <td>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span className="score">
                             <span className="score-track"><span style={{ width: `${Math.round(s.decision_score * 100)}%` }} /></span>
-                            <span className="mono">{s.decision_score.toFixed(2)}</span>
+                            <span className="num">{s.decision_score.toFixed(2)}</span>
                           </span>
                         </td>
                       </tr>
@@ -179,8 +170,8 @@ export default function SupplierIntelligence({ onNavigate }) {
                 </tbody>
               </table>
             </div>
-          </div>
-        </section>
+          </section>
+        </div>
       </main>
     </div>
   );

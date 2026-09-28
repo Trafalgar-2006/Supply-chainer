@@ -1,9 +1,21 @@
 import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
+import { animate, svg } from 'animejs';
 import 'leaflet/dist/leaflet.css';
 
-const PERSONA_COLOURS = { FASTEST: '#f59e0b', SAFEST: '#10b981', BALANCED: '#3b82f6' };
-const EXPOSURE_COLOURS = { SCENARIO: '#ef4444', LIVE: '#a855f7' };
+// Mirrors the palette in index.css; one colour per route option and per kind of exposure.
+export const PERSONA_COLOURS = { FASTEST: '#E3A83B', BALANCED: '#6CC3D5', SAFEST: '#49B083' };
+const EXPOSURE_COLOURS = { SCENARIO: '#E0564A', LIVE: '#C58BE0' };
+const PERSONA_NAMES = { FASTEST: 'Fastest', BALANCED: 'Best balance', SAFEST: 'Lowest risk' };
+
+// "Fastest and best balance": every option a route turned out best for.
+export function personaLabel(route) {
+  const names = (route.personas || [route.persona]).map(p => PERSONA_NAMES[p] || p);
+  if (names.length === 1) return names[0];
+  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1].toLowerCase()}`;
+}
+
+export const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // Continue a longitude from the previous one: shift by +-360 so consecutive
 // points are never more than 180 degrees apart, otherwise a transpacific leg
@@ -65,8 +77,8 @@ export default function RouteMap({ hubs, routes, selected, onSelect, disrupted, 
     hubs.forEach(h => {
       const choke = h.type === 'choke_point';
       L.circleMarker([h.lat, h.lon], {
-        radius: choke ? 4 : 2, color: choke ? '#f59e0b' : '#475569', weight: 1,
-        fillColor: choke ? '#f59e0b' : '#64748b', fillOpacity: choke ? 0.9 : 0.6,
+        radius: choke ? 4 : 2, color: choke ? '#DCE6EE' : '#8FA3B5', weight: choke ? 1.5 : 1,
+        fillColor: choke ? '#0B1622' : '#8FA3B5', fillOpacity: choke ? 1 : 0.5,
       }).bindTooltip(h.display_name).addTo(group);
     });
   }, [hubs]);
@@ -76,6 +88,8 @@ export default function RouteMap({ hubs, routes, selected, onSelect, disrupted, 
     group.clearLayers();
     const byId = Object.fromEntries(hubs.map(h => [h.id, h]));
     let focus = null;
+    let selectedLine = null;
+    const exposures = [];
     let anchor = {}; // hub id -> position on the selected route's world copy
 
     routes.forEach((route, idx) => {
@@ -83,15 +97,16 @@ export default function RouteMap({ hubs, routes, selected, onSelect, disrupted, 
       if (points.length < 2) return;
       const isSelected = idx === selected;
       const line = L.polyline(points, {
-        color: PERSONA_COLOURS[route.persona] || '#94a3b8',
+        color: PERSONA_COLOURS[route.persona] || '#8FA3B5',
         weight: isSelected ? 4 : 2,
-        opacity: isSelected ? 0.95 : 0.35,
+        opacity: isSelected ? 0.95 : 0.4,
         dashArray: isSelected ? null : '4 6',
       }).on('click', () => onSelect(idx))
-        .bindTooltip(`${(route.personas || [route.persona]).join(' · ')} · ${Math.round(route.adjusted_eta)}h`)
+        .bindTooltip(`${personaLabel(route)}: ${Math.round(route.adjusted_eta)} h typical`)
         .addTo(group);
       if (!isSelected) return;
       focus = line.getBounds();
+      selectedLine = line;
       anchor = positions;
 
       // Legs exposed to a scenario or live news, drawn over the selected route
@@ -99,26 +114,40 @@ export default function RouteMap({ hubs, routes, selected, onSelect, disrupted, 
       route.legs.forEach(leg => {
         const colour = EXPOSURE_COLOURS[leg.intel_source];
         if (!colour || leg.from === leg.to || !positions[leg.from] || !positions[leg.to]) return;
-        L.polyline([positions[leg.from], positions[leg.to]], { color: colour, weight: 7, opacity: 0.55 })
-          .bindTooltip(`${leg.intel_source}: ${leg.reason}`)
-          .addTo(group);
+        const label = leg.intel_source === 'LIVE' ? 'Live news' : 'Scenario';
+        exposures.push(L.polyline([positions[leg.from], positions[leg.to]], { color: colour, weight: 7, opacity: 0.55 })
+          .bindTooltip(`${label}: ${leg.reason}`)
+          .addTo(group));
       });
     });
+    // Later options would otherwise be drawn over the selected one.
+    selectedLine?.bringToFront();
+    exposures.forEach(e => e.bringToFront());
 
     // Alert pulses sit on the selected route's world copy when the hub is on it.
     const addPulses = (ids, className, prefix) => ids.forEach(id => {
       const h = byId[id];
       if (h) pulse(className, `${prefix}: ${h.display_name}`, anchor[id] || [h.lat, h.lon]).addTo(group);
     });
-    addPulses(disrupted, 'pulse-red', 'Scenario disruption');
-    addPulses(liveHubs, 'pulse-violet', 'Live news');
+    addPulses(disrupted, 'pulse-signal', 'Scenario disruption');
+    addPulses(liveHubs, 'pulse-orchid', 'Live news');
 
     // Refit only when a different route is shown (new results or a new
-    // selection), not when only the alerts change.
+    // selection), not when only the alerts change. That is also the one moment
+    // the chart animates: the route is drawn from origin to destination, then
+    // its exposed legs fade in.
+    const running = [];
     if (focus && fitted.current !== routes[selected]) {
       fitted.current = routes[selected];
       map.current.fitBounds(focus, { padding: [30, 30], maxZoom: 5 });
+      if (!prefersReducedMotion()) {
+        running.push(animate(svg.createDrawable(selectedLine.getElement()), { draw: ['0 0', '0 1'], duration: 1400, ease: 'inOutQuad' }));
+        const overlays = exposures.map(e => e.getElement());
+        if (overlays.length) running.push(animate(overlays, { opacity: [0, 1], delay: 1100, duration: 500, ease: 'outQuad' }));
+      }
     }
+    // A redraw replaces these elements; stop animating the old ones.
+    return () => running.forEach(a => a.revert());
   }, [routes, selected, hubs, onSelect, disrupted, liveHubs]);
 
   return <div ref={container} className="route-map" role="region" aria-label="Route map" />;
