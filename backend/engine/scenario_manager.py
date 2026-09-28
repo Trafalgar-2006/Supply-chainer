@@ -66,27 +66,34 @@ class ScenarioManager:
     def __init__(self):
         self.active_scenario_id = None
 
-    def activate_scenario(self, scenario_id: Optional[str]):
-        if scenario_id and scenario_id in self.SCENARIOS:
-            self.active_scenario_id = scenario_id
-            return self.SCENARIOS[scenario_id]
-        self.active_scenario_id = None
-        return None
+    def get_scenario(self, scenario_id: Optional[str]) -> Optional[Dict[str, Any]]:
+        return self.SCENARIOS.get(scenario_id) if scenario_id else None
 
-    def get_active_disruptions(self) -> Dict[str, Any]:
-        if not self.active_scenario_id:
+    def get_disruptions(self, scenario_id: Optional[str]) -> Dict[str, Any]:
+        """Disruptions for one request's scenario, without touching shared state.
+
+        Requests run concurrently in FastAPI's threadpool, so a request must never
+        read a scenario another request has just activated.
+        """
+        scenario = self.get_scenario(scenario_id)
+        if not scenario:
             return {}
-        
-        scenario = self.SCENARIOS[self.active_scenario_id]
-        disruptions = {}
-        for node in scenario["affected_nodes"]:
-            disruptions[node] = {
+        return {
+            node: {
                 "delay": scenario["delay_hours"],
                 "threat": scenario["threat_level"],
                 "reason": scenario["reason"],
                 "source": "SCENARIO_OVERRIDE"
             }
-        return disruptions
+            for node in scenario["affected_nodes"]
+        }
+
+    def activate_scenario(self, scenario_id: Optional[str]):
+        self.active_scenario_id = scenario_id if self.get_scenario(scenario_id) else None
+        return self.get_scenario(self.active_scenario_id)
+
+    def get_active_disruptions(self) -> Dict[str, Any]:
+        return self.get_disruptions(self.active_scenario_id)
 
     def get_all_scenarios(self) -> List[Dict[str, Any]]:
         return [{"id": k, **v} for k, v in self.SCENARIOS.items()]
