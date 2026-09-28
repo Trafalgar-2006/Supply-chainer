@@ -101,6 +101,67 @@ def test_preferred_policy_biases_towards_the_preferred_mode(recommender):
     assert hours_in(preferred, "rail") > hours_in(unbiased, "rail")
 
 
+def test_preferred_policy_never_trades_a_route_for_a_worse_one_without_the_mode(recommender):
+    # Splitting a long road trip into short hops must not dodge the preference penalty.
+    unbiased = recommend(recommender, src="Hamburg", dst="Rotterdam")["recommendations"]
+    unbiased_paths = {tuple(l["to"] for l in r["legs"]) for r in unbiased}
+    for rec in recommend(recommender, src="Hamburg", dst="Rotterdam", transport_preference="sea",
+                         routing_policy="PREFERRED")["recommendations"]:
+        uses_sea = any(l["mode"] == "SEA" for l in rec["legs"] if l["type"] == "transit")
+        assert uses_sea or tuple(l["to"] for l in rec["legs"]) in unbiased_paths
+
+
+@pytest.mark.parametrize("src, dst, scenario, pref, policy", [
+    ("Shanghai", "Rotterdam", None, "any", "STRICT"),
+    ("Shanghai", "Rotterdam", "SUEZ_BLOCK", "any", "STRICT"),
+    ("Chennai", "Singapore", "CHENNAI_FLOOD", "any", "STRICT"),
+    ("Hamburg", "Frankfurt", None, "rail", "PREFERRED"),
+    ("Hamburg", "Frankfurt", None, "sea", "PREFERRED"),
+])
+def test_a_route_is_called_fastest_only_if_it_is(recommender, src, dst, scenario, pref, policy):
+    recs = recommend(recommender, src=src, dst=dst, scenario=scenario, transport_preference=pref,
+                     routing_policy=policy)["recommendations"]
+    for rec in recs:
+        if rec["explanation"].startswith("Fastest option:"):
+            assert rec["adjusted_eta"] <= min(r["adjusted_eta"] for r in recs)
+
+
+@pytest.mark.parametrize("scenario", [None] + list(ScenarioManager.SCENARIOS))
+def test_fastest_persona_minimises_the_reported_eta(recommender, scenario):
+    # The optimiser and the reported trace use the same scenario accounting, so with
+    # no preference the FASTEST persona's reported ETA is the lowest of all personas.
+    for src, dst in (("Shanghai", "Rotterdam"), ("Chennai", "Singapore"), ("Mumbai", "Dubai")):
+        recs = recommend(recommender, src=src, dst=dst, scenario=scenario)["recommendations"]
+        fastest = next(r for r in recs if "FASTEST" in r["personas"])
+        assert fastest["adjusted_eta"] <= min(r["adjusted_eta"] for r in recs)
+
+
+def test_near_total_savings_are_not_rounded_to_100_percent(recommender):
+    for rec in recommend(recommender, src="Dubai", dst="Mumbai", scenario="DUBAI_AIR_CONGESTION")["recommendations"]:
+        assert "100%" not in rec["explanation"]
+
+
+def test_returned_routes_are_distinct_paths(recommender):
+    recs = recommend(recommender, transport_preference="sea")["recommendations"]
+    sigs = [tuple((l["to"], l["mode"], l["type"]) for l in r["legs"]) for r in recs]
+    assert len(sigs) == len(set(sigs))
+    assert sorted(p for r in recs for p in r["personas"]) == ["BALANCED", "FASTEST", "SAFEST"]
+
+
+def test_routing_does_not_modify_the_shared_graph(recommender):
+    before = recommender.unified_graph.number_of_edges()
+    recommend(recommender, transport_preference="sea", routing_policy="STRICT",
+              overrides={"avoid_chokepoints": ["CHOKE-SUEZ"]})
+    assert recommender.unified_graph.number_of_edges() == before
+
+
+def test_avoided_chokepoint_is_never_used(recommender):
+    for rec in recommend(recommender, transport_preference="sea",
+                         overrides={"avoid_chokepoints": ["CHOKE-SUEZ"]})["recommendations"]:
+        assert "CHOKE-SUEZ" not in route_hubs(rec)
+        assert rec["override_applied"]
+
+
 def test_strict_policy_uses_only_the_chosen_mode_plus_road_access(recommender):
     for rec in recommend(recommender, transport_preference="sea", routing_policy="STRICT")["recommendations"]:
         assert {l["mode"] for l in rec["legs"] if l["type"] == "transit"} <= {"SEA", "ROAD"}
