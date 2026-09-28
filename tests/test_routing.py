@@ -150,6 +150,11 @@ def test_returned_routes_are_distinct_paths(recommender):
     assert sorted(p for r in recs for p in r["personas"]) == ["BALANCED", "FASTEST", "SAFEST"]
 
 
+@pytest.mark.parametrize("src, dst", [("PORT-SHANGHAI", "PORT-SHANGHAI"), ("Shanghai", "Shanghai")])
+def test_same_origin_and_destination_is_an_error_not_an_empty_route(recommender, src, dst):
+    assert recommender.recommend(source=src, destination=dst) == {"error": "Origin and destination are the same hub."}
+
+
 def test_routing_does_not_modify_the_shared_graph(recommender):
     before = recommender.unified_graph.number_of_edges()
     recommend(recommender, transport_preference="sea", routing_policy="STRICT",

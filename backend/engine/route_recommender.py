@@ -249,6 +249,8 @@ class RouteRecommender:
         G = self.unified_graph
         s_vnode, d_vnode = res_s["id"], res_d["id"]
         origin_id, dest_id = G.nodes[s_vnode]["physical_id"], G.nodes[d_vnode]["physical_id"]
+        if origin_id == dest_id:
+            return {"error": "Origin and destination are the same hub."}
 
         # 2. Scenario lookup (per request; never shared state)
         active_scenario = self.scenario_mgr.get_scenario(scenario)
