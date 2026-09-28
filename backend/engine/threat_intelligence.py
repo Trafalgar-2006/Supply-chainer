@@ -161,6 +161,33 @@ THREAT_TYPE_ANCHORS = {
 }
 MIN_TYPE_SIMILARITY = 0.30  # below this the report matches no category well
 
+# Historical anchor corpus from Code/precompute_nlp.py with place and company names
+# removed. The named originals leaked location into the score: every report about
+# Rotterdam resembled the "Port of Rotterdam operating normally" safe anchor, so
+# "Strike halts Rotterdam port operations" scored 0.
+HISTORICAL_DISASTERS = [
+    "A container vessel ran aground in a major canal, blocking all traffic in both directions for six days. Over 400 ships were delayed, causing billions in trade disruption.",
+    "Ongoing security threats and missile attacks on commercial vessels have forced major shipping lines to reroute around a distant cape, adding 10-14 days to transit times.",
+    "Port workers went on strike for 13 days, freezing a quarter of the country's traded goods and causing a massive backlog in rail and trucking networks.",
+    "A potential nationwide rail strike threatened to shut down the freight network, risking $2 billion a day in economic output before emergency legislation was passed.",
+    "A global ransomware attack disabled the IT systems of the world's largest shipping company, forcing manual operations at 76 port terminals worldwide.",
+    "One of the world's busiest ports was partially shut down after a single COVID-19 case, causing severe global supply chain bottlenecks.",
+    "Severe shortages of truck drivers led to fuel delivery failures and empty supermarket shelves, highlighting systemic vulnerability in road freight.",
+    "Significant berthing congestion reported at container terminals. Vessel turnaround times are increasing due to labor shortages and yard density issues.",
+    "Customs IT systems are experiencing intermittent connectivity, leading to manual processing and 48-hour backlogs for international freight.",
+    "Trucker strikes and highway blockades have caused significant delays in last-mile delivery corridors. Port gates are experiencing high queue times.",
+    "Severe shortages of storage space at major logistics hubs are causing dwell time penalties and secondary transport delays.",
+    "Changes in regulatory inspections have created a bottleneck at the border, slowing down the flow of high-value cargo by 30%.",
+    "Catastrophic flooding destroyed over 3,000 km of road network and damaged major rail bridges, halting all inland logistics for weeks.",
+]
+HISTORICAL_SAFE = [
+    "Operations at the port are proceeding normally. Vessel turnaround times are within expected parameters and terminal capacity remains optimal.",
+    "Standardized terminal operating procedures have achieved a 99% on-time departure rate. Efficiency gains in ground handling have reduced idle times.",
+    "The freight transportation services index shows steady month-on-month growth. Intermodal rail volumes remain stable with no reported disruptions.",
+    "Shipment cleared customs in 4 hours. No significant weather events reported on the transcontinental route. Traffic flowing at 100% capacity.",
+    "Air cargo capacity on the transoceanic corridor remains high. Ground handling operations are normalized with no reported backlogs at major hubs.",
+]
+
 # The historical safe corpus only covers routine operations. Positive business
 # news (new capacity, earnings, record volumes, new services) is common in
 # logistics headlines and would otherwise read as mildly threatening.
@@ -181,12 +208,13 @@ class ContrastiveNLPEngine:
     def __init__(self, lazy_load=False):
         self._ready = False
         # Threat Margin = max cos-sim to a disaster anchor minus max cos-sim to a
-        # safe anchor, per headline. Measured on held-out headlines: routine and
-        # positive news sits below 0.08, operational disruptions (strikes, storms,
-        # fires) at 0.12-0.40, and full closures (Suez grounding, Red Sea attacks)
-        # at 0.5+. The score ramps linearly between the noise floor and saturation.
-        self.noise_floor = 0.08
-        self.saturation_margin = 0.50
+        # safe anchor, per headline. On a labelled set of 33 headlines, safe and
+        # positive news stays below 0.10 and disruptions median ~0.2 (AUC 0.995).
+        # The margin says how clearly a report describes a disruption; it is not a
+        # fine-grained severity scale. The score ramps linearly from the noise
+        # floor to full strength at a typical severe-disruption margin.
+        self.noise_floor = 0.10
+        self.saturation_margin = 0.35
         if not lazy_load:
             self.warmup()
 
@@ -195,24 +223,24 @@ class ContrastiveNLPEngine:
         print("[NLP ENGINE] Starting warmup...")
         try:
             from sentence_transformers import SentenceTransformer, util
-            self.model = SentenceTransformer("all-MiniLM-L6-v2")
+            try:
+                # Use the cached model without contacting the Hugging Face Hub, so
+                # start-up works offline and on flaky networks.
+                self.model = SentenceTransformer("all-MiniLM-L6-v2", local_files_only=True)
+            except Exception:
+                self.model = SentenceTransformer("all-MiniLM-L6-v2")  # first run: download
             self.util = util
-            if os.path.exists(NLP_ANCHORS_PATH):
-                # The anchors were saved from a GPU session; map them to CPU so the
-                # engine also runs on machines without CUDA.
-                anchors = torch.load(NLP_ANCHORS_PATH, map_location="cpu", weights_only=True)
-                pairs = [(t, s) for t, sentences in THREAT_TYPE_ANCHORS.items() for s in sentences]
-                self._type_names = [t for t, _ in pairs]
-                self._type_matrix = self.model.encode([s for _, s in pairs], convert_to_tensor=True)
-                # Historical incidents plus the category archetypes as disaster
-                # anchors; routine operations plus positive business news as safe ones.
-                self.disaster_matrix = torch.cat([anchors["disaster_matrix"], self._type_matrix])
-                self.safe_matrix = torch.cat([anchors["safe_matrix"],
-                                              self.model.encode(SAFE_ARCHETYPES, convert_to_tensor=True)])
-                self._ready = True
-                print(f"NLP Brain: Loaded Historical Anchor Matrix.")
-            else:
-                self._ready = False
+            pairs = [(t, s) for t, sentences in THREAT_TYPE_ANCHORS.items() for s in sentences]
+            self._type_names = [t for t, _ in pairs]
+            self._type_matrix = self.model.encode([s for _, s in pairs], convert_to_tensor=True)
+            # Historical incidents plus the category archetypes as disaster anchors;
+            # routine operations plus positive business news as safe ones. Encoded
+            # from text at start-up, so the anchors stay readable and auditable.
+            self.disaster_matrix = torch.cat([self.model.encode(HISTORICAL_DISASTERS, convert_to_tensor=True),
+                                              self._type_matrix])
+            self.safe_matrix = self.model.encode(HISTORICAL_SAFE + SAFE_ARCHETYPES, convert_to_tensor=True)
+            self._ready = True
+            print(f"NLP Brain: Anchor matrices ready.")
         except Exception as e:
             print(f"[NLP ENGINE] Warmup failed: {e}")
             self._ready = False
