@@ -4,4 +4,7 @@ __pycache__/
 *.pyc
 venv/
 env/
-.env
+.envnode_modules/
+.venv/
+.pytest_cache/
+*.log
