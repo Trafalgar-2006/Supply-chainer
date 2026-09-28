@@ -10,13 +10,13 @@ a regression test in `tests/`. "Before" numbers come from the original commit
 |---|---|---|
 | NLP score for *"Container ship ran aground in the Suez Canal, blocking all traffic…"* | 0.00 | **1.00** |
 | CARF: ship news on a sea leg / airport news on a sea leg | 0.0 / 0.8 (inverted) | **0.8 / 0.0** |
-| Ports that can reach each other by sea | 32 of 175 | **all 175, except the 2 landlocked Caspian ports** |
-| `SUEZ_BLOCK`, Shanghai → Rotterdam (balanced route) | Waits at the blocked canal: +240 h, 652 h total | **Sails around the Cape of Good Hope: 642 h, no blockage delay** |
+| Ports that can reach each other by sea | 32 of 175 | **every seaport except the 2 landlocked Caspian ports** |
+| `SUEZ_BLOCK`, Shanghai → Rotterdam (balanced route) | Waits at the blocked canal: +240 h | **Sails around the Cape of Good Hope: no blockage delay, about 170 h of extra sailing** |
 | `RED_SEA_CONFLICT`, same route | 0 h delay (the lane skipped Bab el-Mandeb) | **+72 h and threat 0.85 via the Red Sea; the SAFEST route goes around the Cape** |
 | `HORMUZ_CLOSURE`, Mumbai → Rotterdam | Sailed into Jebel Ali, inside the Gulf, with 0 h delay | **Stays out of the Gulf** |
 | `LA_PORT_STRIKE`, Shanghai → Los Angeles by sea | No effect possible: LA and Long Beach had no shipping lanes | **Normally lands at Long Beach; during the strike every option diverts via Oakland and trucks south** |
 | `CHENNAI_FLOOD`, Chennai → Singapore | 0 h delay, threat 0.05 | **+48 h, threat 0.75** |
-| Explanation text | "reduces total landed cost by **396%**" | Real comparison against the other routes returned, e.g. "13% cheaper than the safest route" |
+| Explanation text | "reduces total landed cost by **396%**" | Real comparison against the other routes returned, e.g. "N% cheaper than the fastest route, +X h on its ETA" |
 | Supplier lead time under `SUEZ_BLOCK` (SUP-GLOBAL-01) | 14 → 19 days (50%) | 14 → **15 days** (the documented 10%) |
 | Start-up warm-up | over 5 min (hidden while NLP was off) | **~7 s** |
 
@@ -26,21 +26,23 @@ a regression test in `tests/`. "Before" numbers come from the original commit
 |---|---|---|---|---|
 | 1 | Every NLP score was 0 on machines without a GPU | `nlp_anchors.pt` holds CUDA tensors and `torch.load` had no `map_location`. The load failure was caught and the engine switched itself off. | Load with `map_location="cpu", weights_only=True` | `test_nlp_scoring.py` |
 | 2 | Real threats scored 0; safe text scored negative | The noise-floor check was inverted (`margin >= floor → 0`) | Flipped the check and clamped the score to 0–1 | `test_nlp_scoring.py` |
-| 3 | Even a full Suez closure capped at a score of 0.2 | A 0.35 multiplier (the author's prototype used 3.5) | Linear scale from the noise floor (0.08) to saturation (0.50), set from measured margins (table below) | `test_severity_ordering` |
+| 3 | Even a full Suez closure capped at a score of 0.2 | A 0.35 multiplier (the author's prototype used 3.5) | Linear scale from the noise floor (0.10) to saturation (0.35), set from measured margins on labelled headlines (table below) | `test_severity_ordering` |
 | 4 | CARF dropped relevant news and kept irrelevant news | Both mode checks were inverted, and rail and road were never checked | A threat is dropped only when the news names another mode's infrastructure and none of the leg's own. All 4 modes are covered, with whole-word matching (so "airport" no longer counts as "port"). | `test_carf.py` |
 | 5 | Model files didn't load unless the server was started from the repo root | Paths were relative to the working directory | Paths are now resolved from the package location | `test_model_loading.py` |
 | 6 | Start-up warm-up took over 5 minutes | The same 4 fallback reports were run through the transformer once per edge (about 5,600 times) | Score each mode's report once | `test_warmup.py` |
 
-Measured NLP margins (best disaster-anchor similarity minus best safe-anchor similarity) that set the calibration:
+NLP calibration after the fixes, including the later removal of place names from
+the anchors (see `docs/MODEL_CARD.md`). Margin = best disaster-anchor similarity
+minus best safe-anchor similarity. Scores start at a margin of 0.10 and reach 1 at 0.35.
 
 | Text | Margin | Old score (×0.35) | New score |
 |---|---|---|---|
-| Suez grounding, all traffic blocked | +0.57 | 0.20 | 1.00 |
-| Red Sea missile attacks, rerouting | +0.50 | 0.17 | 1.00 |
-| Dock workers strike | +0.25 | 0.09 | 0.40 |
-| Sea fallback: "Berthing delays expected" | +0.27 | 0.09 | 0.44 |
-| Minor festival traffic | +0.14 | 0.05 | 0.13 |
-| "Operations proceeding normally" | −0.12 | 0.00 | 0.00 |
+| Suez grounding, all traffic blocked | +0.49 | 0.20 | 1.00 |
+| Red Sea missile attacks, rerouting | +0.39 | 0.17 | 1.00 |
+| Dock workers strike | +0.34 | 0.09 | 0.97 |
+| Sea fallback: "Berthing delays expected" | +0.15 | 0.09 | 0.18 |
+| Minor festival traffic | +0.14 | 0.05 | 0.14 |
+| "Operations proceeding normally" | −0.01 | 0.00 | 0.00 |
 
 ## Network and data
 
