@@ -488,8 +488,10 @@ class RouteRecommender:
             slower = [r for r in others if r["adjusted_eta"] > eta]
             if slower:
                 ref = min(slower, key=lambda r: r["total_cost"])
+                ratio = cost / ref["total_cost"]
+                price = "at about the same cost" if 0.95 <= ratio <= 1.05 else f"at {ratio:.1f}x its cost"
                 parts.append(f"{label}: {eta:.0f}h door to door, {ref['adjusted_eta'] - eta:.0f}h sooner "
-                             f"than the {ref['persona'].lower()} route at {cost / ref['total_cost']:.1f}x its cost.")
+                             f"than the {ref['persona'].lower()} route {price}.")
             else:
                 parts.append(f"{label}: {eta:.0f}h door to door.")
         if "SAFEST" in route["personas"]:
@@ -502,7 +504,8 @@ class RouteRecommender:
             else:
                 parts.append(f"{label}: peak threat {threat:.0%}.")
         if "BALANCED" in route["personas"]:
-            pricier = [r for r in others if r["total_cost"] > cost]
+            # Only a saving of at least 1% is worth calling cheaper.
+            pricier = [r for r in others if r["total_cost"] > cost * 1.01]
             if pricier:
                 ref = max(pricier, key=lambda r: r["total_cost"])
                 saving = (ref["total_cost"] - cost) / ref["total_cost"]

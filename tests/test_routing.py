@@ -178,3 +178,10 @@ def test_concurrent_requests_do_not_leak_scenarios(recommender):
         assert result["active_scenario"] == expected
         if scenario is None:
             assert all(r["audit_trace"]["eta"]["scenario"] == 0 for r in result["recommendations"])
+
+
+def test_explanations_do_not_claim_meaningless_savings(recommender):
+    for scenario in (None, "SUEZ_BLOCK"):
+        for rec in recommend(recommender, scenario=scenario, transport_preference="sea")["recommendations"]:
+            assert "0% cheaper" not in rec["explanation"]
+            assert "1.0x its cost" not in rec["explanation"]
