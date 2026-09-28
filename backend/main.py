@@ -43,6 +43,7 @@ class RecommendRequest(BaseModel):
     routing_policy: str = "STRICT" # STRICT or PREFERRED
     scenario: Optional[str] = None
     overrides: Optional[dict] = None
+    live_intel: bool = True # fetch live news for the origin and destination
 
 class SourcingRequest(BaseModel):
     category: str = "Electronics"
@@ -110,13 +111,21 @@ def get_network():
 @app.get("/api/status")
 def get_status():
     return {
-        "ml_trained": predictor.is_trained,
+        "ml_trained": recommender.delay_model is not None,
+        "delay_model_error": recommender.delay_model_error,
         "active_trips": len(simulator.active_trips),
         "tick": simulator.time_tick,
         "is_supplychainer": True,
         "geo_scope": "Global (Canonical)",
         "hub_count": len(canonical_hubs)
     }
+
+@app.get("/api/model")
+def get_model_report():
+    """Held-out evaluation of the delay quantile model (coverage, pinball loss, importance)."""
+    if recommender.delay_model is None:
+        return {"available": False, "error": recommender.delay_model_error}
+    return {"available": True, **recommender.delay_model.report}
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -132,7 +141,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 
             state = {
                 "tick": simulator.time_tick,
-                "ml_trained": predictor.is_trained,
+                "ml_trained": recommender.delay_model is not None,
                 "engine_status": status_msg,
                 "hub_registry": "Synchronized"
             }
@@ -160,7 +169,8 @@ def recommend_routes(req: RecommendRequest):
         transport_preference=req.transport_preference,
         routing_policy=req.routing_policy,
         scenario=req.scenario,
-        overrides=req.overrides
+        overrides=req.overrides,
+        live_intel=req.live_intel
     )
     return result
 

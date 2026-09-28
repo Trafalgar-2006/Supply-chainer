@@ -63,7 +63,9 @@ def test_scenario_delay_is_charged_once_per_disrupted_hub(recommender, scenario_
 def test_audit_trace_adds_up_to_the_totals(recommender, scenario):
     for rec in recommend(recommender, scenario=scenario, transport_preference="sea")["recommendations"]:
         eta, cost = rec["audit_trace"]["eta"], rec["audit_trace"]["cost"]
-        assert eta["transit"] + eta["transfer"] + eta["scenario"] == pytest.approx(rec["adjusted_eta"], abs=0.1)
+        assert eta["transit"] + eta["transfer"] + eta["delay"] + eta["scenario"] == pytest.approx(rec["adjusted_eta"], abs=0.1)
+        assert rec["eta_band"]["p50"] == pytest.approx(rec["adjusted_eta"], abs=0.1)
+        assert rec["eta_band"]["p50"] <= rec["eta_band"]["p85"] <= rec["eta_band"]["p95"]
         assert cost["transit"] + cost["transfer"] + cost["scenario"] == pytest.approx(rec["total_cost"], abs=0.1)
         # Each leg ETA is rounded to 0.1h, so allow half a rounding step per leg.
         assert sum(l["eta"] for l in rec["legs"]) == pytest.approx(rec["adjusted_eta"], abs=0.05 * len(rec["legs"]) + 0.05)
