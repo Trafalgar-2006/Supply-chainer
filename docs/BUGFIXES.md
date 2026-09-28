@@ -67,7 +67,8 @@ minus best safe-anchor similarity. Scores start at a margin of 0.10 and reach 1 
 | 18 | The PREFERRED ("soft bias") policy behaved exactly like "any" | Non-preferred modes are weighted 1.5×; first- and last-mile road hops are exempt | `test_preferred_policy_biases_towards_the_preferred_mode` |
 | 19 | The supplier penalty used 50% of the delay; the documented rule is 10% | Applied the documented 10% | `test_suez_block_adds_documented_lead_time_penalty` |
 | 20 | `ml_trained` was hard-coded to `true` | The real model load state is reported | — |
-| 21 | Hub search broke on names containing `&`, `#` or `?`, and slow responses could overwrite newer ones | The query is URL-encoded and stale responses are ignored | manual check in the app |
+| 21 | Hub search broke on names containing `&`, `#` or `?`, and slow responses could overwrite newer ones | The query is URL-encoded and stale responses are ignored | `tools/ui_smoke.py` |
+| 22 | A route whose origin and destination were the same hub came back with no legs, which the dashboard could not draw | Rejected with a clear error | `test_same_origin_and_destination_is_an_error_not_an_empty_route` |
 
 ## Repository
 
