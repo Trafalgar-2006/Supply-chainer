@@ -1,7 +1,9 @@
 import networkx as nx
 import pytest
 
-from backend.engine.multimodal_network import create_multimodal_network, land_link_possible, sea_basin
+from backend.engine.multimodal_network import (
+    _haversine, create_multimodal_network, land_link_possible, land_route_km, sea_basin,
+)
 
 
 @pytest.fixture(scope="module")
@@ -75,6 +77,16 @@ def test_landlocked_caspian_has_no_ocean_lanes(sea):
     (9.36, -79.90, "ATLANTIC"),       # Colon
     (8.95, -79.57, "INDO_PACIFIC"),   # Balboa
     (40.37, 49.85, "CASPIAN"),        # Baku
+    (16.17, -95.20, "INDO_PACIFIC"),  # Salina Cruz
+    (13.92, -90.79, "INDO_PACIFIC"),  # Puerto Quetzal
+    (12.48, -87.17, "INDO_PACIFIC"),  # Corinto
+    (9.98, -84.83, "INDO_PACIFIC"),   # Puntarenas
+    (3.88, -77.07, "INDO_PACIFIC"),   # Buenaventura
+    (19.20, -96.13, "ATLANTIC"),      # Veracruz
+    (18.14, -94.41, "ATLANTIC"),      # Coatzacoalcos
+    (10.00, -83.03, "ATLANTIC"),      # Puerto Limon
+    (23.14, -82.36, "ATLANTIC"),      # Havana
+    (10.40, -75.50, "ATLANTIC"),      # Cartagena
 ])
 def test_sea_basin_classification(lat, lon, basin):
     assert sea_basin(lat, lon) == basin
@@ -96,7 +108,6 @@ def test_land_lanes_stay_on_one_landmass(G, hub_index):
     ("PORT-SHENZHEN", "PORT-KAOHSIUNG", "rail"),    # Taiwan Strait
     ("PORT-TANGIER", "PORT-VALENCIA", "rail"),      # Strait of Gibraltar
     ("PORT-BUSAN", "PORT-DALIAN", "rail"),          # North Korea / Yellow Sea
-    ("PORT-FELIXSTOWE", "HUB-ROTTERDAM", "road"),   # North Sea
     ("PORT-TPELEPAS", "PORT-TANJUNGSAUH", "road"),  # Singapore Strait
 ])
 def test_impossible_land_lanes_are_absent(G, a, b, mode):
@@ -107,6 +118,21 @@ def test_impossible_land_lanes_are_absent(G, a, b, mode):
 def test_channel_tunnel_links_britain_to_the_continent(G):
     assert G.has_edge("BORDER-DOVER:road", "HUB-CALAIS:road")
     assert G.has_edge("HUB-CALAIS:road", "BORDER-DOVER:road")
+
+
+def test_britain_to_mainland_land_lanes_run_through_the_tunnel(G, hub_index):
+    felixstowe, rotterdam = hub_index["PORT-FELIXSTOWE"], hub_index["HUB-ROTTERDAM"]
+    straight = _haversine(felixstowe["lat"], felixstowe["lon"], rotterdam["lat"], rotterdam["lon"])
+    edge = G["PORT-FELIXSTOWE:road"]["HUB-ROTTERDAM:road"]
+    assert edge["distance"] == pytest.approx(land_route_km(felixstowe, rotterdam), abs=0.1)
+    assert edge["distance"] > straight * 1.5  # the North Sea is not crossed by truck
+
+
+def test_far_britain_mainland_links_are_kept_via_the_tunnel():
+    london = {"country": "UK", "lat": 51.5, "lon": -0.12}
+    paris = {"country": "France", "lat": 48.86, "lon": 2.35}
+    assert land_route_km(london, paris) == pytest.approx(land_route_km(paris, london))
+    assert land_route_km(london, paris) > _haversine(51.5, -0.12, 48.86, 2.35)
 
 
 def test_every_chokepoint_can_be_entered_and_left(G, hubs):

@@ -77,34 +77,56 @@ def sea_basin(lat, lon):
     if 40.3 <= lat <= 41.08 and 26.5 <= lon <= 30.0: return "MARMARA"
     if 40.9 < lat <= 47.5 and 27.4 <= lon <= 42.0: return "BLACK_SEA"
     if 30.0 <= lat <= 46.0 and -5.7 <= lon <= 36.5 and not (lon < 3.0 and lat > 42.5): return "MEDITERRANEAN"
-    if lon < -30:  # the Americas: Pacific coast vs Atlantic / Caribbean / Gulf of Mexico
-        pacific = lon < -100 or (lat < 9.2 and lon < -77) or (lat < 7 and lon < -70)
-        return "INDO_PACIFIC" if pacific else "ATLANTIC"
-    if lat > 50 and lon < 60: return "ATLANTIC"  # North Sea, Baltic, Barents
+    if lon < -30:
+        return "INDO_PACIFIC" if _pacific_americas(lat, lon) else "ATLANTIC"
+    # North Sea, Baltic and Barents. The Arctic Northern Sea Route (CHOKE-NSR) is a
+    # seasonal, ice-class passage, kept as a Pacific-side spur rather than a
+    # year-round Asia-Europe gate.
+    if lat > 50 and lon < 60: return "ATLANTIC"
     return "ATLANTIC" if lon < 20 else "INDO_PACIFIC"
+
+# Continental divide of Central America as (lon, lat) points, from the Isthmus of
+# Tehuantepec to Panama: a coast south-west of this line faces the Pacific.
+_CENTRAL_AMERICA_DIVIDE = [(-100.0, 18.5), (-95.0, 17.2), (-91.0, 15.5), (-87.5, 14.0),
+                           (-85.0, 11.0), (-82.5, 8.8), (-79.7, 9.15), (-77.0, 8.0)]
+
+def _pacific_americas(lat, lon):
+    if lon <= -100:
+        return True
+    if lon >= -77:  # South America east of the Darien: only the Pacific coast of Colombia to Chile
+        return lat < 7 and lon < -70
+    for (x1, y1), (x2, y2) in zip(_CENTRAL_AMERICA_DIVIDE, _CENTRAL_AMERICA_DIVIDE[1:]):
+        if x1 <= lon <= x2:
+            return lat < y1 + (lon - x1) / (x2 - x1) * (y2 - y1)
+    return False
 
 # Road and rail cannot cross open sea. Islands are reachable over land only through
 # a fixed link, and the Channel Tunnel is the only one between an island in the
-# registry and a continent.
+# registry and a continent: land lanes between Britain and the mainland run
+# through its portals.
 ISLAND_LANDMASSES = {"UK", "Ireland", "Japan", "Taiwan", "Sri Lanka", "Indonesia", "Philippines",
                      "Australia", "New Zealand", "Madagascar", "Iceland"}
 CHANNEL_TUNNEL_PORTALS = ((51.096, 1.137), (50.925, 1.813))  # Folkestone (UK), Coquelles (FR)
-TUNNEL_REACH_KM = 150
 
 def landmass(hub):
     if hub["country"] in ISLAND_LANDMASSES:
         return hub["country"]
     return "AMERICAS" if hub["lon"] < -30 else "AFRO_EURASIA"
 
-def land_link_possible(h1, h2):
+def land_route_km(h1, h2):
+    """Length of a road/rail lane between two hubs, or None if no land link exists."""
     a, b = landmass(h1), landmass(h2)
     if a == b:
-        return True
+        return _haversine(h1["lat"], h1["lon"], h2["lat"], h2["lon"])
     if {a, b} == {"UK", "AFRO_EURASIA"}:
-        uk, mainland = (h1, h2) if a == "UK" else (h2, h1)
-        return (_haversine(uk["lat"], uk["lon"], *CHANNEL_TUNNEL_PORTALS[0]) <= TUNNEL_REACH_KM
-                and _haversine(mainland["lat"], mainland["lon"], *CHANNEL_TUNNEL_PORTALS[1]) <= TUNNEL_REACH_KM)
-    return False
+        uk_portal, fr_portal = CHANNEL_TUNNEL_PORTALS
+        start, end = (uk_portal, fr_portal) if a == "UK" else (fr_portal, uk_portal)
+        return (_haversine(h1["lat"], h1["lon"], *start) + _haversine(*start, *end)
+                + _haversine(*end, h2["lat"], h2["lon"]))
+    return None
+
+def land_link_possible(h1, h2):
+    return land_route_km(h1, h2) is not None
 
 def _hub_basins(hub):
     return set(SEA_GATES[hub["id"]]) if hub["id"] in SEA_GATES else {sea_basin(hub["lat"], hub["lon"])}
@@ -135,6 +157,14 @@ def _strait_chain(h1, h2, hub_lookup):
     for basin in _hub_basins(h1):
         walk(basin, (h1["lat"], h1["lon"]), [], 0.0, frozenset({h1["id"], h2["id"]}))
     return None if best is None else best[1]
+
+def _add_lane(G, a, b, mode, dist):
+    """Add a transit lane of `dist` km in both directions."""
+    t = _travel_time(dist, mode)
+    cost = dist * MODE_PROFILES[mode]["cost_per_km"]
+    for x, y in ((a, b), (b, a)):
+        G.add_edge(x, y, baseline_time=t, distance=round(dist, 1),
+                   transport_mode=mode, type="transit", cost=cost)
 
 def create_multimodal_network():
     """
@@ -200,39 +230,35 @@ def create_multimodal_network():
             v_vnode = f"{v_base}:{mode}"
 
             if G.has_node(u_vnode) and G.has_node(v_vnode):
-                waypoints = [hub, hub_lookup[v_base]]
-                if mode in ("road", "rail") and not land_link_possible(hub, hub_lookup[v_base]):
-                    continue
+                target = hub_lookup[v_base]
                 if mode == "sea":
-                    chain = _strait_chain(hub, hub_lookup[v_base], hub_lookup)
+                    chain = _strait_chain(hub, target, hub_lookup)
                     if chain is None:
                         continue  # no sea passage between these basins
-                    waypoints[1:1] = [hub_lookup[g] for g in chain]
+                    waypoints = [hub] + [hub_lookup[g] for g in chain] + [target]
+                    segments = [(a, b, _haversine(a["lat"], a["lon"], b["lat"], b["lon"]))
+                                for a, b in zip(waypoints, waypoints[1:])]
+                elif mode in ("road", "rail"):
+                    dist = land_route_km(hub, target)
+                    if dist is None:
+                        continue  # no land link between these landmasses
+                    segments = [(hub, target, dist)]
+                else:
+                    segments = [(hub, target, _haversine(hub["lat"], hub["lon"], target["lat"], target["lon"]))]
 
-                for h1, h2 in zip(waypoints, waypoints[1:]):
-                    dist = _haversine(h1["lat"], h1["lon"], h2["lat"], h2["lon"])
-                    t = _travel_time(dist, mode)
-                    cost = dist * MODE_PROFILES[mode]["cost_per_km"]
-                    a, b = f"{h1['id']}:{mode}", f"{h2['id']}:{mode}"
-                    for x, y in ((a, b), (b, a)):
-                        G.add_edge(x, y, baseline_time=t, distance=round(dist, 1),
-                                   transport_mode=mode, type="transit", cost=cost)
+                for h1, h2, dist in segments:
+                    _add_lane(G, f"{h1['id']}:{mode}", f"{h2['id']}:{mode}", mode, dist)
 
-    # 4. Local Road Auto-wire (<200km)
+    # 4. Local Road Auto-wire (hubs < 200 km apart on the same landmass)
     for i, h1 in enumerate(hubs):
         if "road" not in h1["modes"]: continue
         for h2 in hubs[i+1:]:
-            if "road" not in h2["modes"] or not land_link_possible(h1, h2): continue
-            d = _haversine(h1["lat"], h1["lon"], h2["lat"], h2["lon"])
-            if d < 200:
-                u, v = f"{h1['id']}:road", f"{h2['id']}:road"
-                if G.has_node(u) and G.has_node(v) and not G.has_edge(u, v):
-                    t = _travel_time(d, "road")
-                    cost = d * MODE_PROFILES["road"]["cost_per_km"]
-                    G.add_edge(u, v, baseline_time=t, distance=round(d, 1), 
-                               transport_mode="road", type="transit", cost=cost)
-                    G.add_edge(v, u, baseline_time=t, distance=round(d, 1), 
-                               transport_mode="road", type="transit", cost=cost)
+            if "road" not in h2["modes"]: continue
+            if _haversine(h1["lat"], h1["lon"], h2["lat"], h2["lon"]) >= 200: continue
+            dist = land_route_km(h1, h2)
+            u, v = f"{h1['id']}:road", f"{h2['id']}:road"
+            if dist is not None and G.has_node(u) and G.has_node(v) and not G.has_edge(u, v):
+                _add_lane(G, u, v, "road", dist)
 
     print(f"Split-Node Multimodal Network: {G.number_of_nodes()} virtual nodes, {G.number_of_edges()} edges")
     return G
