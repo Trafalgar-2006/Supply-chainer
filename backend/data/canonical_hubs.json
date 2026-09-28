@@ -17852,7 +17852,24 @@
     "strategic_role": "Logistics hub for textiles and sugar",
     "parent_city": "Solapur",
     "region": "Maharashtra",
-    "connections": []
+    "connections": [
+      {
+        "to": "RAIL-PUNE",
+        "mode": "rail"
+      },
+      {
+        "to": "RAIL-HYDERABAD",
+        "mode": "rail"
+      },
+      {
+        "to": "RAIL-PUNE",
+        "mode": "road"
+      },
+      {
+        "to": "DC-HYDERABAD",
+        "mode": "road"
+      }
+    ]
   },
   {
     "id": "RAIL-NASHIK",

@@ -155,6 +155,20 @@ def test_same_origin_and_destination_is_an_error_not_an_empty_route(recommender,
     assert recommender.recommend(source=src, destination=dst) == {"error": "Origin and destination are the same hub."}
 
 
+def test_a_chokepoint_is_not_an_origin_or_destination(recommender):
+    assert recommender.recommend("CHOKE-SUEZ", "Rotterdam") == {"error": "Suez Canal is a waypoint, not an origin or destination."}
+    assert "waypoint" in recommender.recommend("Rotterdam", "CHOKE-MALACCA")["error"]
+
+
+def test_hub_search_offers_the_best_matches_first_and_no_chokepoints(client):
+    def search(q):
+        return client.get("/api/hubs/search", params={"q": q}).json()
+    assert search("rotterdam")[0]["display_name"] == "Port of Rotterdam"
+    assert search("Shanghai")[0]["display_name"] == "Port of Shanghai"
+    assert len(search("po")) == 12  # a short query no longer floods the list
+    assert search("suez") == []
+
+
 def test_routing_does_not_modify_the_shared_graph(recommender):
     before = recommender.unified_graph.number_of_edges()
     recommend(recommender, transport_preference="sea", routing_policy="STRICT",

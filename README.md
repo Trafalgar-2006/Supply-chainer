@@ -32,7 +32,7 @@ This is our TatHack '26 preliminary submission for **PS6: Supplychainer**. It bu
 
 ## What we changed
 
-### Fixed: 22 bugs, each with a regression test
+### Fixed: 24 bugs, each with a regression test
 
 The starter code ran without errors but gave wrong answers. Some examples, all measured on the starter commit and on ours:
 

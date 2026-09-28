@@ -107,18 +107,33 @@ def get_hubs():
     """Returns the full canonical hub registry."""
     return canonical_hubs
 
+SEARCH_LIMIT = 12
+
 @app.get("/api/hubs/search")
 def search_hubs(q: str = Query(..., min_length=1, max_length=100)):
-    """Search hubs by display_name, aliases, or country."""
-    q = q.lower()
-    results = []
-    for hub in canonical_hubs:
-        if (q in hub["display_name"].lower() or 
-            any(q in a.lower() for a in hub["aliases"]) or 
-            q in hub["country"].lower() or
-            q in hub["id"].lower()):
-            results.append(hub)
-    return results
+    """Hubs a shipment can start or end at, matching a name, alias, ID or country.
+
+    Best matches first: an exact name, then a word starting with the query, then
+    any substring, then the country; busier hubs first within each group.
+    Chokepoints are waypoints, so they are never offered.
+    """
+    q = q.lower().strip()
+
+    def rank(hub):
+        names = [hub["display_name"].lower(), hub["id"].lower(), *(a.lower() for a in hub["aliases"])]
+        if q in names:
+            return 0
+        if any(word.startswith(q) for name in names for word in name.replace("-", " ").split()):
+            return 1
+        if any(q in name for name in names):
+            return 2
+        if q in hub["country"].lower():
+            return 3
+        return None
+
+    ranked = [(r, -hub["importance"], hub["display_name"], hub) for hub in canonical_hubs
+              if hub["type"] != "choke_point" and (r := rank(hub)) is not None]
+    return [hub for *_, hub in sorted(ranked, key=lambda x: x[:3])[:SEARCH_LIMIT]]
 
 @app.get("/api/network")
 def get_network():

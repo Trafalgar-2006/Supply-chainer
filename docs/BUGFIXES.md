@@ -69,6 +69,8 @@ minus best safe-anchor similarity. Scores start at a margin of 0.10 and reach 1 
 | 20 | `ml_trained` was hard-coded to `true` | The real model load state is reported | — |
 | 21 | Hub search broke on names containing `&`, `#` or `?`, and slow responses could overwrite newer ones | The query is URL-encoded and stale responses are ignored | `tools/ui_smoke.py` |
 | 22 | A route whose origin and destination were the same hub came back with no legs, which the dashboard could not draw | Rejected with a clear error | `test_same_origin_and_destination_is_an_error_not_an_empty_route` |
+| 23 | Solapur Freight Terminal had no connections, so no route could start or end there (found by a 1,500-request randomised sweep) | Connected by rail and road to Pune and Hyderabad, as on the real Central Railway line and NH65 | `test_every_origin_can_reach_and_be_reached_from_every_other` |
+| 24 | Hub search returned every match unranked (about 150 for "po") and offered canals and straits as origins | Best matches first, at most 12, no chokepoints; routing rejects a chokepoint as an origin or destination | `test_hub_search_offers_the_best_matches_first_and_no_chokepoints`, `test_a_chokepoint_is_not_an_origin_or_destination` |
 
 ## Repository
 
