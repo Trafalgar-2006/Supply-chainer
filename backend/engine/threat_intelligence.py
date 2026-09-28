@@ -7,11 +7,13 @@ import time
 from typing import List, Dict, Any, Optional, Tuple
 import pandas as pd
 
-# Load Production Artifacts
-MODEL_PATH = "./Execution/risk_model.pkl"
-ENCODER_PATH = "./Execution/label_encoders.pkl"
-NLP_ANCHORS_PATH = "./Execution/nlp_anchors.pt"
-CALIBRATION_PATH = "./Execution/calibration_profiles.json"
+# Production artifacts live in <repo>/Execution; resolve them from this file so the
+# engine finds them no matter which directory the server is launched from.
+EXECUTION_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "Execution")
+MODEL_PATH = os.path.join(EXECUTION_DIR, "risk_model.pkl")
+ENCODER_PATH = os.path.join(EXECUTION_DIR, "label_encoders.pkl")
+NLP_ANCHORS_PATH = os.path.join(EXECUTION_DIR, "nlp_anchors.pt")
+CALIBRATION_PATH = os.path.join(EXECUTION_DIR, "calibration_profiles.json")
 
 class ThreatIntelligencePredictor:
     """
@@ -141,8 +143,13 @@ class ContrastiveNLPEngine:
     """Stage 2: PRODUCTION Contrastive NLP Brain."""
     def __init__(self, lazy_load=False):
         self._ready = False
-        self.noise_floor = 0.04
-        self.calibration_multiplier = 0.35
+        # Threat Margin = max cos-sim to a disaster anchor minus max cos-sim to a
+        # safe anchor. Measured against the anchor corpus: routine/safe text sits
+        # below 0.08, operational disruptions (strikes, floods) around 0.2-0.3, and
+        # full closures (Suez grounding, Red Sea attacks) at 0.5+. The score ramps
+        # linearly between the noise floor and the saturation point.
+        self.noise_floor = 0.08
+        self.saturation_margin = 0.50
         if not lazy_load:
             self.warmup()
 
@@ -154,7 +161,9 @@ class ContrastiveNLPEngine:
             self.model = SentenceTransformer("all-MiniLM-L6-v2")
             self.util = util
             if os.path.exists(NLP_ANCHORS_PATH):
-                anchors = torch.load(NLP_ANCHORS_PATH)
+                # The anchors were saved from a GPU session; map them to CPU so the
+                # engine also runs on machines without CUDA.
+                anchors = torch.load(NLP_ANCHORS_PATH, map_location="cpu", weights_only=True)
                 self.disaster_matrix = anchors["disaster_matrix"]
                 self.safe_matrix = anchors["safe_matrix"]
                 self._ready = True
@@ -174,8 +183,8 @@ class ContrastiveNLPEngine:
         d_scores = self.util.cos_sim(chunk_embeddings, self.disaster_matrix)
         s_scores = self.util.cos_sim(chunk_embeddings, self.safe_matrix)
         margin = float(np.max(d_scores.cpu().numpy())) - float(np.max(s_scores.cpu().numpy()))
-        if margin >= self.noise_floor: return 0.0
-        return float(min(1.0, margin * self.calibration_multiplier))
+        if margin <= self.noise_floor: return 0.0
+        return float(min(1.0, (margin - self.noise_floor) / (self.saturation_margin - self.noise_floor)))
 
 class CARFFilter:
     """Stage 3: TRUE CARF (Context-Aware Relevance Filter)."""
