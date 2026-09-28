@@ -17,6 +17,9 @@ QUANTILE_NAMES = ("p50", "p85", "p95")
 # BALANCED time/cost weights by shipment priority; the risk weight stays 0.2.
 BALANCED_WEIGHTS = {"low": (0.2, 0.6), "normal": (0.3, 0.5), "urgent": (0.5, 0.3)}
 NO_DELAY = (0.0, 0.0, 0.0)
+# Explanations call two routes equal when they differ by less than this.
+SAME_TIME_H = 1.0
+SAME_COST_RATIO = 0.02
 # Route ETA band: legs are log-normal (fitted to each leg's p50 and p95) and share
 # a Gaussian-copula correlation, since delays on one route share weather,
 # congestion and carrier performance.
@@ -485,11 +488,12 @@ class RouteRecommender:
 
         if "FASTEST" in route["personas"]:
             label = "Fastest option" + ("" if all(eta <= r["adjusted_eta"] for r in others) else favouring)
-            slower = [r for r in others if r["adjusted_eta"] > eta]
+            slower = [r for r in others if r["adjusted_eta"] - eta >= SAME_TIME_H]
             if slower:
                 ref = min(slower, key=lambda r: r["total_cost"])
                 ratio = cost / ref["total_cost"]
-                price = "at about the same cost" if 0.95 <= ratio <= 1.05 else f"at {ratio:.1f}x its cost"
+                price = ("at about the same cost" if abs(ratio - 1) < SAME_COST_RATIO
+                         else f"at {ratio:.1f}x its cost")
                 parts.append(f"{label}: {eta:.0f}h door to door, {ref['adjusted_eta'] - eta:.0f}h sooner "
                              f"than the {ref['persona'].lower()} route {price}.")
             else:
@@ -504,14 +508,15 @@ class RouteRecommender:
             else:
                 parts.append(f"{label}: peak threat {threat:.0%}.")
         if "BALANCED" in route["personas"]:
-            # Only a saving of at least 1% is worth calling cheaper.
-            pricier = [r for r in others if r["total_cost"] > cost * 1.01]
+            pricier = [r for r in others if (r["total_cost"] - cost) / r["total_cost"] >= SAME_COST_RATIO]
             if pricier:
                 ref = max(pricier, key=lambda r: r["total_cost"])
                 saving = (ref["total_cost"] - cost) / ref["total_cost"]
                 saving_text = "over 99%" if saving >= 0.995 else f"{saving:.0%}"
+                gap = eta - ref["adjusted_eta"]
+                timing = "same ETA" if abs(gap) < SAME_TIME_H else f"{gap:+.0f}h on its ETA"
                 parts.append(f"Best cost-time-risk balance: {saving_text} cheaper than the {ref['persona'].lower()} "
-                             f"route, {eta - ref['adjusted_eta']:+.0f}h on its ETA.")
+                             f"route, {timing}.")
             else:
                 parts.append(f"Best cost-time-risk balance at ${cost:,.0f} landed.")
 
