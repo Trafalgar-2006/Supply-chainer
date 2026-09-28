@@ -1,8 +1,10 @@
 import feedparser
+import requests
 import urllib.parse
 import time
-import socket
-from typing import List, Dict
+from typing import Optional
+
+FEED_TIMEOUT_S = 2.0
 
 class DynamicNewsIngestor:
     """
@@ -11,9 +13,10 @@ class DynamicNewsIngestor:
     Implements location-aware text retrieval and caching.
     """
     def __init__(self):
-        self.cache = {} # {query: (timestamp, content)}
+        self.cache = {} # {query: (timestamp, content or None)}
         self.cache_ttl = 900 # 15 minutes
-        
+        self.failure_ttl = 60 # retry an unreachable feed after a minute, not on every request
+
         # Operational Physics Fallbacks (Offline Reliability)
         self.fallback_news = {
             "sea": "Maritime congestion reported at major transshipment hubs. Berthing delays expected.",
@@ -22,41 +25,34 @@ class DynamicNewsIngestor:
             "rail": "Rail freight scheduling adjustments due to infrastructure maintenance."
         }
 
-    def get_latest_news(self, location: str, transport_mode: str) -> str:
+    def fetch_headlines(self, location: str, max_items: int = 3) -> Optional[str]:
+        """Latest logistics-disruption headlines for a place, or None if the feed is unavailable.
+
+        None means "no live signal", which callers must not confuse with the static
+        fallback reports.
         """
-        Fetches live news for a specific geographic node and transport mode.
-        """
-        query = f"{location} {transport_mode} logistics disruption"
-        
-        # 1. Check Cache
+        query = f"{location} logistics disruption"
         now = time.time()
         if query in self.cache:
             ts, content = self.cache[query]
-            if now - ts < self.cache_ttl:
+            if now - ts < (self.cache_ttl if content else self.failure_ttl):
                 return content
 
-        # 2. Live Ingestion (Google News RSS)
-        t_start = time.perf_counter()
-        print(f"[TRACE] STEP 7: News ingestion started for {location}")
+        content = None
         try:
-            encoded_query = urllib.parse.quote(query)
-            rss_url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en-US&gl=US&ceid=US:en"
-            
-            # Set a hard timeout for the socket
-            socket.setdefaulttimeout(2.0)
-            
-            feed = feedparser.parse(rss_url)
-            
-            if feed.entries:
-                top_headlines = [entry.title for entry in feed.entries[:3]]
-                content = " | ".join(top_headlines)
-                self.cache[query] = (now, content)
-                print(f"[TRACE] STEP 8: News ingestion complete ({time.perf_counter()-t_start:.4f}s)")
-                return content
-            
+            url = f"https://news.google.com/rss/search?q={urllib.parse.quote(query)}&hl=en-US&gl=US&ceid=US:en"
+            # Per-request timeout; socket.setdefaulttimeout would change every socket in the process.
+            response = requests.get(url, timeout=FEED_TIMEOUT_S)
+            response.raise_for_status()
+            entries = feedparser.parse(response.content).entries
+            if entries:
+                content = " | ".join(entry.title for entry in entries[:max_items])
         except Exception as e:
-            print(f"[TRACE] News ingestion error for {query}: {e}")
-            
-        # 3. Defensive Fallback
-        print(f"[TRACE] STEP 8: News ingestion complete (Fallback used)")
-        return self.fallback_news.get(transport_mode.lower(), "Normal operational conditions reported.")
+            print(f"[NEWS] Feed unavailable for {location!r}: {e}")
+        self.cache[query] = (now, content)
+        return content
+
+    def get_latest_news(self, location: str, transport_mode: str) -> str:
+        """Live headlines for a location, or the mode's static fallback report."""
+        return self.fetch_headlines(location) or self.fallback_news.get(
+            transport_mode.lower(), "Normal operational conditions reported.")
