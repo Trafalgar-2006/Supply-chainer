@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Truck, Ship, Plane, Train, 
   AlertTriangle, ShieldCheck, Clock, DollarSign, 
@@ -21,6 +21,7 @@ const RouteRecommender = ({ onNavigate }) => {
   const [searchQuery, setSearchQuery] = useState({ source: '', dest: '' });
   const [searchResults, setSearchResults] = useState({ source: [], dest: [] });
   const [scenarios, setScenarios] = useState([]);
+  const latestQuery = useRef({ source: '', dest: '' });
 
   useEffect(() => {
     // Pull the live scenario list from the backend instead of hardcoding IDs here,
@@ -75,14 +76,18 @@ const RouteRecommender = ({ onNavigate }) => {
 
   const handleSearch = async (type, query) => {
     setSearchQuery(prev => ({ ...prev, [type]: query }));
+    latestQuery.current[type] = query;
     if (query.length < 2) {
       setSearchResults(prev => ({ ...prev, [type]: [] }));
       return;
     }
     try {
-      const res = await fetch(`/api/hubs/search?q=${query}`);
+      const res = await fetch(`/api/hubs/search?q=${encodeURIComponent(query)}`);
       const data = await res.json();
-      setSearchResults(prev => ({ ...prev, [type]: data }));
+      // Responses can arrive out of order while typing; keep only the latest.
+      if (latestQuery.current[type] === query) {
+        setSearchResults(prev => ({ ...prev, [type]: data }));
+      }
     } catch (err) { console.error("Search failed"); }
   };
 
@@ -215,7 +220,7 @@ const RouteRecommender = ({ onNavigate }) => {
                 <span className={`persona-badge ${
                   rec.persona === 'FASTEST' ? 'tag-fastest' :
                   rec.persona === 'SAFEST' ? 'tag-safest' : 'tag-balanced'
-                }`}>{rec.persona}</span>
+                }`}>{(rec.personas || [rec.persona]).join(' · ')}</span>
                 <div style={{display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', fontFamily: 'JetBrains Mono'}}>
                    <Clock size={12} /> {rec.adjusted_eta}h
                 </div>
@@ -316,7 +321,7 @@ const RouteRecommender = ({ onNavigate }) => {
           </div>
           <div style={{display: 'flex', gap: '0.5rem', alignItems: 'center'}}>
             <span style={{fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8'}}>RISK FLOOR:</span>
-            <span style={{fontSize: '0.9rem', fontWeight: 800, color: '#3b82f6'}}>{recommendations.length > 0 ? Math.min(...recommendations.map(r => r.threat_level * 100)) : '--'}%</span>
+            <span style={{fontSize: '0.9rem', fontWeight: 800, color: '#3b82f6'}}>{recommendations.length > 0 ? Math.round(Math.min(...recommendations.map(r => r.threat_level)) * 100) : '--'}%</span>
           </div>
         </div>
       </footer>
