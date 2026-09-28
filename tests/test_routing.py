@@ -69,6 +69,15 @@ def test_audit_trace_adds_up_to_the_totals(recommender, scenario):
         assert sum(l["eta"] for l in rec["legs"]) == pytest.approx(rec["adjusted_eta"], abs=0.05 * len(rec["legs"]) + 0.05)
 
 
+def test_la_port_strike_affects_ships_bound_for_los_angeles(recommender):
+    normal = recommend(recommender, src="Shanghai", dst="Los Angeles", transport_preference="sea")["recommendations"]
+    assert any({"PORT-LOSANGELES", "PORT-LONGBEACH"} & set(route_hubs(r)) for r in normal)
+    for rec in recommend(recommender, src="Shanghai", dst="Los Angeles", transport_preference="sea",
+                         scenario="LA_PORT_STRIKE")["recommendations"]:
+        through_la = {"PORT-LOSANGELES", "PORT-LONGBEACH"} & set(route_hubs(rec))
+        assert not through_la or rec["audit_trace"]["eta"]["scenario"] >= 120
+
+
 def test_disrupted_origin_is_reported(recommender):
     for rec in recommend(recommender, src="Chennai", dst="Singapore", scenario="CHENNAI_FLOOD")["recommendations"]:
         assert rec["threat_level"] >= 0.75

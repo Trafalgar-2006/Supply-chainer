@@ -2242,6 +2242,26 @@
       {
         "to": "RAIL-LOSANGELES",
         "mode": "rail"
+      },
+      {
+        "to": "PORT-SHANGHAI",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-BUSAN",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-YOKOHAMA",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-OAKLAND",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-BALBOA",
+        "mode": "sea"
       }
     ]
   },
@@ -2287,6 +2307,26 @@
       {
         "to": "RAIL-LOSANGELES",
         "mode": "rail"
+      },
+      {
+        "to": "PORT-SHANGHAI",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-NINGBO",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-BUSAN",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-OAKLAND",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-BALBOA",
+        "mode": "sea"
       }
     ]
   },
@@ -2334,6 +2374,26 @@
       {
         "to": "BORDER-BUFFALONIAGARA",
         "mode": "rail"
+      },
+      {
+        "to": "PORT-ROTTERDAM",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-ALGECIRAS",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-COLON",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-SAVANNAH",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-HALIFAX",
+        "mode": "sea"
       }
     ]
   },
@@ -2438,6 +2498,22 @@
       {
         "to": "HUB-DALLAS",
         "mode": "rail"
+      },
+      {
+        "to": "PORT-ROTTERDAM",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-ALGECIRAS",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-COLON",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-BROWNSVILLE",
+        "mode": "sea"
       }
     ]
   },
@@ -2468,6 +2544,18 @@
       {
         "to": "RAIL-SEATTLE",
         "mode": "rail"
+      },
+      {
+        "to": "PORT-BUSAN",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-SHANGHAI",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-SEATTLE",
+        "mode": "sea"
       }
     ]
   },
@@ -2517,6 +2605,26 @@
       {
         "to": "PORT-PARANAGUA",
         "mode": "rail"
+      },
+      {
+        "to": "PORT-ROTTERDAM",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-ALGECIRAS",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-BUENOSAIRES",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-PARANAGUA",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-SHANGHAI",
+        "mode": "sea"
       }
     ]
   },
@@ -5524,6 +5632,22 @@
       {
         "to": "AIR-LIMA",
         "mode": "road"
+      },
+      {
+        "to": "PORT-BALBOA",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-GUAYAQUIL",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-VALPARAISO",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-SHANGHAI",
+        "mode": "sea"
       }
     ]
   },
@@ -5899,6 +6023,22 @@
       {
         "to": "RAIL-OUAGADOUGOU",
         "mode": "rail"
+      },
+      {
+        "to": "PORT-ROTTERDAM",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-ALGECIRAS",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-LAGOS",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-LOME",
+        "mode": "sea"
       }
     ]
   },
@@ -7048,6 +7188,18 @@
       {
         "to": "PORT-SYDNEY",
         "mode": "rail"
+      },
+      {
+        "to": "PORT-SINGAPORE",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-SYDNEY",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-FREMANTLE",
+        "mode": "sea"
       }
     ]
   },
@@ -7082,6 +7234,26 @@
       {
         "to": "PORT-MELBOURNE",
         "mode": "rail"
+      },
+      {
+        "to": "PORT-SINGAPORE",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-SHANGHAI",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-BRISBANE",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-MELBOURNE",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-TAURANGA",
+        "mode": "sea"
       }
     ]
   },
@@ -7149,6 +7321,18 @@
       {
         "to": "RAIL-PERTH",
         "mode": "rail"
+      },
+      {
+        "to": "PORT-SINGAPORE",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-COLOMBO",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-MELBOURNE",
+        "mode": "sea"
       }
     ]
   },
@@ -7182,6 +7366,18 @@
       {
         "to": "RAIL-AUCKLAND",
         "mode": "rail"
+      },
+      {
+        "to": "PORT-SYDNEY",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-SINGAPORE",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-SHANGHAI",
+        "mode": "sea"
       }
     ]
   },
@@ -11715,6 +11911,14 @@
       {
         "to": "RAIL-LAPAZ",
         "mode": "rail"
+      },
+      {
+        "to": "PORT-CALLAO",
+        "mode": "sea"
+      },
+      {
+        "to": "PORT-VALPARAISO",
+        "mode": "sea"
       }
     ]
   },

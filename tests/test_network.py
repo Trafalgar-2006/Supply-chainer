@@ -117,9 +117,10 @@ def test_every_chokepoint_can_be_entered_and_left(G, hubs):
     assert stuck == []
 
 
-def test_sea_network_is_one_navigable_ocean(sea):
+def test_every_seaport_outside_the_caspian_is_on_one_navigable_ocean(sea):
     largest = max(nx.strongly_connected_components(sea), key=len)
-    assert len(largest) / sea.number_of_nodes() > 0.9
+    stranded = sorted(n for n in sea if n not in largest and "CASPIAN" not in sea.nodes[n]["basins"])
+    assert stranded == []
 
 
 def test_every_hub_is_reachable_from_the_main_network(G):
