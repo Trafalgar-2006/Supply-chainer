@@ -31,7 +31,7 @@ class RouteRecommender:
         self.resolver = NodeResolver()
         
         print(f"[STARTUP] Initializing Split-Node Global Topology...")
-        self.unified_graph = create_multimodal_network()
+        self.unified_graph = network if network is not None else create_multimodal_network()
         
         if self.demo_mode:
             self.is_warmed_up = True
@@ -45,15 +45,19 @@ class RouteRecommender:
             self.predictor.warmup()
             self.nlp.warmup()
             
-            # Enrich unified graph with baseline intelligence
+            # Enrich unified graph with baseline intelligence. Every edge of a mode
+            # shares that mode's baseline report, so score each report once rather
+            # than running the transformer for all ~5,600 edges.
+            baseline = {}
+            for mode, news in self.news_ingestor.fallback_news.items():
+                score = self.nlp.get_semantic_score(news)
+                baseline[mode] = (self.carf.apply_filter(score, news, mode), news)
             for u, v, d in self.unified_graph.edges(data=True):
                 mode = d.get("transport_mode", "road")
                 if mode == "transfer": continue
-                news = self.news_ingestor.fallback_news.get(mode, "Normal conditions.")
-                score = self.nlp.get_semantic_score(news)
-                threat = self.carf.apply_filter(score, news, mode)
-                self.unified_graph[u][v]["base_threat"] = threat
-                self.unified_graph[u][v]["base_news"] = news
+                threat, news = baseline.get(mode, (0.0, "Normal conditions."))
+                d["base_threat"] = threat
+                d["base_news"] = news
                 
             self.is_warmed_up = True
             print("[WARMUP] Unified Calibration Complete.")
@@ -222,7 +226,7 @@ class RouteRecommender:
 
                 if total_cost > cost_ceiling or total_time > (max_delay * 24): continue
 
-                for part in ("eta", "cost"):
+                for part in ("eta", "cost", "risk"):
                     trace[part] = {k: round(v, 2) for k, v in trace[part].items()}
                 candidates.append({
                     "persona": persona,
