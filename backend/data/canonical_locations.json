@@ -176,7 +176,8 @@
   "Chennai": {
     "sea": "PORT-CHENNAI",
     "road": "PORT-CHENNAI",
-    "rail": "PORT-CHENNAI"
+    "rail": "PORT-CHENNAI",
+    "air": "AIR-CHENNAI"
   },
   "Visakhapatnam": {
     "sea": "PORT-VIZAG",
@@ -1249,9 +1250,9 @@
     "air": "RAIL-WINNIPEG"
   },
   "Elk Grove Village Logistics": {
-    "road": "HUB-CHICAGO",
-    "rail": "HUB-CHICAGO",
-    "air": "HUB-CHICAGO"
+    "road": "HUB-ELKGROVE",
+    "rail": "HUB-ELKGROVE",
+    "air": "HUB-ELKGROVE"
   },
   "Klaipeda": {
     "sea": "PORT-KLAIPEDA",
@@ -1483,7 +1484,8 @@
   },
   "Varanasi": {
     "air": "AIR-VARANASI",
-    "road": "AIR-VARANASI"
+    "road": "AIR-VARANASI",
+    "rail": "RAIL-VARANASI"
   },
   "Kanpur": {
     "road": "RAIL-KANPUR",
@@ -1583,5 +1585,13 @@
   },
   "Jamshedpur": {
     "road": "DC-JAMSHEDPUR"
+  },
+  "Bhopal": {
+    "rail": "RAIL-BHOPAL",
+    "road": "RAIL-BHOPAL"
+  },
+  "Sambalpur": {
+    "rail": "RAIL-SAMBALPUR",
+    "road": "RAIL-SAMBALPUR"
   }
 }

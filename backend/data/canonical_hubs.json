@@ -375,10 +375,6 @@
       {
         "to": "PORT-COLOMBO",
         "mode": "sea"
-      },
-      {
-        "to": "PORT-SINGAPORE",
-        "mode": "road"
       }
     ]
   },
@@ -708,10 +704,6 @@
       {
         "to": "AIR-INCHEON",
         "mode": "rail"
-      },
-      {
-        "to": "PORT-DALIAN",
-        "mode": "rail"
       }
     ]
   },
@@ -746,14 +738,6 @@
       {
         "to": "PORT-BUSAN",
         "mode": "sea"
-      },
-      {
-        "to": "PORT-XIAMEN",
-        "mode": "rail"
-      },
-      {
-        "to": "PORT-SHENZHEN",
-        "mode": "rail"
       }
     ]
   },
@@ -1061,10 +1045,6 @@
       {
         "to": "PORT-TUTICORIN",
         "mode": "sea"
-      },
-      {
-        "to": "PORT-COLOMBO",
-        "mode": "road"
       }
     ]
   },
@@ -1645,10 +1625,6 @@
       {
         "to": "PORT-COLOMBO",
         "mode": "sea"
-      },
-      {
-        "to": "PORT-PORTSUDAN",
-        "mode": "rail"
       }
     ]
   },
@@ -1724,14 +1700,6 @@
       {
         "to": "PORT-ROTTERDAM",
         "mode": "sea"
-      },
-      {
-        "to": "PORT-VALENCIA",
-        "mode": "rail"
-      },
-      {
-        "to": "HUB-ZARAGOZA",
-        "mode": "rail"
       }
     ]
   },
@@ -3078,10 +3046,6 @@
       {
         "to": "PORT-BUSAN",
         "mode": "rail"
-      },
-      {
-        "to": "PORT-DALIAN",
-        "mode": "rail"
       }
     ]
   },
@@ -4134,10 +4098,6 @@
       {
         "to": "AIR-HONGKONG",
         "mode": "air"
-      },
-      {
-        "to": "AIR-DOHA",
-        "mode": "road"
       }
     ]
   },
@@ -4444,7 +4404,7 @@
         "mode": "air"
       },
       {
-        "to": "HUB-CHICAGO",
+        "to": "HUB-ELKGROVE",
         "mode": "rail"
       },
       {
@@ -4626,7 +4586,7 @@
         "mode": "rail"
       },
       {
-        "to": "HUB-CHICAGO",
+        "to": "HUB-ELKGROVE",
         "mode": "rail"
       }
     ]
@@ -6096,14 +6056,6 @@
       {
         "to": "PORT-ROTTERDAM",
         "mode": "sea"
-      },
-      {
-        "to": "PORT-HAIFA",
-        "mode": "rail"
-      },
-      {
-        "to": "PORT-PIRAEUS",
-        "mode": "rail"
       }
     ]
   },
@@ -6415,10 +6367,6 @@
       },
       {
         "to": "RAIL-HARBIN",
-        "mode": "rail"
-      },
-      {
-        "to": "AIR-INCHEON",
         "mode": "rail"
       }
     ]
@@ -7432,14 +7380,6 @@
       {
         "to": "PORT-COLOMBO",
         "mode": "sea"
-      },
-      {
-        "to": "HUB-DAMMAM",
-        "mode": "rail"
-      },
-      {
-        "to": "ICD-RIYADH",
-        "mode": "rail"
       }
     ]
   },
@@ -7590,10 +7530,6 @@
       {
         "to": "PORT-BUSAN",
         "mode": "sea"
-      },
-      {
-        "to": "PORT-KAOHSIUNG",
-        "mode": "rail"
       },
       {
         "to": "PORT-SHENZHEN",
@@ -7824,14 +7760,6 @@
       {
         "to": "PORT-ALGECIRAS",
         "mode": "sea"
-      },
-      {
-        "to": "PORT-THESSALONIKI",
-        "mode": "rail"
-      },
-      {
-        "to": "PORT-PIRAEUS",
-        "mode": "rail"
       }
     ]
   },
@@ -9905,10 +9833,6 @@
       {
         "to": "HUB-DAMMAM",
         "mode": "rail"
-      },
-      {
-        "to": "PORT-BANDARABBAS",
-        "mode": "rail"
       }
     ]
   },
@@ -10517,14 +10441,6 @@
       {
         "to": "PORT-ROTTERDAM",
         "mode": "sea"
-      },
-      {
-        "to": "PORT-ALEXANDR",
-        "mode": "rail"
-      },
-      {
-        "to": "RAIL-ISTANBUL",
-        "mode": "rail"
       }
     ]
   },
@@ -11143,14 +11059,6 @@
       {
         "to": "PORT-ALGECIRAS",
         "mode": "sea"
-      },
-      {
-        "to": "PORT-DJIBOUTI",
-        "mode": "rail"
-      },
-      {
-        "to": "ICD-RIYADH",
-        "mode": "rail"
       }
     ]
   },
@@ -12545,10 +12453,6 @@
       {
         "to": "ICD-RIYADH",
         "mode": "rail"
-      },
-      {
-        "to": "PORT-BANDARABBAS",
-        "mode": "rail"
       }
     ]
   },
@@ -13009,14 +12913,6 @@
       {
         "to": "AIR-HEATHROW",
         "mode": "air"
-      },
-      {
-        "to": "PORT-HELSINKI",
-        "mode": "rail"
-      },
-      {
-        "to": "RAIL-HELSINKI",
-        "mode": "rail"
       }
     ]
   },
@@ -13292,7 +13188,7 @@
         "mode": "air"
       },
       {
-        "to": "HUB-CHICAGO",
+        "to": "HUB-ELKGROVE",
         "mode": "rail"
       },
       {
@@ -13302,7 +13198,7 @@
     ]
   },
   {
-    "id": "HUB-CHICAGO",
+    "id": "HUB-ELKGROVE",
     "display_name": "Elk Grove Village Logistics",
     "aliases": [
       "Elk Grove",
@@ -19311,7 +19207,7 @@
         "mode": "rail"
       },
       {
-        "to": "RAIL-VISAKHAPATNAM",
+        "to": "PORT-VIZAG",
         "mode": "rail"
       },
       {
@@ -21819,5 +21715,83 @@
         "mode": "road"
       }
     ]
+  },
+  {
+    "id": "AIR-CHENNAI",
+    "display_name": "Chennai International Airport",
+    "aliases": [
+      "MAA",
+      "Chennai Air Cargo",
+      "Meenambakkam"
+    ],
+    "type": "airport",
+    "modes": [
+      "air",
+      "road"
+    ],
+    "lat": 12.9941,
+    "lon": 80.1709,
+    "country": "India",
+    "importance": 9,
+    "strategic_role": "South India's primary air cargo gateway",
+    "parent_city": "Chennai",
+    "connections": []
+  },
+  {
+    "id": "RAIL-VARANASI",
+    "display_name": "Varanasi Junction",
+    "aliases": [
+      "Varanasi",
+      "BSB"
+    ],
+    "type": "rail_terminal",
+    "modes": [
+      "road",
+      "rail"
+    ],
+    "lat": 25.3268,
+    "lon": 82.987,
+    "country": "India",
+    "importance": 6,
+    "parent_city": "Varanasi",
+    "connections": []
+  },
+  {
+    "id": "RAIL-BHOPAL",
+    "display_name": "Bhopal Junction",
+    "aliases": [
+      "Bhopal",
+      "BPL"
+    ],
+    "type": "rail_terminal",
+    "modes": [
+      "road",
+      "rail"
+    ],
+    "lat": 23.2667,
+    "lon": 77.4135,
+    "country": "India",
+    "importance": 6,
+    "parent_city": "Bhopal",
+    "connections": []
+  },
+  {
+    "id": "RAIL-SAMBALPUR",
+    "display_name": "Sambalpur Junction",
+    "aliases": [
+      "Sambalpur",
+      "SBP"
+    ],
+    "type": "rail_terminal",
+    "modes": [
+      "road",
+      "rail"
+    ],
+    "lat": 21.4669,
+    "lon": 83.9812,
+    "country": "India",
+    "importance": 5,
+    "parent_city": "Sambalpur",
+    "connections": []
   }
 ]
