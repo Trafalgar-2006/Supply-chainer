@@ -1,6 +1,6 @@
-from fastapi import FastAPI, WebSocket, Query
-from pydantic import BaseModel
-from typing import Optional, List
+from fastapi import Depends, FastAPI, Query, Request, WebSocket
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+from typing import List, Literal, Optional
 import asyncio
 import json
 import random
@@ -8,6 +8,7 @@ import os
 from contextlib import asynccontextmanager
 
 from fastapi.middleware.cors import CORSMiddleware
+from . import security
 from .engine.graph_model import create_logistics_network
 from .engine.simulator import LogisticsSimulator
 from .engine.threat_intelligence import ThreatIntelligencePredictor
@@ -35,24 +36,54 @@ canonical_hubs = load_canonical_hubs()
 supplier_scorer = SupplierScorer(os.path.join(os.path.dirname(__file__), 'data', 'suppliers.json'))
 
 
+HUB_IDS = {hub["id"] for hub in canonical_hubs}
+MAX_UNITS = 10**9
+
+def _known_scenario(value):
+    if value is not None and value not in ScenarioManager.SCENARIOS:
+        raise ValueError(f"unknown scenario; expected one of {sorted(ScenarioManager.SCENARIOS)}")
+    return value
+
+class Overrides(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    avoid_chokepoints: List[str] = Field(default_factory=list, max_length=20)
+    cost_ceiling: Optional[float] = Field(None, gt=0, le=1e9)
+    max_delay: Optional[float] = Field(None, gt=0, le=365) # days
+
+    @field_validator("avoid_chokepoints")
+    @classmethod
+    def known_hubs(cls, value):
+        unknown = [hub for hub in value if hub not in HUB_IDS]
+        if unknown:
+            raise ValueError(f"unknown hub ids: {unknown[:3]}")
+        return value
+
 class RecommendRequest(BaseModel):
-    source: str # This should be a Canonical Hub ID or City Name
-    destination: str # This should be a Canonical Hub ID or City Name
-    cargo_type: str = "general"
-    priority: str = "normal"
-    budget_sensitivity: str = "medium"
-    transport_preference: str = "any" # sea, air, rail, road, any
-    routing_policy: str = "STRICT" # STRICT or PREFERRED
-    scenario: Optional[str] = None
-    overrides: Optional[dict] = None
+    model_config = ConfigDict(extra="forbid")
+    source: str = Field(..., min_length=1, max_length=100) # Canonical Hub ID or City Name
+    destination: str = Field(..., min_length=1, max_length=100)
+    cargo_type: Literal["general", "perishable_urgent", "hazardous_waste", "oversize_heavy"] = "general"
+    priority: Literal["low", "normal", "urgent"] = "normal"
+    transport_preference: Literal["any", "sea", "air", "rail", "road"] = "any"
+    routing_policy: Literal["STRICT", "PREFERRED"] = "STRICT"
+    scenario: Optional[str] = Field(None, max_length=50)
+    overrides: Optional[Overrides] = None
     live_intel: bool = True # fetch live news for the origin and destination
 
+    _scenario = field_validator("scenario")(_known_scenario)
+
 class SourcingRequest(BaseModel):
-    category: str = "Electronics"
-    current_inventory: int = 1000
-    safety_stock: int = 1500
-    demand_forecast: int = 800
-    scenario: Optional[str] = None
+    model_config = ConfigDict(extra="forbid")
+    category: str = Field("Electronics", min_length=1, max_length=50)
+    current_inventory: int = Field(1000, ge=0, le=MAX_UNITS)
+    safety_stock: int = Field(1500, ge=0, le=MAX_UNITS)
+    demand_forecast: int = Field(800, ge=0, le=MAX_UNITS)
+    scenario: Optional[str] = Field(None, max_length=50)
+
+    _scenario = field_validator("scenario")(_known_scenario)
+
+# Compute endpoints: optional API key, then the per-client rate limit.
+PROTECTED = [Depends(security.require_api_key), Depends(security.rate_limit)]
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -61,15 +92,23 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(asyncio.to_thread(recommender.run_background_warmup))
     yield
 
-app = FastAPI(title="Smart Supply Chain API", lifespan=lifespan)
+app = FastAPI(title="Supplychainer API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=security.ALLOWED_ORIGINS,
+    allow_credentials=False, # no cookies or auth headers are shared cross-origin
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "X-API-Key"],
 )
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    headers = {**security.SECURITY_HEADERS, **(security.API_HEADERS if request.url.path.startswith("/api/") else {})}
+    for name, value in headers.items():
+        response.headers.setdefault(name, value)
+    return response
 
 @app.get("/api/scenarios")
 def get_scenarios():
@@ -82,7 +121,7 @@ def get_hubs():
     return canonical_hubs
 
 @app.get("/api/hubs/search")
-def search_hubs(q: str = Query(..., min_length=1)):
+def search_hubs(q: str = Query(..., min_length=1, max_length=100)):
     """Search hubs by display_name, aliases, or country."""
     q = q.lower()
     results = []
@@ -131,6 +170,10 @@ def get_model_report():
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
+    # Refuse cross-site WebSocket handshakes from pages on other origins.
+    if not security.origin_allowed(websocket.headers.get("origin")):
+        await websocket.close(code=1008)
+        return
     await websocket.accept()
     try:
         while True:
@@ -161,7 +204,7 @@ def get_cities():
             return json.load(f)
     return {}
 
-@app.post("/api/recommend")
+@app.post("/api/recommend", dependencies=PROTECTED)
 def recommend_routes(req: RecommendRequest):
     result = recommender.recommend(
         source=req.source,
@@ -171,12 +214,12 @@ def recommend_routes(req: RecommendRequest):
         transport_preference=req.transport_preference,
         routing_policy=req.routing_policy,
         scenario=req.scenario,
-        overrides=req.overrides,
+        overrides=req.overrides.model_dump(exclude_none=True) if req.overrides else None,
         live_intel=req.live_intel
     )
     return result
 
-@app.post("/api/suppliers")
+@app.post("/api/suppliers", dependencies=PROTECTED)
 def get_suppliers(req: SourcingRequest):
     # Per-request lookup: never mutate the scenario shared by concurrent requests
     active_disruptions = scenario_mgr.get_disruptions(req.scenario)
