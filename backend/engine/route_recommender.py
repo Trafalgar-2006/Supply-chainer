@@ -1,6 +1,7 @@
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, wait
 
 import networkx as nx
+import numpy as np
 
 from .delay_features import CONDITIONS, FEATURES, arrival_kind
 from .delay_model import DelayQuantileModel, label as feature_label
@@ -16,6 +17,16 @@ QUANTILE_NAMES = ("p50", "p85", "p95")
 # BALANCED time/cost weights by shipment priority; the risk weight stays 0.2.
 BALANCED_WEIGHTS = {"low": (0.2, 0.6), "normal": (0.3, 0.5), "urgent": (0.5, 0.3)}
 NO_DELAY = (0.0, 0.0, 0.0)
+# Route ETA band: legs are log-normal (fitted to each leg's p50 and p95) and share
+# a Gaussian-copula correlation, since delays on one route share weather,
+# congestion and carrier performance.
+LEG_CORRELATION = 0.5
+BAND_SAMPLES = 4000
+Z95 = 1.6448536
+# Live news: whole-fetch time budget, and the threat scores at which a weather
+# report sets the delay model's weather feature to rainy / stormy.
+LIVE_INTEL_TIMEOUT_S = 3.0
+RAIN_SCORE, STORM_SCORE = 0.25, 0.6
 
 class RouteRecommender:
     """
@@ -59,7 +70,6 @@ class RouteRecommender:
         if self.is_warmed_up: return
         print("[WARMUP] Calibrating global threat floor...")
         try:
-            self.predictor.warmup()
             self.nlp.warmup()
 
             # Enrich unified graph with baseline intelligence. Every edge of a mode
@@ -123,8 +133,12 @@ class RouteRecommender:
         for (u, v), q in self._predict_delays(edges).items():
             G[u][v]["delay_q"] = q
 
-    def _delay_drivers(self, leg_features, p85_total):
-        """Exact Shapley breakdown of a route's p85 delay buffer, summed over its legs."""
+    def _delay_drivers(self, leg_features):
+        """Exact Shapley breakdown of the p85 delays of a route's legs, summed by factor.
+
+        reference_hours + the drivers equals total_hours exactly (up to rounding):
+        the five largest factors are listed and the rest are pooled.
+        """
         if self.delay_model is None or not leg_features:
             return None
         reference, phi = self.delay_model.explain(leg_features, quantile_index=1)
@@ -133,15 +147,38 @@ class RouteRecommender:
             for feature, hours in zip(FEATURES, contributions):
                 name = feature_label(feature, leg[feature])
                 by_label[name] = by_label.get(name, 0.0) + float(hours)
-        drivers = sorted(({"factor": k, "hours": round(v, 1)} for k, v in by_label.items() if abs(v) >= 0.05),
-                         key=lambda x: -abs(x["hours"]))
+        ranked = sorted(by_label.items(), key=lambda kv: -abs(kv[1]))
+        drivers = [{"factor": k, "hours": round(v, 1)} for k, v in ranked[:5]]
+        rest = sum(v for _, v in ranked[5:])
+        if abs(rest) >= 0.05:
+            drivers.append({"factor": "Other factors", "hours": round(rest, 1)})
         return {
             "quantile": "p85",
             "reference_hours": round(reference * len(leg_features), 1),
             "reference": "one short road hop per leg, clear weather, no news",
-            "drivers": drivers[:6],
-            "total_hours": round(p85_total, 1),
+            "drivers": drivers,
+            "total_hours": round(reference * len(leg_features) + float(phi.sum()), 1),
         }
+
+    @staticmethod
+    def _eta_band(fixed_hours, leg_quantiles):
+        """p50/p85/p95 of a route's door-to-door hours, by Monte Carlo.
+
+        Adding each leg's p85 or p95 would assume every leg hits its bad case at
+        once and would make routes with more legs look worse; sampling the sum
+        gives the route's own quantiles. Seeded, so identical requests agree.
+        """
+        q = np.asarray([lq for lq in leg_quantiles if lq[2] > 1e-6], dtype=float).reshape(-1, 3)
+        if not len(q):
+            return {name: round(fixed_hours, 1) for name in QUANTILE_NAMES}
+        p50 = np.maximum(q[:, 0], 1e-3)
+        mu = np.log(p50)
+        sigma = np.maximum(np.log(np.maximum(q[:, 2], p50) / p50) / Z95, 1e-6)
+        rng = np.random.default_rng(0)
+        shared = rng.standard_normal((BAND_SAMPLES, 1))
+        z = np.sqrt(LEG_CORRELATION) * shared + np.sqrt(1 - LEG_CORRELATION) * rng.standard_normal((BAND_SAMPLES, len(q)))
+        totals = fixed_hours + np.exp(mu + sigma * z).sum(axis=1)
+        return dict(zip(QUANTILE_NAMES, (round(float(v), 1) for v in np.percentile(totals, [50, 85, 95]))))
 
     # ---- Live intelligence --------------------------------------------------
 
@@ -150,23 +187,31 @@ class RouteRecommender:
 
         A report about a city applies to every hub in it (port, rail yard, airport,
         distribution centre), so a port-closure story reaches the ships even when
-        the route enters the city through a road depot.
+        the route enters the city through a road depot. News is only fetched once
+        the NLP engine can score it, and the whole fetch has a time budget.
         """
-        places = list(dict.fromkeys(places))
-        with ThreadPoolExecutor(max_workers=max(1, len(places))) as pool:
-            fetched = dict(zip(places, pool.map(self.news_ingestor.fetch_headlines, places)))
+        if not self.nlp.ready:
+            return {}  # news that cannot be scored is not worth a network round trip
+        places = sorted(set(places))
+        pool = ThreadPoolExecutor(max_workers=max(1, len(places)))
+        futures = {pool.submit(self.news_ingestor.fetch_headlines, p): p for p in places}
+        done, _ = wait(futures, timeout=LIVE_INTEL_TIMEOUT_S)
+        pool.shutdown(wait=False, cancel_futures=True)
         intel = {}
-        for place, headlines in fetched.items():
+        for future in sorted(done, key=lambda f: futures[f]):
+            headlines = future.result() if future.exception() is None else None
             if not headlines:
                 continue
-            score = self.nlp.get_semantic_score(headlines)
-            kind = self.nlp.classify_threat(headlines) if score > 0 else None
-            threat_type = kind["type"] if kind else "none"
+            place = futures[future]
+            assessment = self.nlp.assess(headlines)
+            score = assessment["score"]
+            threat_type = assessment["type"] if score > 0 else "none"
             condition = "clear"
-            if threat_type == "weather":
-                condition = "stormy" if score >= 0.5 else "rainy"
+            if threat_type == "weather" and score >= RAIN_SCORE:
+                condition = "stormy" if score >= STORM_SCORE else "rainy"
             report = {"place": place, "hubs": sorted(self._city_hubs.get(place, ())), "headlines": headlines,
-                      "score": round(score, 3), "threat_type": threat_type, "condition": condition}
+                      "headline": assessment["headline"], "score": round(score, 3),
+                      "threat_type": threat_type, "condition": condition}
             for hub_id in report["hubs"]:
                 intel[hub_id] = report
         return intel
@@ -222,9 +267,19 @@ class RouteRecommender:
         def delays(u, v, d):
             return intel_delays.get((u, v)) or d.get("delay_q", NO_DELAY)
 
-        def live_threat(u, v, d):
-            return max([self.carf.apply_filter(intel[h]["score"], intel[h]["headlines"], d["transport_mode"])
-                        for h in (hub(u), hub(v)) if h in intel] or [0.0])
+        def leg_news(u, v, d):
+            """(threat, hub) of the live report that bears on this leg most, after CARF.
+
+            A transfer is exposed to news about either of the two modes it joins.
+            """
+            modes = (d["transport_mode"],) if d["type"] == "transit" else (G.nodes[u]["mode"], G.nodes[v]["mode"])
+            best = (0.0, None)
+            for h in (hub(v), hub(u)):
+                if h in intel:
+                    threat = max(self.carf.apply_filter(intel[h]["score"], intel[h]["headlines"], m) for m in modes)
+                    if threat > best[0]:
+                        best = (threat, h)
+            return best
 
         # 4. Routing policy and cargo rules
         strict_modes = None
@@ -257,7 +312,7 @@ class RouteRecommender:
                 if excluded(u, v, d):
                     return None  # hides the edge from Dijkstra without copying the graph
                 impact = self._leg_impact(d, hub(u), hub(v), origin_id, disruptions,
-                                          extra_threat=live_threat(u, v, d))
+                                          extra_threat=leg_news(u, v, d)[0])
                 time_h = d["baseline_time"] + delays(u, v, d)[qi] + impact["delay"]
                 cost = d.get("cost", 0) + impact["premium"]
                 threat = impact["threat"]
@@ -273,7 +328,7 @@ class RouteRecommender:
                 path = nx.dijkstra_path(G, s_vnode, d_vnode, weight=weight_func)
             except nx.NetworkXNoPath:
                 continue
-            route = self._compose_route(persona, path, origin_id, disruptions, delays, live_threat, intel)
+            route = self._compose_route(persona, path, origin_id, disruptions, delays, leg_news, intel)
             if route["total_cost"] > cost_ceiling or route["adjusted_eta"] > max_delay * 24:
                 continue
             route["override_applied"] = bool(avoid_hubs or cost_ceiling < 999999)
@@ -297,8 +352,7 @@ class RouteRecommender:
 
         preference = transport_preference if soft_preference else None
         for c in final:
-            leg_features = c.pop("_leg_features")
-            c["delay_drivers"] = self._delay_drivers(leg_features, c.pop("_p85_delay"))
+            c["delay_drivers"] = self._delay_drivers(c.pop("_leg_features"))
             c["explanation"] = self._explain(c, final, preference)
 
         return {
@@ -336,12 +390,11 @@ class RouteRecommender:
             "premium": d.get("cost", 0) * 0.1 * len(due),
         }
 
-    def _compose_route(self, persona, path, origin_id, disruptions, delays, live_threat, intel):
+    def _compose_route(self, persona, path, origin_id, disruptions, delays, leg_news, intel):
         G = self.unified_graph
-        legs, leg_features = [], []
+        legs, leg_features, leg_quantiles = [], [], []
         total_cost = max_threat = 0.0
-        band = [0.0, 0.0, 0.0]  # door-to-door hours at p50 / p85 / p95
-        p85_delay = 0.0
+        fixed_hours = 0.0  # nominal transit and transfer time plus scenario delay
         trace = {
             "eta": {"transit": 0.0, "transfer": 0.0, "delay": 0.0, "scenario": 0.0},
             "cost": {"transit": 0.0, "transfer": 0.0, "scenario": 0.0},
@@ -352,7 +405,7 @@ class RouteRecommender:
         for u, v in zip(path, path[1:]):
             d = G[u][v]
             from_id, to_id = G.nodes[u]["physical_id"], G.nodes[v]["physical_id"]
-            news_threat = live_threat(u, v, d)
+            news_threat, news_hub = leg_news(u, v, d)
             impact = self._leg_impact(d, from_id, to_id, origin_id, disruptions, charged, extra_threat=news_threat)
             charged.update(impact["charged"])
             base_time, base_cost = d["baseline_time"], d.get("cost", 0)
@@ -369,25 +422,23 @@ class RouteRecommender:
             trace["cost"]["scenario"] += impact["premium"]
             if bucket == "transit":
                 trace["risk"]["baseline"] = max(trace["risk"]["baseline"], d.get("base_threat", 0.05))
+                leg_quantiles.append(q)
                 if self.delay_model is not None:
                     leg_features.append(self._leg_features(u, v, d, intel))
-                    p85_delay += q[1]
             if impact["exposed"]:
                 trace["risk"]["scenario"] = max(trace["risk"]["scenario"], impact["threat"])
             trace["risk"]["live"] = max(trace["risk"]["live"], news_threat)
 
-            for k in range(3):
-                band[k] += base_time + impact["delay"] + q[k]
+            fixed_hours += base_time + impact["delay"]
             l_cost = base_cost + impact["premium"]
             total_cost += l_cost
             max_threat = max(max_threat, impact["threat"])
 
             scenario_hub = impact["exposed"][-1] if impact["exposed"] else None
-            news_hub = next((h for h in (to_id, from_id) if h in intel), None)
             if scenario_hub:
                 reason, source = disruptions[scenario_hub]["reason"], "SCENARIO"
-            elif news_hub and news_threat > 0:
-                reason, source = intel[news_hub]["headlines"], "LIVE"
+            elif news_hub:
+                reason, source = intel[news_hub]["headline"], "LIVE"
             else:
                 reason, source = d.get("base_news", "Standard conditions"), "FALLBACK"
             legs.append({
@@ -406,17 +457,19 @@ class RouteRecommender:
 
         for part in trace:
             trace[part] = {k: round(x, 2) for k, x in trace[part].items()}
+        typical = fixed_hours + sum(q[0] for q in leg_quantiles)
         return {
             "persona": persona,
             "primary_mode": "MULTIMODAL",
             "legs": legs,
-            "adjusted_eta": round(band[0], 1),
-            "eta_band": dict(zip(QUANTILE_NAMES, (round(x, 1) for x in band))),
+            # Typical ETA adds each leg's median delay; the band is the simulated
+            # distribution of the whole route's door-to-door time.
+            "adjusted_eta": round(typical, 1),
+            "eta_band": self._eta_band(fixed_hours, leg_quantiles),
             "total_cost": round(total_cost, 2),
             "threat_level": round(max_threat, 2),
             "audit_trace": trace,
             "_leg_features": leg_features,
-            "_p85_delay": p85_delay,
         }
 
     @staticmethod

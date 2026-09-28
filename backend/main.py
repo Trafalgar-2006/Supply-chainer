@@ -21,7 +21,9 @@ from .engine.supplier_scorer import SupplierScorer
 # Global Engine State
 network = create_logistics_network() # Still US-only simulator
 simulator = LogisticsSimulator(network, weather_provider=APIWeatherProvider())
-predictor = ThreatIntelligencePredictor() 
+# Legacy predictor, kept for the scripts in scratch/: the router uses the delay
+# quantile model, so its unverified pickles are never loaded by the API.
+predictor = ThreatIntelligencePredictor(lazy_load=True)
 baseline = BaselineRouter(network)
 
 # Product layer (Supplychainer Architecture) - Now using Canonical Hubs

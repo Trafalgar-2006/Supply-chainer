@@ -13,9 +13,9 @@ class DynamicNewsIngestor:
     Implements location-aware text retrieval and caching.
     """
     def __init__(self):
-        self.cache = {} # {query: (timestamp, content or None)}
+        self.cache = {} # {(query, max_items): (timestamp, content or None)}
         self.cache_ttl = 900 # 15 minutes
-        self.failure_ttl = 60 # retry an unreachable feed after a minute, not on every request
+        self.failure_ttl = 300 # retry an unreachable feed after five minutes, not on every request
 
         # Operational Physics Fallbacks (Offline Reliability)
         self.fallback_news = {
@@ -32,9 +32,10 @@ class DynamicNewsIngestor:
         fallback reports.
         """
         query = f"{location} logistics disruption"
+        key = (query, max_items)
         now = time.time()
-        if query in self.cache:
-            ts, content = self.cache[query]
+        if key in self.cache:
+            ts, content = self.cache[key]
             if now - ts < (self.cache_ttl if content else self.failure_ttl):
                 return content
 
@@ -49,7 +50,7 @@ class DynamicNewsIngestor:
                 content = " | ".join(entry.title for entry in entries[:max_items])
         except Exception as e:
             print(f"[NEWS] Feed unavailable for {location!r}: {e}")
-        self.cache[query] = (now, content)
+        self.cache[key] = (now, content)
         return content
 
     def get_latest_news(self, location: str, transport_mode: str) -> str:

@@ -22,11 +22,29 @@ def test_every_route_carries_a_delay_band_and_its_drivers(recommender):
     for rec in result["recommendations"]:
         drivers = rec["delay_drivers"]
         assert drivers["quantile"] == "p85" and drivers["drivers"]
-        # Shapley drivers plus the per-leg reference reconstruct the route's p85 delay.
+        # Exact Shapley: the reference plus every driver rebuilds the total (up to rounding).
         rebuilt = drivers["reference_hours"] + sum(d["hours"] for d in drivers["drivers"])
-        assert rebuilt == pytest.approx(drivers["total_hours"], rel=0.05, abs=2)
+        assert rebuilt == pytest.approx(drivers["total_hours"], abs=0.1 * (len(drivers["drivers"]) + 2))
         for l in rec["legs"]:
             assert l["delay"]["p50"] <= l["delay"]["p85"] <= l["delay"]["p95"]
+
+
+def test_eta_band_is_the_quantile_of_the_route_not_a_sum_of_leg_quantiles(recommender):
+    legs = [(10.0, 30.0, 60.0)] * 6
+    band = recommender._eta_band(100.0, legs)
+    assert band == recommender._eta_band(100.0, legs)  # seeded: identical requests agree
+    comonotonic_p95 = 100.0 + 6 * 60.0
+    assert band["p50"] < band["p85"] < band["p95"] < comonotonic_p95
+    assert band["p50"] > 100.0 + 6 * 10.0 * 0.9
+    assert recommender._eta_band(42.0, []) == {"p50": 42.0, "p85": 42.0, "p95": 42.0}
+
+
+def test_splitting_a_leg_does_not_inflate_the_band_like_summed_quantiles(recommender):
+    one = recommender._eta_band(0.0, [(20.0, 50.0, 90.0)])
+    split = recommender._eta_band(0.0, [(10.0, 25.0, 45.0)] * 2)
+    # Summing quantiles would give identical bands; the simulated band of two
+    # partly independent halves is tighter in the tail, never looser.
+    assert split["p95"] <= one["p95"] + 1e-6
 
 
 def test_personas_plan_on_their_own_quantile(recommender):
@@ -79,7 +97,8 @@ def test_live_storm_news_is_reported_on_the_affected_legs(live_recommender, monk
 
     (report,) = stormy["live_intel"]
     assert report["place"] == "Rotterdam" and "PORT-ROTTERDAM" in report["hubs"]
-    assert report["score"] > 0.3 and report["threat_type"] == "weather" and report["condition"] != "clear"
+    assert report["score"] > 0.2 and report["threat_type"] == "weather" and report["condition"] != "clear"
+    assert report["headline"] == STORM["Rotterdam"]
     # Routes may divert around the storm-hit port; any that still sail in carry the live report.
     assert ROTTERDAM <= set(report["hubs"])
     assert all(l["intel_source"] == "LIVE" and l["threat"] > 0.05 for l in sea_legs_into_rotterdam(stormy))
@@ -107,6 +126,37 @@ def test_no_live_news_means_no_live_signal(live_recommender, monkeypatch):
     result = recommend(live_recommender, live_intel=True)
     assert result["live_intel"] == []
     assert all(l["intel_source"] != "LIVE" for x in result["recommendations"] for l in x["legs"])
+
+
+def test_live_news_is_not_fetched_before_the_nlp_engine_is_ready(recommender, monkeypatch):
+    def fail(place):
+        raise AssertionError("fetched news that cannot be scored")
+    assert not recommender.nlp.ready
+    monkeypatch.setattr(recommender.news_ingestor, "fetch_headlines", fail)
+    assert recommend(recommender, live_intel=True)["live_intel"] == []
+
+
+def test_a_slow_feed_cannot_stall_a_request(live_recommender, monkeypatch):
+    import time
+    from backend.engine import route_recommender as rr
+    monkeypatch.setattr(rr, "LIVE_INTEL_TIMEOUT_S", 0.5)
+    monkeypatch.setattr(live_recommender.news_ingestor, "fetch_headlines", lambda place: time.sleep(3) or None)
+    started = time.perf_counter()
+    recommend(live_recommender, live_intel=True)
+    assert time.perf_counter() - started < 2.5
+
+
+def test_a_leg_shows_the_report_that_actually_raised_its_threat(live_recommender, monkeypatch):
+    feed = {"Shanghai": "Dock workers strike shuts down the port; container backlog grows for a second week.",
+            "Rotterdam": "Airport cargo handlers report minor delays on evening flights"}
+    monkeypatch.setattr(live_recommender.news_ingestor, "fetch_headlines", lambda place: feed.get(place))
+    result = recommend(live_recommender, transport_preference="sea", live_intel=True)
+    live_legs = [l for x in result["recommendations"] for l in x["legs"] if l["intel_source"] == "LIVE"]
+    assert live_legs
+    # Sea, road and sea-road transfer legs are only exposed to the port strike;
+    # the airport report is filtered out by CARF for all of them.
+    for leg in live_legs:
+        assert "strike" in leg["reason"].lower(), leg
 
 
 def test_live_intel_is_off_unless_requested(live_recommender, monkeypatch):
