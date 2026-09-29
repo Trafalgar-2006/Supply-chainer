@@ -68,9 +68,10 @@ The starter code ran without errors but gave wrong answers. Some examples, all m
   - Britain connects to the continent only through the Channel Tunnel.
   - 13 major ports that had no shipping lanes are connected.
 - **A dashboard for planners.**
-  - An interactive map with disruption and live-news markers.
+  - An interactive map with disruption and live-news markers and labelled endpoints. The selected route draws itself with anime.js.
   - Route options side by side on one time scale.
-  - A voyage plan for the selected route: legs, delay drivers, and time, cost and risk ledgers.
+  - A voyage plan for the selected route: legs, delay drivers, and time, cost and risk ledgers. Pointing at a leg highlights it on the map.
+  - Ranked hub search, a swap button, and one-click example plans on a first visit.
   - Export the selected route to CSV.
   - Recent plans are remembered, and choosing a scenario lists the recent plans it disrupts.
   - The layout works on phones, controls are labelled, and animation respects reduced motion.
@@ -126,9 +127,10 @@ npm run dev
 
 Open http://localhost:5173. To try it:
 
-1. Choose Shanghai as the origin and Rotterdam as the destination, then click **Plan routes**.
-2. Change the disruption scenario to **Suez Canal Blockage**. The alert lists your plan as disrupted.
-3. Click the plan in the alert to plan it again under the blockage.
+1. Click an example, such as **Shanghai to Los Angeles by sea during the port strike**. Every option diverts via Oakland and trucks south.
+2. Choose Shanghai as the origin and Rotterdam as the destination, then click **Plan routes**.
+3. Change the disruption scenario to **Suez Canal Blockage**. The alert lists your plan as disrupted.
+4. Click the plan in the alert to plan it again under the blockage. The route now goes around the Cape of Good Hope.
 
 ### Settings
 
@@ -268,7 +270,7 @@ The browser test needs the backend and the dashboard running:
 python tools/ui_smoke.py             # uses Microsoft Edge; add --browser chrome for Chrome
 ```
 
-It plans a route, re-plans it from the scenario alert, checks the voyage plan and the CSV export, opens the other two pages and replays a recent plan at phone width. It fails on any console error or failed request, and saves screenshots to `ui-screens/`.
+It runs the LA port strike example (ships must divert via Oakland), plans a route by search, swaps its ends, re-plans it from the scenario alert, checks the voyage plan, the map highlight and the CSV export, opens the other two pages and replays a recent plan at phone width. It fails on any console error or failed request, and saves screenshots to `ui-screens/`.
 
 ## Project layout
 
