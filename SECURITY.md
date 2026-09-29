@@ -52,14 +52,14 @@ All tests referenced here are in `tests/test_security.py` unless stated otherwis
 
 The full test suite passes on the upgraded versions.
 
-### Accepted: not reachable in this application
+**Later the same day:**
 
-| Package | Advisory | Why it's safe here |
+| Package | From → to | Why |
 |---|---|---|
-| torch 2.11.0 | PYSEC-2025-194 | Memory corruption in `torch.jit.script`. The app never scripts or loads TorchScript. Upgrading means a ~200 MB change with compatibility risk. |
-| setuptools 81.0.0 | PYSEC-2026-3447 | `MANIFEST.in` handling at package **build** time. Nothing is built at runtime, and torch 2.11 requires `setuptools<82`. |
+| torch | 2.11.0 → 2.13.0 | PYSEC-2025-194, memory corruption in `torch.jit.script`. The app never used TorchScript, but 2.13 removes the question. The threat-intelligence scores are identical on it. |
+| setuptools | 81.0.0 → 83.0.0 | PYSEC-2026-3447, `MANIFEST.in` handling at build time. torch 2.11 had required `setuptools<82`; 2.13 doesn't. |
 
-**Result:** `npm audit` reports 0 vulnerabilities.
+**Result:** `pip-audit` finds no known vulnerabilities, and `npm audit` reports 0.
 
 Licences: Leaflet (BSD-2-Clause) was chosen over react-leaflet, whose Hippocratic licence is not OSI-approved. recharts is MIT.
 
