@@ -75,6 +75,22 @@ minus best safe-anchor similarity. Scores start at a margin of 0.10 and reach 1 
 | 26 | 8 "flights" were shorter than a truck ride, e.g. Memphis hub to Memphis airport (14 km) and Al Maktoum to Dubai International (45 km); under the Dubai surge the fastest route from Dubai to Mumbai flew via Frankfurt and Doha | Lanes under 200 km are never flown (the road link already exists), and Al Maktoum, Dubai's cargo airport, gained its main routes to India and Asia | `test_no_flight_is_shorter_than_a_truck_ride` |
 | 27 | The Dubai surge said "48h clearance backlog" but charged 24 h, and named both Dubai airports while disrupting one | 48 h, and the description names the one airport it disrupts | `test_scenario_delay_is_charged_once_per_disrupted_hub` |
 
+## Found in our own build
+
+A review with OpenAI Codex drove the finished dashboard in a browser and tried to break it (see the README's AI usage section); we then ran our own adversarial pass (hostile input, corrupted storage, failed and rate-limited requests, impossible plans, phone width). These are the bugs in our work that it found.
+
+| Bug | Fix | Test |
+|---|---|---|
+| A search for "Los Angeles logistics disruption" returned Middle East news, which then raised a threat on LA legs; months-old headlines counted too | A headline counts only if it names the place or one of its hubs, and was published in the last three days | `test_a_headline_that_does_not_name_the_place_is_ignored`, `test_only_recent_headlines_count_newest_first` |
+| A route that avoided the scenario showed "Scenario delay: None", which read as the scenario being ignored | The explanation says "Avoids the disrupted ..." and the ledger says "None, route avoids it"; every scenario route either avoids the disruption or pays for it | `test_every_scenario_route_avoids_the_disruption_or_pays_for_it` |
+| After an input changed, the old routes stayed on screen and could be exported as if they matched | They dim, a notice says so, and export is off until the plan is run again | `tools/ui_smoke.py` |
+| Reopening a recent plan re-planned it, so it never showed what had been recommended | Plans keep their result; "Plan again with current conditions" re-plans and lists what changed | `tools/ui_smoke.py` |
+| A blank or negative supplier count was silently read as 0 | Each count is checked on its field and gets no advice until fixed | `tools/ui_smoke.py` |
+| Leaving the planner within a quarter second of a plan threw from Leaflet: its zoom animation finishes on a timer after the map is removed | The refit after a plan is instant | `tools/ui_smoke.py` |
+| Costs used the browser's locale ($1,38,753) and read as quotes | en-US grouping everywhere, labelled as estimates with their basis | — |
+| The development build logged a WebSocket error at start-up: React's double mount closed a socket that was still connecting | The socket is closed once it opens | — |
+| The API answered an unknown place or an impossible plan with HTTP 200 | 422 with the reason | `test_requests_the_engine_cannot_serve_are_refused_with_the_reason` |
+
 ## Repository
 
 - `frontend/node_modules` (7,863 files) and a stale `frontend/dist` build were committed. Both are now untracked and ignored.

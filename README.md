@@ -338,7 +338,9 @@ We used **Claude Code** (Anthropic's coding assistant) throughout, as the TatHac
 - redesigning the dashboard
 - writing documentation
 
-Commits it helped write carry a `Co-Authored-By: Claude` trailer. We reviewed and ran every change, checked the numbers against real scenarios, and can explain and modify every part of the code.
+We also ran **OpenAI Codex** once, driving a browser through the Playwright MCP server, to review the finished dashboard and try to break it. Its findings, and the ones from our own adversarial pass, are in [docs/BUGFIXES.md](docs/BUGFIXES.md#found-in-our-own-build); Claude Code helped fix them.
+
+Commits Claude Code helped write carry a `Co-Authored-By: Claude` trailer. We reviewed and ran every change, checked the numbers against real scenarios, and can explain and modify every part of the code.
 
 At runtime the app uses one pretrained model, BAAI/bge-small-en-v1.5. It turns text into vectors for threat scoring and doesn't generate anything. The demo video is a screen recording of this code running.
 
