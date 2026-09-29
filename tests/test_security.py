@@ -116,6 +116,23 @@ def test_websocket_refuses_foreign_origins(client):
     assert closed.value.code == 1008
 
 
+def test_websocket_serves_a_page_from_the_same_server(client):
+    # run.py serves the dashboard and the API from one port.
+    with client.websocket_connect("/ws", headers={"origin": "http://testserver", "host": "testserver"}) as ws:
+        assert "engine_status" in ws.receive_json()
+
+
 def test_websocket_serves_the_dashboard_origin(client):
     with client.websocket_connect("/ws", headers={"origin": "http://localhost:5173"}) as ws:
         assert "engine_status" in ws.receive_json()
+
+
+def test_the_built_dashboard_is_served_without_shadowing_the_api(client):
+    import os
+    from backend.main import DASHBOARD
+    if not os.path.isfile(os.path.join(DASHBOARD, "index.html")):
+        pytest.skip("dashboard not built (run: cd frontend && npm run build)")
+    page = client.get("/")
+    assert page.status_code == 200 and '<div id="root">' in page.text
+    assert page.headers["X-Frame-Options"] == "DENY"
+    assert client.get("/api/status").json()["hub_count"] > 0

@@ -92,6 +92,13 @@ def rate_limit(request: Request):
                             headers={"Retry-After": str(int(retry_after) + 1)})
 
 
-def origin_allowed(origin) -> bool:
-    """Browsers always send Origin on WebSocket handshakes; non-browser clients may omit it."""
-    return origin is None or origin in ALLOWED_ORIGINS
+def origin_allowed(origin, host=None) -> bool:
+    """Whether a WebSocket handshake from this Origin is allowed.
+
+    Browsers always send Origin on WebSocket handshakes; non-browser clients may
+    omit it. Besides CORS_ORIGINS, a page this server served itself (Origin
+    matching the Host header) is allowed, as when run.py serves the dashboard.
+    """
+    if origin is None or origin in ALLOWED_ORIGINS:
+        return True
+    return host is not None and origin in (f"http://{host}", f"https://{host}")

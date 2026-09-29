@@ -8,6 +8,7 @@ import threading
 from contextlib import asynccontextmanager
 
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from . import security
 from .engine.delay_model import EXECUTION_DIR
 from .engine.multimodal_network import create_multimodal_network, load_canonical_hubs
@@ -189,7 +190,7 @@ def get_model_report():
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     # Refuse cross-site WebSocket handshakes from pages on other origins.
-    if not security.origin_allowed(websocket.headers.get("origin")):
+    if not security.origin_allowed(websocket.headers.get("origin"), websocket.headers.get("host")):
         await websocket.close(code=1008)
         return
     await websocket.accept()
@@ -249,3 +250,9 @@ def get_suppliers(req: SourcingRequest):
         "advice": advice,
         "active_disruptions": active_disruptions
     }
+
+# The built dashboard, when present (run.py builds it), is served from the same
+# port as the API. Mounted last, so every API route above takes precedence.
+DASHBOARD = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
+if os.path.isfile(os.path.join(DASHBOARD, "index.html")):
+    app.mount("/", StaticFiles(directory=DASHBOARD, html=True), name="dashboard")
