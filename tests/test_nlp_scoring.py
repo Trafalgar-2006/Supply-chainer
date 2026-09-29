@@ -108,7 +108,6 @@ def test_the_holdout_split_meets_the_reported_scores(nlp):
 
 
 def test_the_type_classifier_never_learns_from_the_holdout(nlp):
-    import backend.engine.threat_intelligence as ti
     from ml.evaluate_nlp import load
     holdout = {r["headline"] for r in load() if r["split"] == "holdout"}
     used = []
