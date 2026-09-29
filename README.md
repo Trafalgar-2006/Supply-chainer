@@ -79,22 +79,28 @@ The starter code ran without errors but gave wrong answers. Some examples, all m
   - Route options side by side on one time scale.
   - A voyage plan for the selected route: legs, delay drivers, and time, cost and risk ledgers. Pointing at a leg highlights it on the map.
   - Ranked hub search, a swap button, and one-click example plans on a first visit.
-  - Export the selected route to CSV.
-  - Recent plans are remembered, and choosing a scenario lists the recent plans it disrupts.
+  - Export the selected route to CSV, or every option to JSON in the API's own shape with the request that produced it, for a TMS or ERP to import. Print the plan as a report, or save it as a PDF.
+  - Costs are labelled as estimates, with their basis, and can be shown in euros, pounds, rupees, yuan, yen or Singapore dollars at the European Central Bank's reference rate.
+  - Recent plans are kept with the result they got. Reopening one shows exactly what was recommended then; planning it again lists what changed since. Choosing a scenario lists the recent plans it disrupts.
+  - Once an input changes, the routes shown dim and can't be exported until you plan again. Plans the engine would refuse, such as the same hub at both ends or cargo on the one mode it can't use, are explained before they're sent. Supplier counts are checked on their fields.
   - The layout works on phones, controls are labelled, animation respects reduced motion, and an axe-core scan finds no accessibility violations on any page.
 - **Security.**
   - Strict request validation.
   - Per-client rate limiting.
   - An optional API key that stays on the server.
-  - CORS and WebSocket origin checks, and security headers.
+  - CORS and WebSocket origin checks, security headers, and a Content-Security-Policy on the dashboard and the API.
   - The model file's SHA-256 is pinned in code. See [SECURITY.md](SECURITY.md).
 - **Tests.**
-  - 232 pytest tests. The starter had none.
-  - A Playwright browser test drives the whole dashboard.
+  - 264 pytest tests. The starter had none.
+  - A Playwright browser test drives the whole dashboard, and GitHub Actions runs the tests and the dashboard build on every push.
 
 ## Run it
 
 You need Python 3.11 and Node.js 18 or newer (we use Node 24). The first start needs internet access to download the sentence-transformer model (bge-small-en-v1.5, about 130 MB); after that it loads from the local cache. The map tiles and live news also need internet. Without it, routing still works on the model and the fallback reports.
+
+**Quickest:** install the Python requirements (the first three commands of step 1), then run `python run.py` and open http://127.0.0.1:8000. It builds the dashboard on the first run, which needs Node.js, and serves it with the API from one port. Leave `SUPPLYCHAINER_API_KEY` unset in this mode: the key is only added by the development server.
+
+For development with hot reload, run the backend and the dashboard separately:
 
 ### 1. Backend
 
@@ -170,6 +176,7 @@ flowchart LR
 2. **Scenario.** A disruption scenario marks hubs as disrupted. A route touching one is exposed to its threat, and is charged its delay and a 10% risk premium once per route. Scenarios are looked up per request, so concurrent users never see each other's.
 3. **Live news and weather** (optional).
    - Headlines for the origin and destination cities come from Google News RSS, and current weather at both from Open-Meteo. Each fetch gets 2 seconds and the whole lookup 3 seconds; results are cached for 15 minutes.
+   - A headline counts only if it is from the last three days and names the place or one of its hubs; a search for a city often returns news about somewhere else.
    - A background watch does the same for all 15 chokepoints every 15 minutes, so news of a strait closure reaches every route through it at no extra wait. The response lists the chokepoint reports on the routes it returns.
    - Each headline is scored separately, and the strongest one sets the threat, its severity and its type.
    - CARF drops a report for a leg when the report is about another mode's infrastructure.
@@ -196,7 +203,8 @@ flowchart LR
 | `GET` | `/api/hubs`, `/api/hubs/search?q=` | Hub registry and search |
 | `GET` | `/api/scenarios` | Disruption scenarios |
 | `GET` | `/api/network`, `/api/cities` | Graph and city-to-hub lookup |
-| `GET` | `/api/model` | Held-out evaluation of the delay model |
+| `GET` | `/api/model` | Held-out evaluation of the delay model and the threat intelligence |
+| `GET` | `/api/currencies` | US dollar exchange rates for showing costs (ECB reference rates) |
 | `GET` | `/api/status`, `WS /ws` | Engine status |
 
 Example request:
@@ -223,7 +231,7 @@ Other accepted values:
 - `cargo_type`: `general`, `perishable_urgent`, `hazardous_waste` or `oversize_heavy`
 - `priority`: `low`, `normal` or `urgent`
 
-Unknown fields, scenarios and hub IDs are rejected.
+Unknown fields, scenarios and hub IDs are rejected with a 422. So is a request the engine can't serve, such as an unknown place, the same hub at both ends, or no route under the constraints; its body gives the reason as `{"error": "..."}`.
 
 The response below is shortened from a real run of the same request without the `overrides`:
 
@@ -260,13 +268,13 @@ The response below is shortened from a real run of the same request without the 
 }
 ```
 
-All times are in hours and costs in US dollars.
+All times are in hours and costs in US dollars. Costs are estimates for comparing options: a flat rate per kilometre for each mode, fixed transfer fees, and a risk premium on legs through a disruption.
 
 ## Tests
 
 ```bash
 python -m pip install -r requirements-dev.txt
-python -m pytest                     # 232 tests, about a minute
+python -m pytest                     # 264 tests, about two minutes
 python tools/audit_land_lanes.py     # lists road and rail lanes whose straight line crosses water
 ```
 
@@ -278,7 +286,7 @@ The browser test needs the backend and the dashboard running:
 python tools/ui_smoke.py             # uses Microsoft Edge; add --browser chrome for Chrome
 ```
 
-It runs the LA port strike example (ships must divert via Oakland), plans a route by search, swaps its ends, re-plans it from the scenario alert, checks the voyage plan, the map highlight and the CSV export, opens the other two pages and replays a recent plan at phone width. It fails on any console error or failed request, and saves screenshots to `ui-screens/`.
+It runs the LA port strike example (ships must divert via Oakland), checks that editing an input marks the routes stale, plans a route by search, swaps its ends, re-plans it from the scenario alert, and checks the voyage plan, the map highlight, the CSV and JSON exports, the printed report, costs in euros and the comparison with the last run. It then opens the other two pages (rejecting a negative inventory), reopens a saved plan at phone width, and leaves the planner right after planning a few times. It fails on any console error or failed request, and saves screenshots and the report PDF to `ui-screens/`.
 
 `python tools/a11y_check.py` runs the axe-core accessibility checks on all three pages and fails on any violation. It needs internet access to fetch axe-core.
 
@@ -292,13 +300,14 @@ It runs the LA port strike example (ships must divert via Oakland), plans a rout
 | `backend/engine/multimodal_network.py` | Builds the graph: basins, straits, landmasses, transfers |
 | `backend/engine/delay_model.py`, `delay_features.py` | Loads the pinned delay model; features and Shapley values |
 | `backend/engine/threat_intelligence.py` | NLP threat scoring and type, CARF |
-| `backend/engine/news_ingestion.py` | Google News RSS with time limits and caching |
+| `backend/engine/news_ingestion.py` | Google News RSS, Open-Meteo weather and ECB exchange rates, with time limits and caching |
 | `backend/engine/scenario_manager.py`, `supplier_scorer.py`, `node_resolver.py` | Scenarios, supplier ranking, place-name lookup |
 | `backend/data/` | Hub registry, city lookup, suppliers |
 | `ml/` | Dataset generator and training script for the delay model |
 | `Execution/delay_quantile_model.joblib` and `.json` | Trained delay model and its evaluation report |
 | `frontend/src/` | React dashboard: route planner, map, model evaluation, suppliers |
-| `tests/`, `tools/` | Test suite, land-lane audit, browser smoke test |
+| `run.py` | Builds the dashboard if needed and serves it with the API on one port |
+| `tests/`, `tools/` | Test suite, land-lane audit, browser smoke test, accessibility check |
 | `docs/` | Bug fixes, model card, screenshots |
 
 Starter files the app never used have been removed: an earlier US-only prototype in `backend/engine/`, its API and model files in `Execution/`, and the original author's scripts and notes in `Code/`, `scratch/` and `benchmarks/`. They remain in the git history at the starter commit `8f15416`. Removing them also dropped 11 dependencies from `requirements.txt`, including OR-Tools and Matplotlib.
@@ -306,9 +315,10 @@ Starter files the app never used have been removed: an earlier US-only prototype
 ## Limitations
 
 - **The delay model is trained on synthetic data.** There is no public dataset of per-leg freight delays. The generator uses physics-informed priors, and the model card lists them.
-- **Costs and nominal times come from the hub registry,** not live freight rates or schedules.
+- **Costs and nominal times come from fixed rates and speeds for each mode,** not live freight rates or schedules. They are for comparing the options, not quotes.
 - **Live news covers the origin, the destination and the 15 chokepoints,** not every port or depot along the way; those use scenarios and standing reports. The source is English Google News RSS.
-- **Nothing is stored on the server.** Recent plans are kept in the browser that made them.
+- **Nothing is stored on the server.** Recent plans and their results are kept in the browser that made them; there are no user accounts.
+- **The dashboard is in English only.**
 - **Map tiles come from the public OpenStreetMap servers,** whose usage policy suits a demo but not heavy use.
 
 ## Team
