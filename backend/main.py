@@ -168,6 +168,11 @@ def get_status():
         "hub_count": len(canonical_hubs)
     }
 
+@app.get("/api/currencies")
+def get_currencies():
+    """US dollar exchange rates for showing cost estimates in other currencies; none while the source is unreachable."""
+    return {"base": "USD", **(recommender.news_ingestor.fetch_rates() or {"date": None, "rates": {}})}
+
 def load_evaluation(name):
     """An offline evaluation report from Execution/ (see ml/), or None if not generated."""
     path = os.path.join(EXECUTION_DIR, name)

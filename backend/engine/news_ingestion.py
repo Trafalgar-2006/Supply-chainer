@@ -1,4 +1,5 @@
 import calendar
+import math
 
 import feedparser
 import requests
@@ -19,6 +20,10 @@ GALE_KMH = 62  # Beaufort 8
 WEATHER_WORDS = [((0,), "clear"), ((1, 2, 3), "cloudy"), ((45, 48), "fog"), ((51, 53, 55, 56, 57), "drizzle"),
                  ((61, 63, 65, 66, 67), "rain"), ((71, 73, 75, 77), "snow"), ((80, 81, 82), "rain showers"),
                  ((85, 86), "snow showers"), ((95, 96, 99), "thunderstorm")]
+
+
+RATES_URL = "https://api.frankfurter.dev/v1/latest"  # European Central Bank reference rates, no key
+CURRENCIES = ["EUR", "GBP", "INR", "CNY", "JPY", "SGD"]
 
 
 def describe_weather(code: int) -> str:
@@ -106,6 +111,30 @@ class DynamicNewsIngestor:
                        "wind_kmh": round(wind), "precipitation_mm": round(precipitation, 1)}
         except Exception as e:
             print(f"[WEATHER] Unavailable for ({lat:.1f}, {lon:.1f}): {e}")
+        self.cache[key] = (now, content)
+        return content
+
+    def fetch_rates(self) -> Optional[dict]:
+        """Units of each currency per US dollar, with the rates' date, or None if unavailable."""
+        key = ("rates",)
+        now = time.time()
+        if key in self.cache:
+            ts, content = self.cache[key]
+            if now - ts < (self.cache_ttl if content else self.failure_ttl):
+                return content
+
+        content = None
+        try:
+            response = requests.get(RATES_URL, timeout=FEED_TIMEOUT_S,
+                                    params={"base": "USD", "symbols": ",".join(CURRENCIES)})
+            response.raise_for_status()
+            data = response.json()
+            rates = {c: float(data["rates"][c]) for c in CURRENCIES if c in data["rates"]}
+            rates = {c: r for c, r in rates.items() if math.isfinite(r) and r > 0}
+            if rates:
+                content = {"date": str(data["date"])[:10], "rates": rates}
+        except Exception as e:
+            print(f"[RATES] Unavailable: {e}")
         self.cache[key] = (now, content)
         return content
 

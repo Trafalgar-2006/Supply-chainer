@@ -93,6 +93,8 @@ h3 { font-size: 1.05rem; }
 .control:focus { outline: none; border-color: var(--contour); }
 .control:disabled { opacity: 0.5; cursor: not-allowed; }
 .control.alert { border-color: var(--signal); }
+.control[aria-invalid="true"] { border-color: var(--signal); }
+.field-error { color: var(--signal); font-size: 0.85rem; }
 
 .suggestions { border: 1px solid var(--rule); border-radius: var(--radius); background: var(--chart); overflow: hidden; }
 
@@ -153,7 +155,8 @@ h3 { font-size: 1.05rem; }
   font-size: 0.9rem;
 }
 
-.secondary:hover { background: rgba(108, 195, 213, 0.1); }
+.secondary:hover:not(:disabled) { background: rgba(108, 195, 213, 0.1); }
+.secondary:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .link {
   background: none;
@@ -189,6 +192,7 @@ h3 { font-size: 1.05rem; }
 .notice.warn { border-color: var(--amber); }
 .notice.warn strong { color: var(--amber); }
 .notice ul { list-style: none; display: flex; flex-wrap: wrap; gap: 0.3rem 1rem; margin-top: 0.3rem; }
+.notice ul.changes { flex-direction: column; gap: 0.15rem; }
 .error { border-left: 3px solid var(--signal); padding: 0.35rem 0.8rem; color: var(--signal); }
 
 /* ---- Chart ---- */
@@ -274,7 +278,8 @@ h3 { font-size: 1.05rem; }
 
 /* ---- Voyage plan (selected route) ---- */
 .voyage section { display: flex; flex-direction: column; gap: 0.6rem; }
-.voyage .heading { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; }
+.voyage.stale > * { opacity: 0.5; }
+.exports { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .voyage .lead { font-size: 0.95rem; }
 
 .legs { list-style: none; position: relative; }
@@ -314,8 +319,10 @@ h3 { font-size: 1.05rem; }
 .report p { font-size: 0.9rem; margin-top: 0.2rem; }
 
 .recent { list-style: none; }
-.recent button { width: 100%; text-align: left; background: none; border: none; border-bottom: 1px solid var(--rule); padding: 0.4rem 0; }
-.recent button:hover:not(:disabled) { color: var(--contour); }
+.recent li { border-bottom: 1px solid var(--rule); padding: 0.4rem 0; }
+.recent button { width: 100%; text-align: left; background: none; border: none; }
+.recent .again { width: auto; margin-top: 0.2rem; font-size: 0.85rem; }
+.recent button:not(.again):hover:not(:disabled) { color: var(--contour); }
 .recent button:disabled { cursor: not-allowed; opacity: 0.6; }
 .recent small { display: block; color: var(--muted); font-size: 0.82rem; }
 
@@ -372,6 +379,26 @@ h3 { font-size: 1.05rem; }
   .option .cost, .option .risk { text-align: left; }
   .model-grid { grid-template-columns: 1fr; }
   .brand p { display: none; }
+}
+
+.print-only { display: none; }
+
+/* The printed report (Print report, or save as PDF): the chosen plan, all
+   options and the selected route, dark ink on white paper. The map is left
+   out: Leaflet lays it out for the screen, so on paper it would be cropped. */
+@media print {
+  :root {
+    --night: #fff; --chart: #fff; --rule: #c4ccd3; --raised: #eef2f5; --text: #111; --muted: #4a5561;
+    --contour: #0b6f82; --amber: #8a5a00; --kelp: #1d6b48; --signal: #b3261e; --orchid: #7a3d99;
+  }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  @page { margin: 14mm; }
+  .planner { display: block; height: auto; }
+  .plan, .board, .voyage { overflow: visible; padding: 0.5rem 0; }
+  .voyage { border: none; }
+  .plan, .topbar nav, .route-map, .legend, .exports, .notice.warn { display: none; }
+  .print-only { display: block; }
+  section, .option, .report, table { break-inside: avoid; }
 }
 
 @media (prefers-reduced-motion: reduce) {

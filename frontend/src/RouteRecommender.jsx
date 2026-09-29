@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { animate, stagger } from 'animejs';
-import { Truck, Ship, Plane, Train, ArrowRightLeft, ArrowUpDown, Navigation, Download } from 'lucide-react';
+import { Truck, Ship, Plane, Train, ArrowRightLeft, ArrowUpDown, Navigation, Download, Printer } from 'lucide-react';
 import RouteMap, { PERSONA_COLOURS, personaLabel, prefersReducedMotion } from './RouteMap.jsx';
 
 const CARGO_TYPES = [
@@ -41,7 +41,17 @@ const RECENT_LIMIT = 8;
 // Hours, shown as days once a trip passes two days (a 640 h voyage reads 26.7
 // days). Figures read together pass `days` so they share one unit.
 const fmtH = (h, days = h >= 48) => (days ? `${(h / 24).toFixed(1)} days` : `${Math.round(h * 10) / 10} h`);
-const fmtMoney = v => `$${Math.round(v).toLocaleString()}`;
+// Costs come in US dollars; another currency is shown at the day's ECB reference rate.
+// Always en-US grouping, so the same figure never reads $1,38,753 in one place and $138,753 in another.
+const moneyFormat = (currency, rate) => {
+  const f = new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  return v => f.format(v * rate);
+};
+const CURRENCY_NAMES = {
+  USD: 'US dollars', EUR: 'Euros', GBP: 'Pounds sterling', INR: 'Indian rupees', CNY: 'Chinese yuan',
+  JPY: 'Japanese yen', SGD: 'Singapore dollars',
+};
+const fmtTime = iso => new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 const pct = x => `${Math.round(x * 100)}%`;
 const capitalise = s => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 
@@ -52,27 +62,62 @@ function modeSummary(route) {
   return `${capitalise(modes.join(', '))}. ${transfers} transfer${transfers === 1 ? '' : 's'}.`;
 }
 
-// Recent plans are kept in this browser only; storage can be full or disabled,
-// in which case they are simply not remembered.
+// Recent plans are kept in this browser only, each with the result it got, so
+// reopening one shows exactly what was recommended then. Storage can be full or
+// disabled, in which case they are kept without results, or not at all.
 const planKey = p => JSON.stringify([p.source, p.destination, p.transportMode, p.routingPolicy,
   p.cargoType, p.priority, p.liveIntel, [...p.avoid].sort()]);
+
+// A saved result that does not look like a planner response (an older version,
+// edited storage) is dropped, keeping the plan.
+const validResult = r => r && Array.isArray(r.live_intel) && Array.isArray(r.recommendations) && r.recommendations.length > 0
+  && r.recommendations.every(x => x && Array.isArray(x.legs) && x.legs.length > 0 && x.eta_band && x.audit_trace
+    && typeof x.total_cost === 'number');
 
 function loadRecent() {
   try {
     const saved = JSON.parse(localStorage.getItem(RECENT_KEY));
     return Array.isArray(saved) ? saved.filter(p => p && typeof p.source === 'string' && typeof p.destination === 'string'
-      && typeof p.sourceName === 'string' && typeof p.destName === 'string' && Array.isArray(p.avoid) && Array.isArray(p.hubs)) : [];
+      && typeof p.sourceName === 'string' && typeof p.destName === 'string' && Array.isArray(p.avoid) && Array.isArray(p.hubs))
+      .map(({ result, plannedAt, ...p }) => (validResult(result) && !Number.isNaN(Date.parse(plannedAt))
+        ? { ...p, result, plannedAt } : p)) : [];
   } catch {
     return [];
   }
 }
 
+// A plan's inputs alone, without its saved result.
+const planOnly = ({ result, plannedAt, saved, ...plan }) => plan;
+
 function saveRecent(plans) {
   try {
     localStorage.setItem(RECENT_KEY, JSON.stringify(plans));
   } catch {
-    // Not remembered; the plans still work for this session.
+    try {
+      localStorage.setItem(RECENT_KEY, JSON.stringify(plans.map(planOnly)));
+    } catch {
+      // Not remembered; the plans still work for this session.
+    }
   }
+}
+
+// What moved since the last time this plan was made, option by option.
+function changesSince(before, after, fmtMoney) {
+  const path = r => r.legs.map(l => l.to).join();
+  return after.flatMap(r => {
+    const old = before.find(b => b.persona === r.persona);
+    if (!old) return [];
+    const parts = [];
+    if (path(old) !== path(r)) parts.push('a different route');
+    const hours = r.eta_band.p85 - old.eta_band.p85;
+    if (Math.abs(hours) >= 1) parts.push(`plan-for time ${hours > 0 ? 'up' : 'down'} ${fmtH(Math.abs(hours))}`);
+    if (Math.abs(r.total_cost - old.total_cost) >= 0.02 * old.total_cost) {
+      parts.push(`cost ${fmtMoney(old.total_cost)} to ${fmtMoney(r.total_cost)}`);
+    }
+    const risk = Math.round((r.threat_level - old.threat_level) * 100);
+    if (Math.abs(risk) >= 5) parts.push(`peak risk ${pct(old.threat_level)} to ${pct(r.threat_level)}`);
+    return parts.length ? [`${personaLabel(r)}: ${parts.join(', ')}.`] : [];
+  });
 }
 
 // Every cell quoted. Headlines come from outside, so text that a spreadsheet
@@ -83,25 +128,46 @@ const csvCell = v => {
 };
 const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
+function download(name, text, type) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = name;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 function downloadCsv(route, hubName) {
   const origin = hubName(route.legs[0].from);
   const destination = route.legs[route.legs.length - 1].to_name;
   const rows = [
-    ['leg', 'type', 'mode', 'from', 'to', 'hours', 'delay_p50_h', 'delay_p85_h', 'delay_p95_h', 'cost_usd', 'threat', 'intel_source', 'reason'],
+    ['leg', 'type', 'mode', 'from', 'to', 'hours', 'delay_p50_h', 'delay_p85_h', 'delay_p95_h', 'cost_usd_estimate', 'threat', 'intel_source', 'reason'],
     ...route.legs.map((l, i) => [i + 1, l.type, l.mode, hubName(l.from), l.to_name, l.eta, l.delay.p50, l.delay.p85, l.delay.p95,
       l.cost, l.threat, l.intel_source, l.reason]),
     ['total', '', '', origin, destination, route.adjusted_eta, '', '', '', route.total_cost, route.threat_level, '',
       `Typical ${route.adjusted_eta} h; plan for ${route.eta_band.p85} h (p85); up to ${route.eta_band.p95} h (p95)`],
   ];
   // The byte-order mark lets Excel read accented hub names as UTF-8.
-  const csv = '﻿' + rows.map(r => r.map(csvCell).join(',')).join('\r\n');
-  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `route-${slug(origin)}-to-${slug(destination)}.csv`;
-  link.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  download(`route-${slug(origin)}-to-${slug(destination)}.csv`,
+    '﻿' + rows.map(r => r.map(csvCell).join(',')).join('\r\n'), 'text/csv;charset=utf-8');
 }
+
+// Every option with its full audit trail, in the API's own shape, plus the
+// request that produced it: what a TMS or ERP would import.
+function downloadJson(context, recommendations, intelReports) {
+  download(`routes-${slug(context.sourceName)}-to-${slug(context.destName)}.json`,
+    JSON.stringify({ planned_at: context.plannedAt, currency: 'USD', request: apiRequest(context), recommendations,
+      live_intel: intelReports }, null, 2),
+    'application/json');
+}
+
+// The body /api/recommend takes, from a plan.
+const apiRequest = plan => ({
+  source: plan.source, destination: plan.destination, transport_preference: plan.transportMode,
+  routing_policy: plan.routingPolicy, cargo_type: plan.cargoType, priority: plan.priority,
+  scenario: plan.scenario, live_intel: plan.liveIntel,
+  overrides: plan.avoid.length ? { avoid_chokepoints: plan.avoid } : null,
+});
 
 const RouteRecommender = ({ onNavigate, engineStatus }) => {
   const [source, setSource] = useState('');
@@ -126,6 +192,9 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
   const [hubs, setHubs] = useState([]);
   const [recent, setRecent] = useState(loadRecent);
   const [focusLeg, setFocusLeg] = useState(null); // the voyage-plan leg highlighted on the map
+  const [changes, setChanges] = useState(null); // what moved since this plan was last made
+  const [currency, setCurrency] = useState('USD');
+  const [fx, setFx] = useState({ date: null, rates: {} });
   const latestQuery = useRef({ source: '', dest: '' });
   const optionList = useRef(null);
 
@@ -139,7 +208,15 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
       .then(r => r.json())
       .then(setHubs)
       .catch(e => console.error('Failed to load hubs', e));
+    // Without rates (offline source), costs stay in US dollars.
+    fetch('/api/currencies')
+      .then(r => r.json())
+      .then(data => data && data.rates && setFx(data))
+      .catch(() => {});
   }, []);
+
+  const rate = currency === 'USD' ? 1 : fx.rates[currency];
+  const fmtMoney = useMemo(() => (rate ? moneyFormat(currency, rate) : moneyFormat('USD', 1)), [currency, rate]);
 
   // New results: the option rows come in one after another, alongside the
   // route being drawn on the chart.
@@ -196,15 +273,28 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
     setAvoid(plan.avoid);
   };
 
-  const remember = (plan, routes) => {
-    const entry = { ...plan, hubs: [...new Set(routes.flatMap(r => r.legs.flatMap(l => [l.from, l.to])))] };
-    const next = [entry, ...recent.filter(p => planKey(p) !== planKey(entry) || p.scenario !== entry.scenario)]
-      .slice(0, RECENT_LIMIT);
+  const sameAs = plan => p => planKey(p) === planKey(plan) && p.scenario === plan.scenario;
+
+  const remember = (plan, result) => {
+    const entry = { ...plan, result, hubs: [...new Set(result.recommendations.flatMap(r => r.legs.flatMap(l => [l.from, l.to])))] };
+    const next = [entry, ...recent.filter(p => !sameAs(entry)(p))].slice(0, RECENT_LIMIT);
     setRecent(next);
     saveRecent(next);
   };
 
-  const runPlan = async plan => {
+  // A saved plan opens as it was; planning again fetches current conditions.
+  const openSaved = ({ result, ...plan }) => {
+    applyPlan(plan);
+    setError(null);
+    setChanges(null);
+    setRecommendations(result.recommendations);
+    setIntelReports(result.live_intel);
+    setResultContext({ ...plan, saved: true });
+    setSelected(0);
+  };
+
+  const runPlan = async request => {
+    const plan = planOnly(request);
     applyPlan(plan);
     setLoading(true);
     setError(null);
@@ -212,17 +302,7 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
       const res = await fetch('/api/recommend', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          source: plan.source,
-          destination: plan.destination,
-          transport_preference: plan.transportMode,
-          routing_policy: plan.routingPolicy,
-          cargo_type: plan.cargoType,
-          priority: plan.priority,
-          scenario: plan.scenario,
-          live_intel: plan.liveIntel,
-          overrides: plan.avoid.length ? { avoid_chokepoints: plan.avoid } : null
-        })
+        body: JSON.stringify(apiRequest(plan)),
       });
       const data = await res.json();
       if (!res.ok || data.error) {
@@ -231,12 +311,17 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
         setRecommendations([]);
         setIntelReports([]);
         setResultContext(null);
+        setChanges(null);
       } else {
-        setRecommendations(data.recommendations);
-        setIntelReports(data.live_intel || []);
-        setResultContext(plan);
+        const planned = { ...plan, plannedAt: new Date().toISOString() };
+        const result = { recommendations: data.recommendations, live_intel: data.live_intel || [] };
+        const before = recent.find(p => sameAs(plan)(p) && p.result);
+        setChanges(before ? { since: before.plannedAt, before: before.result.recommendations } : null);
+        setRecommendations(result.recommendations);
+        setIntelReports(result.live_intel);
+        setResultContext(planned);
         setSelected(0);
-        remember(plan, data.recommendations);
+        remember(planned, result);
       }
     } catch {
       setError('Could not reach the routing engine. Check that the backend is running.');
@@ -249,6 +334,10 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
     source, sourceName: searchQuery.source, destination, destName: searchQuery.dest,
     transportMode, routingPolicy, cargoType, priority, scenario: selectedScenario, liveIntel, avoid,
   });
+  // The routes shown no longer match the controls: they are dimmed and can't be exported.
+  const inputsChanged = resultContext && planKey(planFromControls()) !== planKey(resultContext);
+  const stale = !loading && (inputsChanged || scenarioChanged);
+  const changeLines = changes ? changesSince(changes.before, recommendations, fmtMoney) : [];
 
   const handleSearch = async (type, query) => {
     setSearchQuery(prev => ({ ...prev, [type]: query }));
@@ -455,6 +544,14 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
           Check live news and weather
         </label>
 
+        <div className="field">
+          <label htmlFor="currency">Show costs in</label>
+          <select id="currency" value={currency} onChange={e => setCurrency(e.target.value)} className="control"
+                  disabled={!Object.keys(fx.rates).length}>
+            {['USD', ...Object.keys(fx.rates)].map(c => <option key={c} value={c}>{CURRENCY_NAMES[c] || c}</option>)}
+          </select>
+        </div>
+
         <button type="button" className="primary" onClick={() => runPlan(planFromControls())}
                 disabled={loading || !source || !destination}>
           {loading ? 'Planning routes…' : 'Plan routes'}
@@ -466,13 +563,20 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
             <ul className="recent">
               {recent.map(p => (
                 <li key={planKey(p) + p.scenario}>
-                  <button type="button" disabled={loading} onClick={() => runPlan(p)}>
+                  <button type="button" disabled={loading} onClick={() => (p.result ? openSaved(p) : runPlan(p))}>
                     {p.sourceName} to {p.destName}
                     <small>
                       {scenarios.find(s => s.id === p.scenario)?.name || (p.scenario ? p.scenario : 'Normal operations')}
                       {p.transportMode !== 'any' ? `, ${p.transportMode}` : ''}
+                      {p.result ? `. Saved result from ${fmtTime(p.plannedAt)}` : ''}
                     </small>
                   </button>
+                  {p.result && (
+                    <button type="button" className="link again" disabled={loading} onClick={() => runPlan(p)}
+                            aria-label={`Plan ${p.sourceName} to ${p.destName} again with current conditions`}>
+                      Plan again with current conditions
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
@@ -486,9 +590,29 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
             <strong>Planned under {resultScenario.name}.</strong> {resultScenario.reason}
           </div>
         )}
-        {scenarioChanged && !affectedPlans.some(p => planKey(p) === planKey(resultContext)) && (
+        {resultContext && recommendations.length > 0 && (
+          <p className="print-only">
+            {resultContext.sourceName} to {resultContext.destName}, planned {fmtTime(resultContext.plannedAt)}.
+            Cargo: {CARGO_TYPES.find(c => c.value === resultContext.cargoType)?.label}. Priority: {resultContext.priority}.
+            Mode: {resultContext.transportMode}. Live news and weather: {resultContext.liveIntel ? 'on' : 'off'}.
+          </p>
+        )}
+        {resultContext?.saved && !stale && (
           <div className="notice warn">
-            <strong>Scenario changed.</strong> Plan again to apply it to the routes shown.
+            <strong>Saved result from {fmtTime(resultContext.plannedAt)}.</strong> Conditions may have changed since; plan
+            again for current news, weather and delays.
+          </div>
+        )}
+        {changes && !stale && (
+          <div className="notice">
+            <strong>Since your plan of {fmtTime(changes.since)}:</strong> {changeLines.length ? '' : 'no change.'}
+            {changeLines.length > 0 && <ul className="changes">{changeLines.map(line => <li key={line}>{line}</li>)}</ul>}
+          </div>
+        )}
+        {stale && (inputsChanged || !affectedPlans.some(p => planKey(p) === planKey(resultContext))) && (
+          <div className="notice warn" role="status">
+            <strong>{inputsChanged ? 'Inputs changed.' : 'Scenario changed.'}</strong> The routes shown are for the
+            previous inputs; plan again to update them.
           </div>
         )}
         {affectedPlans.length > 0 && (
@@ -524,9 +648,9 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
               </p>
             </section>
             <div className="options-head options-grid" aria-hidden="true">
-              <span /><span>Route</span><span>Door-to-door time</span><span>Landed cost</span><span>Peak risk</span>
+              <span /><span>Route</span><span>Door-to-door time</span><span>Estimated cost</span><span>Peak risk</span>
             </div>
-            <ul className={`options ${loading ? 'busy' : ''}`} ref={optionList} aria-busy={loading}>
+            <ul className={`options ${loading || stale ? 'busy' : ''}`} ref={optionList} aria-busy={loading}>
               {recommendations.map((rec, idx) => {
                 const colour = PERSONA_COLOURS[rec.persona];
                 const band = rec.eta_band;
@@ -586,17 +710,28 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
         )}
       </main>
 
-      <aside className="voyage" aria-label="Selected route">
+      <aside className={`voyage ${stale ? 'stale' : ''}`} aria-label="Selected route">
         {route ? (
           <>
             <section>
-              <div className="heading">
-                <h2>{personaLabel(route)}</h2>
-                <button type="button" className="secondary" onClick={() => downloadCsv(route, hubName)}>
+              <h2>{personaLabel(route)}</h2>
+              <p className="lead">{route.explanation}</p>
+              <div className="exports">
+                <button type="button" className="secondary" disabled={stale} onClick={() => downloadCsv(route, hubName)}
+                        title="This route's legs, times, costs and threats">
                   <Download size={14} aria-hidden="true" /> Export CSV
                 </button>
+                <button type="button" className="secondary" disabled={stale}
+                        onClick={() => downloadJson(resultContext, recommendations, intelReports)}
+                        title="Every option with its audit trail, as the API returns it">
+                  <Download size={14} aria-hidden="true" /> Export JSON
+                </button>
+                <button type="button" className="secondary" disabled={stale} onClick={() => window.print()}
+                        title="A report of all options and this route, to print or save as PDF">
+                  <Printer size={14} aria-hidden="true" /> Print report
+                </button>
               </div>
-              <p className="lead">{route.explanation}</p>
+              {stale && <p className="note">Plan again to export the routes for the current inputs.</p>}
             </section>
 
             <section>
@@ -616,7 +751,13 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
                   <tr><td>Transit</td><td>{fmtH(route.audit_trace.eta.transit, ledgerDays)}</td></tr>
                   <tr><td>Transfers</td><td>{fmtH(route.audit_trace.eta.transfer, ledgerDays)}</td></tr>
                   <tr><td>Typical delay (model p50)</td><td>{fmtH(route.audit_trace.eta.delay, ledgerDays)}</td></tr>
-                  <tr><td>Scenario delay</td><td>{route.audit_trace.eta.scenario > 0 ? fmtH(route.audit_trace.eta.scenario, ledgerDays) : 'None'}</td></tr>
+                  <tr>
+                    <td>Scenario delay</td>
+                    <td>
+                      {route.audit_trace.eta.scenario > 0 ? fmtH(route.audit_trace.eta.scenario, ledgerDays)
+                        : resultScenario ? 'None, route avoids it' : 'None'}
+                    </td>
+                  </tr>
                   <tr className="total"><td>Typical door to door</td><td>{fmtH(route.adjusted_eta, ledgerDays)}</td></tr>
                   <tr className="gap"><td>Plan for (p85)</td><td>{fmtH(route.eta_band.p85, ledgerDays)}</td></tr>
                   <tr><td>Worst case (p95)</td><td>{fmtH(route.eta_band.p95, ledgerDays)}</td></tr>
@@ -626,12 +767,17 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
 
             <section>
               <h2>Cost</h2>
+              <p className="note">
+                Estimates for comparing the options, not freight quotes: a flat rate per kilometre for each mode, fixed
+                transfer fees, and a risk premium on legs through a disruption.
+                {rate && currency !== 'USD' ? ` Converted from US dollars at the ECB reference rate of ${fx.date}.` : ''}
+              </p>
               <table className="ledger">
                 <tbody>
                   <tr><td>Transit</td><td>{fmtMoney(route.audit_trace.cost.transit)}</td></tr>
                   <tr><td>Transfer fees</td><td>{fmtMoney(route.audit_trace.cost.transfer)}</td></tr>
                   <tr><td>Scenario risk premium</td><td>{fmtMoney(route.audit_trace.cost.scenario)}</td></tr>
-                  <tr className="total"><td>Landed cost</td><td>{fmtMoney(route.total_cost)}</td></tr>
+                  <tr className="total"><td>Estimated total</td><td>{fmtMoney(route.total_cost)}</td></tr>
                 </tbody>
               </table>
             </section>

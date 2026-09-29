@@ -1,9 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
 
-// Inputs keep whatever the user typed (possibly empty mid-edit); requests use a
-// clean count, never NaN or a negative number.
-const toCount = value => Math.max(0, Number.parseInt(value, 10) || 0);
+// Inputs keep whatever the user typed. A count must be a whole number from 0 to
+// the API's limit; anything else is flagged on its field, and no advice is
+// asked for or shown until it is fixed, so it never rests on a guessed number.
+const MAX_UNITS = 1e9;
+const countError = value => {
+  if (value.trim() === '') return 'Enter a number of units.';
+  const n = Number(value);
+  if (!Number.isInteger(n)) return 'Use a whole number of units.';
+  if (n < 0) return 'Units cannot be negative.';
+  if (n > MAX_UNITS) return 'At most 1,000,000,000 units.';
+  return null;
+};
+const units = n => n.toLocaleString('en-US');
 const REQUEST_DELAY_MS = 300;
 const sentence = s => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase().replace(/_/g, ' ');
 
@@ -32,17 +42,22 @@ export default function SupplierIntelligence({ onNavigate }) {
   }, []);
   const hubName = id => hubNames[id] || id;
 
+  const invalid = [inventory, safetyStock, forecast].some(countError);
+
   useEffect(() => {
     // Wait for typing to pause before asking the API, and drop superseded requests.
+    // While a count is invalid only the ranking is asked for; it doesn't use the counts.
     const controller = new AbortController();
     const timer = setTimeout(() => fetch('/api/suppliers', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         category,
-        current_inventory: toCount(inventory),
-        safety_stock: toCount(safetyStock),
-        demand_forecast: toCount(forecast),
+        ...(invalid ? {} : {
+          current_inventory: Number(inventory),
+          safety_stock: Number(safetyStock),
+          demand_forecast: Number(forecast),
+        }),
         scenario
       }),
       signal: controller.signal,
@@ -51,15 +66,28 @@ export default function SupplierIntelligence({ onNavigate }) {
         const data = await res.json();
         if (!res.ok) throw new Error(Array.isArray(data.detail) ? data.detail.map(d => d.msg).join('; ') : data.detail || `Request failed (${res.status})`);
         setSuppliers(data.suppliers || []);
-        setAdvice(data.advice);
+        setAdvice(invalid ? null : data.advice);
         setDisruptions(data.active_disruptions || {});
         setError(null);
       })
       .catch(e => { if (e.name !== 'AbortError') setError(e.message); }), REQUEST_DELAY_MS);
     return () => { clearTimeout(timer); controller.abort(); };
-  }, [category, scenario, inventory, safetyStock, forecast]);
+  }, [category, scenario, inventory, safetyStock, forecast, invalid]);
 
   const critical = advice && advice.urgency_level === 'CRITICAL';
+
+  const renderCount = (id, label, value, setValue) => {
+    const problem = countError(value);
+    return (
+      <div className="field">
+        <label htmlFor={id}>{label}</label>
+        <input id={id} type="number" min="0" max={MAX_UNITS} step="1" inputMode="numeric" value={value}
+               onChange={e => setValue(e.target.value)} className="control"
+               aria-invalid={Boolean(problem)} aria-describedby={problem ? `${id}-error` : undefined} />
+        {problem && <p id={`${id}-error`} className="field-error">{problem}</p>}
+      </div>
+    );
+  };
 
   return (
     <div className="page">
@@ -85,18 +113,9 @@ export default function SupplierIntelligence({ onNavigate }) {
               <option value="Chemicals">Chemicals</option>
             </select>
           </div>
-          <div className="field">
-            <label htmlFor="inventory">Current inventory (units)</label>
-            <input id="inventory" type="number" min="0" value={inventory} onChange={e => setInventory(e.target.value)} className="control" />
-          </div>
-          <div className="field">
-            <label htmlFor="safety">Safety stock target (units)</label>
-            <input id="safety" type="number" min="0" value={safetyStock} onChange={e => setSafetyStock(e.target.value)} className="control" />
-          </div>
-          <div className="field">
-            <label htmlFor="forecast">Demand forecast (units)</label>
-            <input id="forecast" type="number" min="0" value={forecast} onChange={e => setForecast(e.target.value)} className="control" />
-          </div>
+          {renderCount('inventory', 'Current inventory (units)', inventory, setInventory)}
+          {renderCount('safety', 'Safety stock target (units)', safetyStock, setSafetyStock)}
+          {renderCount('forecast', 'Demand forecast (units)', forecast, setForecast)}
           <div className="field">
             <label htmlFor="supplier-scenario">Disruption scenario</label>
             <select id="supplier-scenario" value={scenario || ''} onChange={e => setScenario(e.target.value || null)}
@@ -110,13 +129,21 @@ export default function SupplierIntelligence({ onNavigate }) {
         {error && <div className="error" role="alert">{error}</div>}
 
         <div className="supplier-results">
-          {advice && (
+          {invalid && (
+            <section className="panel advice">
+              <h2>Fix the highlighted inputs to get procurement advice.</h2>
+            </section>
+          )}
+          {advice && !invalid && (
             <section className={`panel advice ${critical ? 'critical' : ''}`}>
               <span className="urgency">{sentence(advice.urgency_level)} urgency</span>
               <h2>{advice.recommendation}</h2>
               <p className="note">
-                Status: {sentence(advice.status)}. Projected inventory after demand: {advice.projected_inventory.toLocaleString()} units.
-                {advice.shortage_quantity > 0 && ` Short of the safety stock by ${advice.shortage_quantity.toLocaleString()} units.`}
+                Status: {sentence(advice.status)}.{' '}
+                {advice.projected_inventory < 0
+                  ? `Demand exceeds inventory by ${units(-advice.projected_inventory)} units: a stock-out.`
+                  : `Projected inventory after demand: ${units(advice.projected_inventory)} units.`}
+                {advice.shortage_quantity > 0 && ` Short of the safety stock by ${units(advice.shortage_quantity)} units.`}
               </p>
               {Object.keys(disruptions).length > 0 && (
                 <p className="disrupted">Disrupted hubs: {Object.keys(disruptions).map(hubName).join(', ')}</p>
@@ -152,7 +179,7 @@ export default function SupplierIntelligence({ onNavigate }) {
                           {s.name}
                           <small>{hubName(s.location_hub)}</small>
                         </td>
-                        <td className="num">${s.unit_cost.toLocaleString()}</td>
+                        <td className="num">${s.unit_cost.toLocaleString('en-US')}</td>
                         <td className="num">
                           {s.effective_lead_time} days
                           {penalty > 0 && <span className="added"> (+{penalty} from disruption)</span>}

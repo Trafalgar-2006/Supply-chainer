@@ -66,3 +66,20 @@ def test_only_recent_headlines_count_newest_first(monkeypatch):
             pass
     monkeypatch.setattr(news_ingestion.requests, "get", lambda *a, **kw: Page())
     assert DynamicNewsIngestor().fetch_headlines("Rotterdam") == "Rotterdam queue grows | Storm hits Rotterdam"
+
+
+def test_exchange_rates_keep_only_sensible_values(monkeypatch):
+    body = {"base": "USD", "date": "2026-09-28", "rates": {"EUR": 0.88, "INR": 95.98, "JPY": -1, "GBP": float("nan")}}
+    monkeypatch.setattr(news_ingestion.requests, "get", lambda *a, **kw: Reply(body))
+    assert DynamicNewsIngestor().fetch_rates() == {"date": "2026-09-28", "rates": {"EUR": 0.88, "INR": 95.98}}
+
+
+def test_unreachable_rates_leave_costs_in_dollars(monkeypatch):
+    from fastapi.testclient import TestClient
+    from backend import main
+
+    def down(*a, **kw):
+        raise OSError("offline")
+    monkeypatch.setattr(news_ingestion.requests, "get", down)
+    monkeypatch.setattr(main.recommender.news_ingestor, "cache", {})
+    assert TestClient(main.app).get("/api/currencies").json() == {"base": "USD", "date": None, "rates": {}}

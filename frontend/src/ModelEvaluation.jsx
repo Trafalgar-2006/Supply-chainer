@@ -61,7 +61,7 @@ export default function ModelEvaluation({ onNavigate }) {
           <h1>Delay model evaluation</h1>
           <p>
             p50, p85 and p95 quantile models, scored on a held-out test set
-            {report ? ` of ${report.n_test.toLocaleString()} legs` : ''}
+            {report ? ` of ${report.n_test.toLocaleString('en-US')} legs` : ''}
           </p>
         </div>
         <nav>
@@ -113,7 +113,7 @@ export default function ModelEvaluation({ onNavigate }) {
                 <p className="note">
                   Lower is better. The best possible model is computed exactly from the known data generator; this model
                   gets {ceiling.map(q => `${pct(q.share_of_achievable_gain)} (${q.name})`).join(', ')} of the way
-                  there, on {report.delay_ceiling.legs.toLocaleString()} fresh legs.
+                  there, on {report.delay_ceiling.legs.toLocaleString('en-US')} fresh legs.
                 </p>
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={ceiling}>
@@ -181,7 +181,7 @@ export default function ModelEvaluation({ onNavigate }) {
             <section className="panel">
               <h2>About the model</h2>
               <ul className="facts">
-                <li>One gradient-boosted quantile regressor per quantile, trained on {report.n_train.toLocaleString()} legs sampled from the live routing graph.</li>
+                <li>One gradient-boosted quantile regressor per quantile, trained on {report.n_train.toLocaleString('en-US')} legs sampled from the live routing graph.</li>
                 <li>Monotonic in distance, weather and news severity; p50 ≤ p85 ≤ p95 is enforced (raw crossing rate {(report.quantile_crossing_rate * 100).toFixed(2)}%).</li>
                 <li>Pinball loss against the naive baseline on the held-out split: {quantiles.map(([name, q]) => `${name} ${Math.round(q.improvement_vs_naive * 100)}% lower`).join(', ')}.</li>
                 <li>The artifact's SHA-256 is pinned in code and checked before loading: <code>{report.sha256.slice(0, 16)}…</code></li>

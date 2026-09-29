@@ -25,7 +25,16 @@ export default function App() {
       };
     };
     connect();
-    return () => { closed = true; clearTimeout(retry); ws.close(); };
+    return () => {
+      closed = true;
+      clearTimeout(retry);
+      ws.onmessage = null;
+      ws.onclose = null;
+      // Closing a socket that is still connecting makes the browser log an error
+      // (React's development mode mounts twice, which does this); close it once open.
+      if (ws.readyState === WebSocket.CONNECTING) ws.onopen = () => ws.close();
+      else ws.close();
+    };
   }, []);
 
   if (currentView === 'suppliers') {
