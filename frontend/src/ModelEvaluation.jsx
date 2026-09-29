@@ -67,7 +67,7 @@ export default function ModelEvaluation({ onNavigate }) {
         </nav>
       </header>
 
-      <main className="page-body">
+      <main className="page-body" tabIndex={0} aria-label="Model evaluation">
         {error && <div className="error" role="alert">{error}</div>}
         {!report && !error && <p className="muted">Loading the evaluation…</p>}
         {report && (

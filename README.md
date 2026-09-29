@@ -81,7 +81,7 @@ The starter code ran without errors but gave wrong answers. Some examples, all m
   - Ranked hub search, a swap button, and one-click example plans on a first visit.
   - Export the selected route to CSV.
   - Recent plans are remembered, and choosing a scenario lists the recent plans it disrupts.
-  - The layout works on phones, controls are labelled, and animation respects reduced motion.
+  - The layout works on phones, controls are labelled, animation respects reduced motion, and an axe-core scan finds no accessibility violations on any page.
 - **Security.**
   - Strict request validation.
   - Per-client rate limiting.
@@ -278,6 +278,8 @@ python tools/ui_smoke.py             # uses Microsoft Edge; add --browser chrome
 ```
 
 It runs the LA port strike example (ships must divert via Oakland), plans a route by search, swaps its ends, re-plans it from the scenario alert, checks the voyage plan, the map highlight and the CSV export, opens the other two pages and replays a recent plan at phone width. It fails on any console error or failed request, and saves screenshots to `ui-screens/`.
+
+`python tools/a11y_check.py` runs the axe-core accessibility checks on all three pages and fails on any violation. It needs internet access to fetch axe-core.
 
 ## Project layout
 
