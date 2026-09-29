@@ -60,7 +60,7 @@ The starter code ran without errors but gave wrong answers. Some examples, all m
   - Each headline is embedded with bge-small-en-v1.5 and compared with anchors for disruptions and for routine news.
   - Detection, severity (minor, significant or severe) and threat type (weather, labour, geopolitical, infrastructure, cyber or congestion) are learned from 288 labelled headlines, with place names stripped so a city can't raise a score.
   - The context filter (CARF) checks all four transport modes.
-  - Live Google News reports for the origin and destination feed both the threat and the delay model.
+  - Live Google News reports and current weather from Open-Meteo, for the origin and destination, feed both the threat and the delay model.
   - The test is 188 real Google News headlines, labelled before the engine saw them and never used to train it. Compared with the original engine:
     - disruptions caught went from 68% to 82%
     - false alarms went from 17% to 6%
@@ -168,11 +168,11 @@ flowchart LR
 
 1. **Graph.** Every hub has one node per transport mode it serves. Moving between modes at a hub is a transfer leg with its own time and cost. Sea lanes between basins pass through the straits that connect them.
 2. **Scenario.** A disruption scenario marks hubs as disrupted. A route touching one is exposed to its threat, and is charged its delay and a 10% risk premium once per route. Scenarios are looked up per request, so concurrent users never see each other's.
-3. **Live news** (optional).
-   - Headlines for the origin and destination cities come from Google News RSS. Each fetch gets 2 seconds and the whole lookup 3 seconds; results are cached for 15 minutes.
-   - Each headline is scored separately, and the strongest one sets the threat and its type.
+3. **Live news and weather** (optional).
+   - Headlines for the origin and destination cities come from Google News RSS, and current weather at both from Open-Meteo. Each fetch gets 2 seconds and the whole lookup 3 seconds; results are cached for 15 minutes.
+   - Each headline is scored separately, and the strongest one sets the threat, its severity and its type.
    - CARF drops a report for a leg when the report is about another mode's infrastructure.
-   - Weather reports also set the weather feature for the delay model.
+   - The delay model's weather input is the worse of the measured weather (fog, rain or snow is rainy; thunderstorms, heavy snow or gale-force wind is stormy) and what weather news reports.
 4. **Delay model.** Predicts each leg's p50, p85 and p95 delay from mode, distance, arrival type (terminal, canal or strait), weather and news score. The model is monotonic, so more distance, worse weather or stronger news never lowers a prediction.
 5. **Search.** Dijkstra runs three times:
    - The fastest option plans on each leg's p50 time.
@@ -351,3 +351,4 @@ This project is released under the Apache License 2.0 (see [LICENSE](LICENSE)), 
 
 - **Map data:** © OpenStreetMap contributors, available under the Open Database License. The map shows this attribution.
 - **Live headlines:** Google News RSS. The dashboard shows each headline with its publisher.
+- **Weather:** [Open-Meteo.com](https://open-meteo.com), CC BY 4.0. The dashboard credits it wherever weather is shown.

@@ -6,6 +6,21 @@ from typing import Optional
 
 FEED_TIMEOUT_S = 2.0
 
+WEATHER_URL = "https://api.open-meteo.com/v1/forecast"
+# WMO weather codes (open-meteo.com/en/docs). Fog, drizzle, rain, snow and showers
+# slow freight ("rainy" for the delay model); thunderstorms, heavy snow and
+# violent showers stop it ("stormy"), as do gale-force winds.
+STORMY_CODES = {65, 67, 75, 82, 86, 95, 96, 99}
+WET_CODES = {45, 48, 51, 53, 55, 56, 57, 61, 63, 66, 71, 73, 77, 80, 81, 85}
+GALE_KMH = 62  # Beaufort 8
+WEATHER_WORDS = [((0,), "clear"), ((1, 2, 3), "cloudy"), ((45, 48), "fog"), ((51, 53, 55, 56, 57), "drizzle"),
+                 ((61, 63, 65, 66, 67), "rain"), ((71, 73, 75, 77), "snow"), ((80, 81, 82), "rain showers"),
+                 ((85, 86), "snow showers"), ((95, 96, 99), "thunderstorm")]
+
+
+def describe_weather(code: int) -> str:
+    return next((word for codes, word in WEATHER_WORDS if code in codes), "unknown")
+
 class DynamicNewsIngestor:
     """
     Supplychainer Stage 1: Dynamic News Ingestion.
@@ -50,6 +65,41 @@ class DynamicNewsIngestor:
                 content = " | ".join(entry.title for entry in entries[:max_items])
         except Exception as e:
             print(f"[NEWS] Feed unavailable for {location!r}: {e}")
+        self.cache[key] = (now, content)
+        return content
+
+    def fetch_weather(self, lat: float, lon: float) -> Optional[dict]:
+        """Current weather at a point from Open-Meteo (no key; CC BY 4.0), or None if unavailable.
+
+        Returns the delay model's condition ("clear", "rainy" or "stormy") with the
+        readings it came from.
+        """
+        key = ("weather", round(lat, 1), round(lon, 1))
+        now = time.time()
+        if key in self.cache:
+            ts, content = self.cache[key]
+            if now - ts < (self.cache_ttl if content else self.failure_ttl):
+                return content
+
+        content = None
+        try:
+            response = requests.get(WEATHER_URL, timeout=FEED_TIMEOUT_S, params={
+                "latitude": round(lat, 3), "longitude": round(lon, 3),
+                "current": "weather_code,wind_speed_10m,precipitation"})
+            response.raise_for_status()
+            current = response.json()["current"]
+            code, wind = int(current["weather_code"]), float(current["wind_speed_10m"])
+            precipitation = float(current["precipitation"])
+            if code in STORMY_CODES or wind >= GALE_KMH:
+                condition = "stormy"
+            elif code in WET_CODES or precipitation >= 0.5:
+                condition = "rainy"
+            else:
+                condition = "clear"
+            content = {"condition": condition, "description": describe_weather(code),
+                       "wind_kmh": round(wind), "precipitation_mm": round(precipitation, 1)}
+        except Exception as e:
+            print(f"[WEATHER] Unavailable for ({lat:.1f}, {lon:.1f}): {e}")
         self.cache[key] = (now, content)
         return content
 

@@ -657,8 +657,9 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
           {!resultContext && <p className="note">Reports for the origin and destination appear here after you plan routes.</p>}
           {resultContext && !resultContext.liveIntel && <p className="note">These routes were planned with live news off.</p>}
           {resultContext?.liveIntel && intelReports.length === 0 && (
-            <p className="note">No live reports: the feed is quiet or offline, or the news model is still warming up.</p>
+            <p className="note">No live reports: the feeds are quiet or offline, or the news model is still warming up.</p>
           )}
+          {intelReports.some(r => r.weather) && <p className="note">Weather data by Open-Meteo.com (CC BY 4.0).</p>}
           {intelReports.map(r => (
             <div key={r.place} className={`report ${r.score > 0 ? 'hot' : ''}`}>
               <h3>
@@ -668,7 +669,10 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
                   {r.score > 0 ? `, ${severityWord(r.severity)} (${pct(r.score)})` : ''}
                 </span>
               </h3>
-              <p>{r.headline || r.headlines}</p>
+              <p>{r.headline || r.headlines || 'No disruption news right now.'}</p>
+              {r.weather && (
+                <p className="muted">Weather now: {r.weather.description}, wind {r.weather.wind_kmh} km/h.</p>
+              )}
               {r.condition !== 'clear' && <p className="muted">The delay model treats the weather here as {r.condition}.</p>}
             </div>
           ))}

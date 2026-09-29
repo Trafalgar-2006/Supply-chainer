@@ -185,37 +185,46 @@ class RouteRecommender:
 
     # ---- Live intelligence --------------------------------------------------
 
-    def _live_intel(self, places):
-        """Live news per hub for the given place names.
+    def _live_intel(self, points):
+        """Live news and current weather per hub, for (place name, lat, lon) points.
 
         A report about a city applies to every hub in it (port, rail yard, airport,
         distribution centre), so a port-closure story reaches the ships even when
-        the route enters the city through a road depot. News is only fetched once
-        the NLP engine can score it, and the whole fetch has a time budget.
+        the route enters the city through a road depot. The delay model's weather
+        input is the worse of what the news says and the weather measured now.
+        Nothing is fetched until the NLP engine can score the news, and all the
+        fetches share one time budget.
         """
         if not self.nlp.ready:
             return {}  # news that cannot be scored is not worth a network round trip
-        places = sorted(set(places))
-        pool = ThreadPoolExecutor(max_workers=max(1, len(places)))
-        futures = {pool.submit(self.news_ingestor.fetch_headlines, p): p for p in places}
-        done, _ = wait(futures, timeout=LIVE_INTEL_TIMEOUT_S)
+        points = sorted({place: (place, lat, lon) for place, lat, lon in points}.values())
+        pool = ThreadPoolExecutor(max_workers=max(1, 2 * len(points)))
+        news = {pool.submit(self.news_ingestor.fetch_headlines, place): place for place, _, _ in points}
+        weather = {pool.submit(self.news_ingestor.fetch_weather, lat, lon): place for place, lat, lon in points}
+        done, _ = wait({**news, **weather}, timeout=LIVE_INTEL_TIMEOUT_S)
         pool.shutdown(wait=False, cancel_futures=True)
+
+        def result(futures, place):
+            future = next(f for f, p in futures.items() if p == place)
+            return future.result() if future in done and future.exception() is None else None
+
         intel = {}
-        for future in sorted(done, key=lambda f: futures[f]):
-            headlines = future.result() if future.exception() is None else None
-            if not headlines:
+        for place, _, _ in points:
+            headlines, measured = result(news, place), result(weather, place)
+            if not headlines and not measured:
                 continue
-            place = futures[future]
-            assessment = self.nlp.assess(headlines)
+            assessment = self.nlp.assess(headlines or "")
             score = assessment["score"]
             threat_type = assessment["type"] if score > 0 else "none"
             condition = "clear"
             if threat_type == "weather" and score >= RAIN_SCORE:
                 condition = "stormy" if score >= STORM_SCORE else "rainy"
+            if measured:
+                condition = max(condition, measured["condition"], key=CONDITIONS.index)
             report = {"place": place, "hubs": sorted(self._city_hubs.get(place, ())), "headlines": headlines,
                       "headline": assessment["headline"], "score": round(score, 3),
                       "severity": assessment["severity"] if score > 0 else 0.0,
-                      "threat_type": threat_type, "condition": condition}
+                      "threat_type": threat_type, "condition": condition, "weather": measured}
             for hub_id in report["hubs"]:
                 intel[hub_id] = report
         return intel
@@ -266,7 +275,8 @@ class RouteRecommender:
         # 3. Live news at the origin and destination (optional; needs network)
         intel = {}
         if live_intel:
-            intel = self._live_intel([G.nodes[n].get("parent_city") or G.nodes[n]["display_name"]
+            intel = self._live_intel([(G.nodes[n].get("parent_city") or G.nodes[n]["display_name"],
+                                       G.nodes[n]["lat"], G.nodes[n]["lon"])
                                       for n in (s_vnode, d_vnode)])
         intel_delays = self._intel_delays(intel) if intel else {}
 

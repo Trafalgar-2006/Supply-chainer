@@ -77,6 +77,7 @@ def test_urgent_priority_trades_cost_for_time(recommender):
 def live_recommender(nlp):
     rec = RouteRecommender(create_multimodal_network(), ScenarioManager(), demo_mode=True)
     rec.nlp = nlp
+    rec.news_ingestor.fetch_weather = lambda lat, lon: None  # tests set the weather they need
     return rec
 
 
@@ -111,12 +112,28 @@ def test_ships_divert_around_a_storm_closed_port(live_recommender, monkeypatch):
 def test_live_storm_news_raises_the_delay_of_lanes_into_the_port(live_recommender, monkeypatch):
     monkeypatch.setattr(live_recommender.news_ingestor, "fetch_headlines", lambda place: STORM.get(place))
     G = live_recommender.unified_graph
-    stormy = live_recommender._intel_delays(live_recommender._live_intel(["Rotterdam"]))
+    stormy = live_recommender._intel_delays(live_recommender._live_intel([("Rotterdam", 51.95, 4.14)]))
     lanes = [(u, v) for hub in ROTTERDAM for u, v in G.in_edges(f"{hub}:sea") if G[u][v]["type"] == "transit"]
     assert lanes
     for u, v in lanes:
         calm = G[u][v]["delay_q"]
         assert all(s > c for s, c in zip(stormy[(u, v)], calm))
+
+
+STORM_NOW = {"condition": "stormy", "description": "thunderstorm", "wind_kmh": 70, "precipitation_mm": 12.0}
+
+
+def test_measured_storm_alone_raises_the_delay_of_lanes_into_the_port(live_recommender, monkeypatch):
+    # No news at all: a thunderstorm measured at Rotterdam still reaches the delay model.
+    monkeypatch.setattr(live_recommender.news_ingestor, "fetch_headlines", lambda place: None)
+    monkeypatch.setattr(live_recommender.news_ingestor, "fetch_weather", lambda lat, lon: STORM_NOW)
+    intel = live_recommender._live_intel([("Rotterdam", 51.95, 4.14)])
+    report = intel["PORT-ROTTERDAM"]
+    assert report["condition"] == "stormy" and report["score"] == 0 and report["weather"] == STORM_NOW
+    G = live_recommender.unified_graph
+    stormy = live_recommender._intel_delays(intel)
+    lanes = [(u, v) for u, v in G.in_edges("PORT-ROTTERDAM:sea") if G[u][v]["type"] == "transit"]
+    assert lanes and all(all(s > c for s, c in zip(stormy[(u, v)], G[u][v]["delay_q"])) for u, v in lanes)
 
 
 def test_no_live_news_means_no_live_signal(live_recommender, monkeypatch):
