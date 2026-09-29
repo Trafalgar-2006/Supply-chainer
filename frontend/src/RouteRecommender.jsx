@@ -452,7 +452,7 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
 
         <label className="check">
           <input type="checkbox" checked={liveIntel} onChange={e => setLiveIntel(e.target.checked)} />
-          Check live news at the origin and destination
+          Check live news and weather
         </label>
 
         <button type="button" className="primary" onClick={() => runPlan(planFromControls())}
@@ -654,7 +654,9 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
 
         <section>
           <h2>Live news</h2>
-          {!resultContext && <p className="note">Reports for the origin and destination appear here after you plan routes.</p>}
+          {!resultContext && (
+            <p className="note">Reports for the origin, the destination and the chokepoints on your routes appear here after you plan.</p>
+          )}
           {resultContext && !resultContext.liveIntel && <p className="note">These routes were planned with live news off.</p>}
           {resultContext?.liveIntel && intelReports.length === 0 && (
             <p className="note">No live reports: the feeds are quiet or offline, or the news model is still warming up.</p>

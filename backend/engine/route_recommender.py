@@ -1,3 +1,4 @@
+import time
 from concurrent.futures import ThreadPoolExecutor, wait
 
 import networkx as nx
@@ -31,6 +32,8 @@ Z95 = 1.6448536
 # Live news: whole-fetch time budget, and the threat scores at which a weather
 # report sets the delay model's weather feature to rainy / stormy.
 LIVE_INTEL_TIMEOUT_S = 3.0
+CHOKEPOINT_REFRESH_S = 900  # the chokepoint watch runs as often as the news cache expires
+CHOKEPOINT_FETCH_GAP_S = 1.0  # spaced out, to be polite to the feeds
 RAIN_SCORE, STORM_SCORE = 0.25, 0.6
 
 class RouteRecommender:
@@ -54,10 +57,15 @@ class RouteRecommender:
         self.unified_graph = network if network is not None else create_multimodal_network()
         self._hub_nodes = {}
         self._city_hubs = {}
+        chokepoints = {}
         for n, data in self.unified_graph.nodes(data=True):
             self._hub_nodes.setdefault(data["physical_id"], []).append(n)
             city = data.get("parent_city") or data["display_name"]
             self._city_hubs.setdefault(city, set()).add(data["physical_id"])
+            if data["type"] == "choke_point":
+                chokepoints[data["physical_id"]] = (data["display_name"], data["lat"], data["lon"])
+        self._chokepoints = sorted(chokepoints.items())
+        self._chokepoint_intel = {}  # hub id -> live report, kept fresh by watch_chokepoints
 
         self.delay_model_error = None
         self.delay_model = self._load_delay_model()
@@ -210,24 +218,47 @@ class RouteRecommender:
 
         intel = {}
         for place, _, _ in points:
-            headlines, measured = result(news, place), result(weather, place)
-            if not headlines and not measured:
-                continue
-            assessment = self.nlp.assess(headlines or "")
-            score = assessment["score"]
-            threat_type = assessment["type"] if score > 0 else "none"
-            condition = "clear"
-            if threat_type == "weather" and score >= RAIN_SCORE:
-                condition = "stormy" if score >= STORM_SCORE else "rainy"
-            if measured:
-                condition = max(condition, measured["condition"], key=CONDITIONS.index)
-            report = {"place": place, "hubs": sorted(self._city_hubs.get(place, ())), "headlines": headlines,
-                      "headline": assessment["headline"], "score": round(score, 3),
-                      "severity": assessment["severity"] if score > 0 else 0.0,
-                      "threat_type": threat_type, "condition": condition, "weather": measured}
-            for hub_id in report["hubs"]:
+            report = self._report(place, sorted(self._city_hubs.get(place, ())), result(news, place), result(weather, place))
+            for hub_id in report["hubs"] if report else []:
                 intel[hub_id] = report
         return intel
+
+    def _report(self, place, hubs, headlines, measured):
+        """A live report from a place's headlines and measured weather, or None if neither exists."""
+        if not headlines and not measured:
+            return None
+        assessment = self.nlp.assess(headlines or "")
+        score = assessment["score"]
+        threat_type = assessment["type"] if score > 0 else "none"
+        condition = "clear"
+        if threat_type == "weather" and score >= RAIN_SCORE:
+            condition = "stormy" if score >= STORM_SCORE else "rainy"
+        if measured:
+            condition = max(condition, measured["condition"], key=CONDITIONS.index)
+        return {"place": place, "hubs": hubs, "headlines": headlines,
+                "headline": assessment["headline"], "score": round(score, 3),
+                "severity": assessment["severity"] if score > 0 else 0.0,
+                "threat_type": threat_type, "condition": condition, "weather": measured}
+
+    def refresh_chokepoint_intel(self):
+        """Fetch news and weather for every chokepoint once; the new set replaces the old in one step."""
+        reports = {}
+        for hub_id, (name, lat, lon) in self._chokepoints:
+            report = self._report(name, [hub_id], self.news_ingestor.fetch_headlines(name),
+                                  self.news_ingestor.fetch_weather(lat, lon))
+            if report:
+                reports[hub_id] = report
+            time.sleep(CHOKEPOINT_FETCH_GAP_S)
+        self._chokepoint_intel = reports
+
+    def watch_chokepoints(self):
+        """Keep chokepoint intel fresh forever (run in a daemon thread once warmed up)."""
+        while self.nlp.ready:
+            try:
+                self.refresh_chokepoint_intel()
+            except Exception as e:  # a bad refresh keeps the previous reports
+                print(f"[WATCH] Chokepoint refresh failed: {e}")
+            time.sleep(CHOKEPOINT_REFRESH_S)
 
     def _intel_delays(self, intel):
         """Re-predicted delay quantiles for every lane touching a hub with live intel."""
@@ -272,10 +303,12 @@ class RouteRecommender:
         active_scenario = self.scenario_mgr.get_scenario(scenario)
         disruptions = self.scenario_mgr.get_disruptions(scenario)
 
-        # 3. Live news at the origin and destination (optional; needs network)
+        # 3. Live news and weather: origin, destination and chokepoints (optional; needs network)
         intel = {}
         if live_intel:
-            intel = self._live_intel([(G.nodes[n].get("parent_city") or G.nodes[n]["display_name"],
+            # Origin and destination are fetched now; chokepoints come from the watch.
+            intel = {**self._chokepoint_intel} if self.nlp.ready else {}
+            intel |= self._live_intel([(G.nodes[n].get("parent_city") or G.nodes[n]["display_name"],
                                        G.nodes[n]["lat"], G.nodes[n]["lon"])
                                       for n in (s_vnode, d_vnode)])
         intel_delays = self._intel_delays(intel) if intel else {}
@@ -382,6 +415,7 @@ class RouteRecommender:
             by_path[path_sig] = c
             final.append(c)
 
+        route_hubs = {h for c in final[:3] for leg in c["legs"] for h in (leg["from"], leg["to"])}
         preference = transport_preference if soft_preference else None
         for c in final:
             c["delay_drivers"] = self._delay_drivers(c.pop("_leg_features"))
@@ -390,7 +424,9 @@ class RouteRecommender:
         return {
             "origin": source, "destination": destination,
             "active_scenario": active_scenario["name"] if active_scenario else None,
-            "live_intel": list({id(r): r for r in intel.values()}.values()),
+            # Origin and destination reports, and chokepoint reports on the routes returned.
+            "live_intel": [r for r in {id(r): r for r in intel.values()}.values()
+                           if not set(r["hubs"]) <= set(self._chokepoint_intel) or set(r["hubs"]) & route_hubs],
             "delay_model": self.delay_model is not None,
             "recommendations": final[:3]
         }

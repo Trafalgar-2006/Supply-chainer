@@ -4,6 +4,7 @@ from typing import List, Literal, Optional
 import asyncio
 import json
 import os
+import threading
 from contextlib import asynccontextmanager
 
 from fastapi.middleware.cors import CORSMiddleware
@@ -76,7 +77,12 @@ PROTECTED = [Depends(security.require_api_key), Depends(security.rate_limit)]
 async def lifespan(app: FastAPI):
     print("Supplychainer Engine Active: Canonical Global Registry Loaded.")
     if not DEMO_MODE:
-        asyncio.create_task(asyncio.to_thread(recommender.run_background_warmup))
+        # Warm up, then keep the chokepoint news fresh. A daemon thread, so an
+        # endless watch never holds up shutdown.
+        def warm_up_and_watch():
+            recommender.run_background_warmup()
+            recommender.watch_chokepoints()
+        threading.Thread(target=warm_up_and_watch, daemon=True, name="warmup-and-watch").start()
     yield
 
 app = FastAPI(title="Supplychainer API", lifespan=lifespan)

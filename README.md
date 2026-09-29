@@ -60,7 +60,7 @@ The starter code ran without errors but gave wrong answers. Some examples, all m
   - Each headline is embedded with bge-small-en-v1.5 and compared with anchors for disruptions and for routine news.
   - Detection, severity (minor, significant or severe) and threat type (weather, labour, geopolitical, infrastructure, cyber or congestion) are learned from 288 labelled headlines, with place names stripped so a city can't raise a score.
   - The context filter (CARF) checks all four transport modes.
-  - Live Google News reports and current weather from Open-Meteo, for the origin and destination, feed both the threat and the delay model.
+  - Live Google News reports and current weather from Open-Meteo feed both the threat and the delay model: for the origin and destination on each request, and for all 15 chokepoints (Suez, Hormuz, Bab el-Mandeb, Malacca...) through a background watch refreshed every 15 minutes.
   - The test is 188 real Google News headlines, labelled before the engine saw them and never used to train it. Compared with the original engine:
     - disruptions caught went from 68% to 82%
     - false alarms went from 17% to 6%
@@ -158,7 +158,7 @@ To set a variable for one session: `$env:SUPPLYCHAINER_API_KEY = "choose-a-key"`
 flowchart LR
     R[Route request] --> G[Multimodal graph<br/>444 hubs]
     S[Scenario] --> G
-    N[Live news for the<br/>origin and destination] --> NLP[NLP threat score<br/>and type] --> CARF[CARF: keep news<br/>relevant to each mode]
+    N[Live news and weather:<br/>origin, destination,<br/>15 chokepoints] --> NLP[NLP threat score<br/>and type] --> CARF[CARF: keep news<br/>relevant to each mode]
     CARF --> G
     CARF --> D
     D[Delay model<br/>p50, p85, p95 per leg] --> G
@@ -170,6 +170,7 @@ flowchart LR
 2. **Scenario.** A disruption scenario marks hubs as disrupted. A route touching one is exposed to its threat, and is charged its delay and a 10% risk premium once per route. Scenarios are looked up per request, so concurrent users never see each other's.
 3. **Live news and weather** (optional).
    - Headlines for the origin and destination cities come from Google News RSS, and current weather at both from Open-Meteo. Each fetch gets 2 seconds and the whole lookup 3 seconds; results are cached for 15 minutes.
+   - A background watch does the same for all 15 chokepoints every 15 minutes, so news of a strait closure reaches every route through it at no extra wait. The response lists the chokepoint reports on the routes it returns.
    - Each headline is scored separately, and the strongest one sets the threat, its severity and its type.
    - CARF drops a report for a leg when the report is about another mode's infrastructure.
    - The delay model's weather input is the worse of the measured weather (fog, rain or snow is rainy; thunderstorms, heavy snow or gale-force wind is stormy) and what weather news reports.
@@ -306,7 +307,7 @@ Starter files the app never used have been removed: an earlier US-only prototype
 
 - **The delay model is trained on synthetic data.** There is no public dataset of per-leg freight delays. The generator uses physics-informed priors, and the model card lists them.
 - **Costs and nominal times come from the hub registry,** not live freight rates or schedules.
-- **Live news covers only the origin and destination cities.** The source is English Google News RSS. Hubs along the way use scenarios and standing reports.
+- **Live news covers the origin, the destination and the 15 chokepoints,** not every port or depot along the way; those use scenarios and standing reports. The source is English Google News RSS.
 - **Nothing is stored on the server.** Recent plans are kept in the browser that made them.
 - **Map tiles come from the public OpenStreetMap servers,** whose usage policy suits a demo but not heavy use.
 

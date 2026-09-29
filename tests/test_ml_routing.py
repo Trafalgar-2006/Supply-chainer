@@ -174,6 +174,44 @@ def test_a_leg_shows_the_report_that_actually_raised_its_threat(live_recommender
         assert "strike" in leg["reason"].lower(), leg
 
 
+RED_SEA_NEWS = {"Bab el-Mandeb Strait": "Missile strikes hit two container ships in the Bab el-Mandeb strait"}
+
+
+@pytest.fixture
+def watched(live_recommender, monkeypatch):
+    """The live recommender after one chokepoint refresh with Red Sea attack news."""
+    from backend.engine import route_recommender as rr
+    monkeypatch.setattr(rr, "CHOKEPOINT_FETCH_GAP_S", 0)
+    monkeypatch.setattr(live_recommender.news_ingestor, "fetch_headlines", lambda place: RED_SEA_NEWS.get(place))
+    live_recommender.refresh_chokepoint_intel()
+    yield live_recommender
+    live_recommender._chokepoint_intel = {}
+
+
+def test_the_chokepoint_watch_keeps_only_chokepoints_with_news_or_weather(watched):
+    assert set(watched._chokepoint_intel) == {"CHOKE-BABEL"}
+    report = watched._chokepoint_intel["CHOKE-BABEL"]
+    assert report["threat_type"] == "geopolitical" and report["score"] >= 0.4  # attacks on ships: about significant
+
+
+def test_live_chokepoint_news_reaches_the_routes_through_it(watched):
+    result = recommend(watched, transport_preference="sea", live_intel=True)
+    babel_legs = [leg for r in result["recommendations"] for leg in r["legs"]
+                  if "CHOKE-BABEL" in (leg["from"], leg["to"]) and leg["type"] == "transit"]
+    through = [r for r in result["recommendations"] if any("CHOKE-BABEL" in (l["from"], l["to"]) for l in r["legs"])]
+    safest = next(r for r in result["recommendations"] if "SAFEST" in r["personas"])
+    # Legs through the strait carry the live threat, and the lowest-risk option avoids it.
+    score = watched._chokepoint_intel["CHOKE-BABEL"]["score"]
+    assert babel_legs and all(leg["intel_source"] == "LIVE" and leg["threat"] >= round(score, 2) for leg in babel_legs)
+    assert safest not in through
+    assert any(r["place"] == "Bab el-Mandeb Strait" for r in result["live_intel"])
+
+
+def test_chokepoint_reports_off_the_routes_are_not_listed(watched):
+    result = recommend(watched, src="Mumbai", dst="Delhi", live_intel=True)
+    assert all(r["place"] != "Bab el-Mandeb Strait" for r in result["live_intel"])
+
+
 def test_live_intel_is_off_unless_requested(live_recommender, monkeypatch):
     def fail(place):
         raise AssertionError("news fetched without live_intel")
