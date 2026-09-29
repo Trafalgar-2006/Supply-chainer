@@ -11,10 +11,10 @@ a regression test in `tests/`. "Before" numbers come from the original commit
 | NLP score for *"Container ship ran aground in the Suez Canal, blocking all traffic…"* | 0.00 | **0.96** |
 | CARF: ship news on a sea leg / airport news on a sea leg | 0.0 / 0.8 (inverted) | **0.8 / 0.0** |
 | Ports that can reach each other by sea | 32 of 175 | **every seaport except the 2 landlocked Caspian ports** |
-| `SUEZ_BLOCK`, Shanghai → Rotterdam (balanced route) | Waits at the blocked canal: +240 h | **Sails around the Cape of Good Hope: no blockage delay, about 170 h of extra sailing** |
-| `RED_SEA_CONFLICT`, same route | 0 h delay (the lane skipped Bab el-Mandeb) | **+72 h and threat 0.85 via the Red Sea; the SAFEST route goes around the Cape** |
+| `SUEZ_BLOCK`, Shanghai → Rotterdam (balanced route) | Waits at the blocked canal: +240 h | **Sails around the Cape of Good Hope: no blockage delay, about 160 h of extra sailing** |
+| `RED_SEA_CONFLICT`, same route by sea | 0 h delay (the lane skipped Bab el-Mandeb) | **+72 h and threat 0.85 via the Red Sea; the SAFEST route goes around the Cape** |
 | `HORMUZ_CLOSURE`, Mumbai → Rotterdam | Sailed into Jebel Ali, inside the Gulf, with 0 h delay | **Stays out of the Gulf** |
-| `LA_PORT_STRIKE`, Shanghai → Los Angeles by sea | No effect possible: LA and Long Beach had no shipping lanes | **Normally lands at Long Beach; during the strike every option diverts via Oakland and trucks south** |
+| `LA_PORT_STRIKE`, Shanghai → Los Angeles by sea | No effect possible: LA and Long Beach had no shipping lanes | **Normally lands at Los Angeles or Long Beach; during the strike every option diverts via Oakland and trucks south** |
 | `CHENNAI_FLOOD`, Chennai → Singapore | 0 h delay, threat 0.05 | **+48 h, threat 0.75** |
 | Explanation text | "reduces total landed cost by **396%**" | Real comparison against the other routes returned, e.g. "N% cheaper than the fastest route, +X h on its ETA" |
 | Supplier lead time under `SUEZ_BLOCK` (SUP-GLOBAL-01) | 14 → 19 days (50%) | 14 → **15 days** (the documented 10%) |
