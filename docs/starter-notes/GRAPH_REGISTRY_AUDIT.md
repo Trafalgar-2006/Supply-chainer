@@ -1,6 +1,0 @@
-# GRAPH-REGISTRY INTEGRITY AUDIT REPORT
-Total Canonical Hubs: 316
-Total Graph Nodes: 316
-Total Failures: 0
-
-## ✓ ALL TESTS PASSED. SYSTEM IN SYNC.

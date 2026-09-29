@@ -300,12 +300,7 @@ It runs the LA port strike example (ships must divert via Oakland), plans a rout
 | `tests/`, `tools/` | Test suite, land-lane audit, browser smoke test |
 | `docs/` | Bug fixes, model card, screenshots |
 
-Some starter files are not used by the app. We kept them for reference:
-
-- `Execution/api.py`, `risk_model.pkl`, `label_encoders.pkl` and `nlp_anchors.pt`: the original prototype API and its model files. The app never loads them.
-- In `backend/engine/`: `baseline.py`, `graph_model.py`, `simulator.py`, `optimizer.py`, `evaluator.py`, `benchmark_runner.py`, `or_baseline.py`, `weather_integration.py`, `live_routing.py` and `ml_predictor.py`. They belong to an earlier US-only prototype.
-- `Code/`, `scratch/` and `benchmarks/`: the original author's data-generation and audit scripts.
-- `docs/starter-notes/`: the original author's audit notes. They describe the starter code, and several of their claims no longer hold. The bug log and model card have the current numbers.
+Starter files the app never used have been removed: an earlier US-only prototype in `backend/engine/`, its API and model files in `Execution/`, and the original author's scripts and notes in `Code/`, `scratch/` and `benchmarks/`. They remain in the git history at the starter commit `8f15416`. Removing them also dropped 11 dependencies from `requirements.txt`, including OR-Tools and Matplotlib.
 
 ## Limitations
 

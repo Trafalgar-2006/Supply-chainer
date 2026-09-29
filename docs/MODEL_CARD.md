@@ -30,7 +30,7 @@ The model was loaded at start-up but never called by the router.
 
 ### Data
 
-**There is no public dataset of per-leg freight delays, so the target is synthetic.** The README's earlier claim of "50,000+ real-world historical incidents" did not match the code: the original data came from generators in `Code/`.
+**There is no public dataset of per-leg freight delays, so the target is synthetic.** The README's earlier claim of "50,000+ real-world historical incidents" did not match the code: the original data came from generators in `Code/` (starter commit `8f15416`).
 
 `ml/generate_delay_dataset.py` keeps the original generator's physics priors. It changes one thing: legs are **sampled from the live routing graph**, so training and serving see the same distribution. Each sample draws a real edge (mode, distance, what it arrives at), then weather and an incident.
 
@@ -128,7 +128,7 @@ The artifact's SHA-256 is **pinned in code** (`EXPECTED_SHA256` in `backend/engi
 
 `DelayQuantileModel.load` hashes the file's bytes and unpickles **those same bytes**. It refuses a mismatch before deserialising anything, because unpickling a tampered file can run arbitrary code.
 
-If the file is missing or tampered with, the router falls back to nominal transit times and `/api/status` reports why. The legacy `risk_model.pkl` is no longer unpickled by the API at all.
+If the file is missing or tampered with, the router falls back to nominal transit times and `/api/status` reports why. The legacy `risk_model.pkl` has been removed from the repository.
 
 ---
 

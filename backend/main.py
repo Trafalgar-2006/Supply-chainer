@@ -14,8 +14,7 @@ from .engine.route_recommender import RouteRecommender
 from .engine.scenario_manager import ScenarioManager
 from .engine.supplier_scorer import SupplierScorer
 
-# Global engine state. The legacy US-only prototype in engine/ (simulator,
-# baseline router, risk_model.pkl predictor) is not loaded by the API.
+# Global engine state, built once at start-up and shared by all requests.
 multimodal_net = create_multimodal_network()
 scenario_mgr = ScenarioManager()
 DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"

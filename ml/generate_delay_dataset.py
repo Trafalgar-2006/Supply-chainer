@@ -2,7 +2,7 @@
 
 There is no public dataset of per-leg freight delays, so the target is simulated
 with the physics-informed priors of the original generator
-(Code/dataset_generator_geo.py): a dwell floor per mode, 10% transit-time
+(Code/dataset_generator_geo.py in the starter commit 8f15416): a dwell floor per mode, 10% transit-time
 variability, weather multipliers and fat-tailed log-normal noise. Two changes
 make the model usable on the live network:
 
