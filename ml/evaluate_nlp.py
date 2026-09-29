@@ -1,10 +1,13 @@
 """Evaluate the threat-intelligence stage on labelled headlines.
 
-`ml/nlp_headlines.csv` holds 192 headlines written for this evaluation: half
-describe a disruption (with its type and the transport modes it concerns), half
-are routine or positive logistics news, including hard cases such as "Union and
-port employers strike a deal". The `dev` split may be used to tune the engine;
-the `test` split is only scored.
+`ml/nlp_headlines.csv` holds 288 headlines written for this evaluation: about
+half describe a disruption (with its type and the transport modes it concerns),
+the rest are routine or positive logistics news, including hard cases such as
+"Union and port employers strike a deal". Three splits of 96:
+- `dev`: used to choose the model, anchors and threshold
+- `test`: scored after that tuning; one keyword was removed after seeing it
+- `holdout`: written afterwards and scored once, after the threat-type
+  classifier learned from the dev and test disruptions. The honest figures.
 
 Reports, per split:
 - detection: ROC AUC of the threat margin, and recall, false-alarm rate and
@@ -30,10 +33,11 @@ from backend.engine.threat_intelligence import CARFFilter, ContrastiveNLPEngine 
 DATA = ROOT / "ml" / "nlp_headlines.csv"
 OUT = ROOT / "Execution" / "nlp_evaluation.json"
 MODES = ("sea", "air", "rail", "road")
-# Test-split scores of the engine before this evaluation existed (all-MiniLM-L6-v2
+SPLITS = ("dev", "test", "holdout")
+# Holdout scores of the engine before this evaluation existed (all-MiniLM-L6-v2
 # and the original anchors, at commit e550c5f), kept for comparison.
-BASELINE_TEST = {"auc": 0.831, "recall": 0.696, "false_alarm_rate": 0.22, "precision": 0.744,
-                 "type_accuracy": 0.848, "carf_accuracy": 0.859}
+BASELINE_HOLDOUT = {"auc": 0.863, "recall": 0.696, "false_alarm_rate": 0.1, "precision": 0.865,
+                    "type_accuracy": 0.761, "carf_accuracy": 0.929}
 
 
 def load():
@@ -93,9 +97,9 @@ def main():
     if not nlp.ready:
         sys.exit("The sentence-transformer model could not be loaded.")
     rows = load()
-    report = {split: evaluate([r for r in rows if r["split"] == split], nlp, carf) for split in ("dev", "test")}
-    report["baseline_test"] = BASELINE_TEST
-    for split, result in ((s, report[s]) for s in ("dev", "test")):
+    report = {split: evaluate([r for r in rows if r["split"] == split], nlp, carf) for split in SPLITS}
+    report["baseline_holdout"] = BASELINE_HOLDOUT
+    for split, result in ((s, report[s]) for s in SPLITS):
         d = result["detection"]
         print(f"{split}: AUC {d['auc']}, recall {d['recall']}, false alarms {d['false_alarm_rate']}, "
               f"precision {d['precision']}, type accuracy {result['type_accuracy']}, CARF {result['carf_accuracy']}")

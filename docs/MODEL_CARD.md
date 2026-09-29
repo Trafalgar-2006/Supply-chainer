@@ -87,9 +87,9 @@ The data comes from a known generator, so the best possible quantile of every le
 
 | Quantile | Naive baseline | This model | Best possible | Share of the achievable gain |
 |---|---|---|---|---|
-| p50 | 8.83 | 7.89 | 7.78 | **90%** |
-| p85 | 9.56 | 7.51 | 7.26 | **89%** |
-| p95 | 6.73 | 4.60 | 4.30 | **87%** |
+| p50 | 8.70 | 7.73 | 7.63 | **90%** |
+| p85 | 9.36 | 7.29 | 7.05 | **90%** |
+| p95 | 6.45 | 4.42 | 4.29 | **94%** |
 
 The rest of the loss is noise that no model can predict: whether an unreported incident is hiding behind a quiet news score, and the log-normal spread. Retraining on 200,000 legs, or with larger trees, moved these shares by 1–3 points in both directions, which is within sampling noise, so the pinned model was kept.
 
@@ -139,45 +139,47 @@ If the file is missing or tampered with, the router falls back to nominal transi
   - the original historical corpus, with **place and company names removed** (the named originals leaked location: every Rotterdam report resembled "Port of Rotterdam operating normally", so "Strike halts Rotterdam port operations" scored 0)
   - 37 short archetypes across the six threat types
   - 20 safe anchors: routine operations, business news, and news that a disruption has *ended*, which shares its words ("strike called off", "congestion eases")
-- **Threat type:** zero-shot, from the nearest threat-type archetype: weather, labour, geopolitical, infrastructure, cyber or congestion. The type is taken from **the same headline that set the score**. Weather reports set the delay model's `condition` feature: rainy from a score of 0.25, stormy from 0.6.
+- **Threat type:** learned by a logistic regression on the embeddings of the threat-type archetypes and the labelled dev and test disruptions: weather, labour, geopolitical, infrastructure, cyber or congestion. It never sees the holdout. The type is taken from **the same headline that set the score**. Weather reports set the delay model's `condition` feature: rainy from a score of 0.25, stormy from 0.6.
 - **CARF:** a report is dropped for a leg when it names another mode's infrastructure or workforce and none of the leg's own ("dockworkers", "barge", "runway", "haulier"...). Mode-neutral news (weather, conflict, cyberattacks) applies to every mode. Ambiguous words stay out: "terminal" and "container" (every mode), "freighter" (ship or cargo plane), "docker" (also software), "anchorage" (also an air-cargo city).
 - **Live news:** Google News RSS for the origin and destination cities, fetched only once the NLP engine is ready. The whole fetch has a 3 s budget. Results are cached for 15 minutes, and a failure is retried after five minutes. A report applies to every hub in its city. A leg shows the report that actually raised its threat, and a transfer is filtered for both modes it joins. With no network, there's no live signal; the static fallback texts are never passed off as news.
 
-### Evaluation (192 labelled headlines)
+### Evaluation (288 labelled headlines)
 
-`ml/nlp_headlines.csv` holds 192 headlines written for this evaluation. There are 92 disruptions across the six types, each tagged with the transport modes it concerns, and 100 pieces of routine or positive news. That includes hard cases like "Union and port employers strike a deal, averting walkout" and "Congestion eases at Los Angeles as vessel queue clears". The set is split in half:
+`ml/nlp_headlines.csv` holds 288 headlines written for this evaluation. There are 138 disruptions across the six types, each tagged with the transport modes it concerns, and 150 pieces of routine or positive news. That includes hard cases like "Union and port employers strike a deal, averting walkout" and "Congestion eases at Los Angeles as vessel queue clears". There are three splits of 96:
 
 - **dev:** used to choose the embedding model, the anchors and the threshold
-- **test:** only scored
+- **test:** scored after that tuning; one keyword was then removed after seeing its errors
+- **holdout:** written afterwards, and scored once, after the threat-type classifier had learned from the dev and test disruptions. Nothing ever fits on it; a test checks that.
 
-`python ml/evaluate_nlp.py` reproduces the table below, and a test fails if the test-split scores drop.
+`python ml/evaluate_nlp.py` reproduces the table, and a test fails if the holdout scores drop.
 
-| | Before (MiniLM, original anchors) | After, dev | **After, test** |
-|---|---|---|---|
-| Detection AUC | 0.83 (test) | 0.999 | **0.993** |
-| Disruptions detected (recall) | 70% (test) | 98% | **91%** |
-| False alarms on routine news | 22% (test) | 0% | **2%** |
-| Precision | 0.74 (test) | 1.00 | **0.98** |
-| Threat-type accuracy | 85% (test) | 96% | **85%** |
-| CARF: right decision per headline and mode | 86% (test) | 100% | **94%** |
+| | Before: original engine, holdout | **After: holdout** | After: test | After: dev |
+|---|---|---|---|---|
+| Detection AUC | 0.86 | **0.97** | 0.99 | 1.00 |
+| Disruptions detected (recall) | 70% | **83%** | 91% | 98% |
+| False alarms on routine news | 10% | **8%** | 2% | 0% |
+| Precision | 0.87 | **0.91** | 0.98 | 1.00 |
+| Threat-type accuracy | 76% | **94%** | 98%* | 100%* |
+| CARF: right decision per headline and mode | 93% | **95%** | 94% | 100% |
 
-How the gains came, all measured on dev:
+\*In-sample: the type classifier learns from these splits.
 
-1. Broader anchors lifted AUC from 0.82 to 0.95 with MiniLM.
-2. `bge-small-en-v1.5` (0.987) beat `all-MiniLM-L6-v2` (0.954), `all-MiniLM-L12-v2` (0.971) and `gte-small` (0.987, with a narrower margin spread) using the same anchors.
-3. Averaging the two closest safe anchors took AUC to 0.992.
+**The holdout is the figure to quote.** The test split looked better (91% recall, 2% false alarms) because the same person wrote dev and test in a similar style, and one change followed its errors. The fresh holdout is harder.
 
-**What didn't improve:** threat-type accuracy on the test split stayed at 85%, while dev rose to 96%, so the new type archetypes fit the dev phrasing more than they generalise.
+How the gains came:
 
-**One change after the test run:** it showed "anchorage", just added as a sea word, matching the city of Anchorage in air-cargo news. The word was removed, which raised test CARF from 93.5% to 94%. The table reports the final figures.
+1. Broader anchors lifted dev AUC from 0.82 to 0.95 with MiniLM.
+2. On dev, `bge-small-en-v1.5` (0.987) beat `all-MiniLM-L6-v2` (0.954), `all-MiniLM-L12-v2` (0.971) and `gte-small` (0.987, with a narrower margin spread) using the same anchors.
+3. Averaging the two closest safe anchors took dev AUC to 0.992.
+4. Threat type is learned: a logistic regression on the embeddings of the archetypes and the 92 labelled dev and test disruptions. Trained on dev and scored on test, then the reverse, it averaged 95% against 90% for the nearest archetype. The regularisation was set the same way. On the holdout, type accuracy went from 87% (nearest archetype) to 94%.
 
-**Test-split misses:** a sandstorm at Dubai airport, Australian "wharfies" taking industrial action, a customs work-to-rule, and chip export controls. **The single false alarm:** "Container line posts an on-time performance record".
+**Holdout misses:** 8 of 46. Four are congestion reports ("vessel queue climbs past 200 ships", "air freight backlog stretches to ten days"), which sit near the "congestion eases" safe anchor. The others are an ice storm at Memphis, a dockers' blockade, airspace avoidance and a sinkhole. **False alarms:** 4 of 50, mostly news that a disruption has ended ("Typhoon passes without damage as Hong Kong port reopens", "Container dwell times at Los Angeles fall to record lows"). Detection was not tuned again after this run.
 
 ### Limitations
 
 - **The delay target is simulated.** The model learns the generator's physics priors, not real carrier data. The pipeline (features, constraints, evaluation) is built so it can be retrained on real AIS or port-call data without code changes.
 - **Sea legs are slightly under-covered at p85** (82.4% vs 85%), from the fat sea tail.
 - **The NLP score says how clearly a report describes a disruption, not how severe it is.** A full closure still scores near 1, but a Red Sea missile attack (0.32) and a dock strike (0.34) come out close together.
-- **The evaluation headlines were written by the team, with AI assistance,** in the style of real logistics news, not sampled from a live feed. Keeping the test split out of every tuning decision guards against overfitting, but the authors knew both halves, so the test figures are optimistic for truly unseen news.
+- **The evaluation headlines were written by the team, with AI assistance,** in the style of real logistics news, not sampled from a live feed. The holdout was written after all tuning, but by the same authors, so real news may score somewhat lower still.
 - **Live news is fetched only for the origin and destination.** Intermediate chokepoints are covered by the scripted scenarios.
 - **Within one ocean basin, sea distances are straight lines.** Crossings between basins go through their real straits.

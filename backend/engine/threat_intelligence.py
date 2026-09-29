@@ -3,7 +3,9 @@ import joblib
 import os
 import re
 import torch
+import csv
 import json
+import time
 from typing import List, Dict, Any, Optional
 import pandas as pd
 
@@ -179,6 +181,12 @@ THREAT_TYPE_ANCHORS = {
                    "Equipment shortage slows cargo pickups."],
 }
 MIN_TYPE_SIMILARITY = 0.30  # below this the report matches no category well
+# The type is learned (logistic regression on the embeddings) from these
+# archetypes plus the labelled disruptions in ml/nlp_headlines.csv. Only the dev
+# and test splits are used; the holdout split stays out so it can measure the
+# result. Cross-split accuracy on dev/test: 0.95, vs 0.90 for the nearest archetype.
+TYPE_EXAMPLES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "ml", "nlp_headlines.csv")
+TYPE_REGULARISATION = 4.0  # accuracy was flat from C=1 to C=32
 
 # Historical anchor corpus from Code/precompute_nlp.py with place and company names
 # removed. The named originals leaked location into the score: every report about
@@ -238,6 +246,7 @@ MIN_REPORT_WORDS = 4  # shorter fragments ("Light rain forecast") carry no relia
 # it separated disruptions from routine news better than all-MiniLM-L6-v2 with
 # the same anchors (AUC 0.987 vs 0.954); see docs/MODEL_CARD.md.
 EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
+DOWNLOAD_ATTEMPTS = 3  # the Hugging Face Hub drops connections now and then
 
 def split_reports(news_text: str) -> List[str]:
     """One chunk per headline or sentence, so unrelated headlines are not blended."""
@@ -270,11 +279,21 @@ class ContrastiveNLPEngine:
                 # start-up works offline and on flaky networks.
                 self.model = SentenceTransformer(EMBEDDING_MODEL, local_files_only=True)
             except Exception:
-                self.model = SentenceTransformer(EMBEDDING_MODEL)  # first run: download
+                # First run: download, retrying with a short backoff.
+                for attempt in range(DOWNLOAD_ATTEMPTS):
+                    try:
+                        self.model = SentenceTransformer(EMBEDDING_MODEL)
+                        break
+                    except Exception as e:
+                        if attempt == DOWNLOAD_ATTEMPTS - 1:
+                            raise
+                        print(f"[NLP ENGINE] Download failed ({e}); retrying...")
+                        time.sleep(2 ** attempt)
             self.util = util
             pairs = [(t, s) for t, sentences in THREAT_TYPE_ANCHORS.items() for s in sentences]
             self._type_names = [t for t, _ in pairs]
             self._type_matrix = self.model.encode([s for _, s in pairs], convert_to_tensor=True)
+            self._type_model = self._fit_type_model(pairs)
             # Historical incidents plus the category archetypes as disaster anchors;
             # routine operations plus positive business news as safe ones. Encoded
             # from text at start-up, so the anchors stay readable and auditable.
@@ -310,10 +329,23 @@ class ContrastiveNLPEngine:
         score = 0.0 if margin <= self.noise_floor else float(
             min(1.0, (margin - self.noise_floor) / (self.saturation_margin - self.noise_floor)))
         similarity = self.util.cos_sim(embeddings[top:top + 1], self._type_matrix).cpu().numpy()[0]
-        best = int(np.argmax(similarity))
-        threat_type = self._type_names[best] if similarity[best] >= MIN_TYPE_SIMILARITY else "general"
-        return {"score": score, "margin": round(margin, 4), "type": threat_type,
-                "confidence": round(float(similarity[best]), 3), "headline": chunks[top]}
+        probabilities = self._type_model.predict_proba(embeddings[top:top + 1].cpu().numpy())[0]
+        best = int(np.argmax(probabilities))
+        threat_type = self._type_model.classes_[best] if similarity.max() >= MIN_TYPE_SIMILARITY else "general"
+        return {"score": score, "margin": round(margin, 4), "type": str(threat_type),
+                "confidence": round(float(probabilities[best]), 3), "headline": chunks[top]}
+
+    def _fit_type_model(self, pairs):
+        """Threat-type classifier over the archetypes and the labelled dev/test disruptions."""
+        from sklearn.linear_model import LogisticRegression
+        texts, labels = [s for _, s in pairs], [t for t, _ in pairs]
+        if os.path.exists(TYPE_EXAMPLES):
+            with open(TYPE_EXAMPLES, newline="", encoding="utf-8") as f:
+                for row in csv.DictReader(f):
+                    if row["label"] == "disrupted" and row["split"] in ("dev", "test"):
+                        texts.append(row["headline"])
+                        labels.append(row["threat_type"])
+        return LogisticRegression(C=TYPE_REGULARISATION, max_iter=4000).fit(self.model.encode(texts), labels)
 
     def get_semantic_score(self, news_text: str) -> float:
         return self.assess(news_text)["score"]

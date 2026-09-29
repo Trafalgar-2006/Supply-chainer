@@ -53,7 +53,7 @@ The starter code ran without errors but gave wrong answers. Some examples, all m
   - Each route option plans on its own quantile.
   - Each route's time band comes from a 4,000-sample Monte Carlo simulation with correlated legs.
   - Exact Shapley values explain what drives the delay.
-  - The model gets 87–90% of the improvement over a naive baseline that the best possible model could get. We computed that optimum exactly from the known data generator.
+  - The model gets 90–94% of the improvement over a naive baseline that the best possible model could get. We computed that optimum exactly from the known data generator.
   - A model evaluation page shows calibration, coverage by mode, loss against the naive baseline and the optimum, and feature importance.
   - See [docs/MODEL_CARD.md](docs/MODEL_CARD.md).
 - **Threat intelligence that works, and is measured.**
@@ -61,7 +61,14 @@ The starter code ran without errors but gave wrong answers. Some examples, all m
   - Each threat gets a type: weather, labour, geopolitical, infrastructure, cyber or congestion.
   - The context filter (CARF) checks all four transport modes.
   - Live Google News reports for the origin and destination feed both the threat and the delay model.
-  - We scored it on 192 labelled headlines, tuning only on half and testing on the other half. On the test half it went from 70% to 91% of disruptions caught, 22% to 2% false alarms, and AUC 0.83 to 0.99. Threat typing stayed at 85%. `python ml/evaluate_nlp.py` reproduces this.
+  - The threat type is learned from labelled examples.
+  - We scored it on 288 labelled headlines. The last 96 were written after all tuning and scored once. On those, compared with the original engine:
+    - disruptions caught went from 70% to 83%
+    - false alarms went from 10% to 8%
+    - AUC went from 0.86 to 0.97
+    - threat type went from 76% to 94% correct
+    - CARF went from 93% to 95% correct
+  - `python ml/evaluate_nlp.py` reproduces this.
 - **A network that respects geography.**
   - Ships pass through the real straits: Hormuz, Bab el-Mandeb, Suez, Gibraltar, the Turkish Straits, Panama, Malacca and Lombok, or go around the Cape.
   - Road and rail stay on one landmass.

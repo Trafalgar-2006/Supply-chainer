@@ -46,7 +46,8 @@ export default function ModelEvaluation({ onNavigate }) {
     ? Object.entries(report.delay_ceiling.quantiles).map(([name, q]) => ({ name, ...q }))
     : [];
   const nlp = report?.nlp;
-  const nlpNow = nlp && { ...nlp.test.detection, type_accuracy: nlp.test.type_accuracy, carf_accuracy: nlp.test.carf_accuracy };
+  const holdout = nlp?.holdout;
+  const nlpNow = holdout && { ...holdout.detection, type_accuracy: holdout.type_accuracy, carf_accuracy: holdout.carf_accuracy };
   const importance = report ? Object.entries(report.p85_permutation_importance).map(([feature, value]) => ({ feature, value })) : [];
 
   return (
@@ -125,12 +126,12 @@ export default function ModelEvaluation({ onNavigate }) {
               </section>
             )}
 
-            {nlp && (
+            {holdout && (
               <section className="panel">
                 <h2>Threat intelligence on held-out headlines</h2>
                 <p className="note">
-                  {nlp.test.headlines} labelled headlines that were never used for tuning: {nlp.test.disrupted} disruptions
-                  and {nlp.test.safe} pieces of routine news, including disruptions that have ended.
+                  {holdout.headlines} labelled headlines written after all tuning and scored once: {holdout.disrupted} disruptions
+                  and {holdout.safe} pieces of routine news, including disruptions that have ended.
                 </p>
                 <table className="scores">
                   <thead>
@@ -138,7 +139,7 @@ export default function ModelEvaluation({ onNavigate }) {
                   </thead>
                   <tbody>
                     {NLP_METRICS.map(([label, key, format, higherIsBetter]) => {
-                      const before = nlp.baseline_test?.[key];
+                      const before = nlp.baseline_holdout?.[key];
                       const now = nlpNow[key];
                       const better = before !== undefined && (higherIsBetter ? now > before : now < before);
                       return (
@@ -152,8 +153,8 @@ export default function ModelEvaluation({ onNavigate }) {
                   </tbody>
                 </table>
                 <p className="note">
-                  Still missed: {nlp.test.errors.missed.map(h => `"${h}"`).join('; ') || 'none'}.
-                  {' '}False alarms: {nlp.test.errors.false_alarms.map(h => `"${h}"`).join('; ') || 'none'}.
+                  Still missed: {holdout.errors.missed.map(h => `"${h}"`).join('; ') || 'none'}.
+                  {' '}False alarms: {holdout.errors.false_alarms.map(h => `"${h}"`).join('; ') || 'none'}.
                 </p>
               </section>
             )}

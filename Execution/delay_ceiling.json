@@ -2,22 +2,22 @@
   "legs": 20000,
   "quantiles": {
     "p50": {
-      "naive": 8.829,
-      "model": 7.889,
-      "optimal": 7.784,
-      "share_of_achievable_gain": 0.899
+      "naive": 8.698,
+      "model": 7.731,
+      "optimal": 7.629,
+      "share_of_achievable_gain": 0.904
     },
     "p85": {
-      "naive": 9.556,
-      "model": 7.507,
-      "optimal": 7.264,
-      "share_of_achievable_gain": 0.894
+      "naive": 9.36,
+      "model": 7.294,
+      "optimal": 7.053,
+      "share_of_achievable_gain": 0.896
     },
     "p95": {
-      "naive": 6.725,
-      "model": 4.603,
-      "optimal": 4.296,
-      "share_of_achievable_gain": 0.873
+      "naive": 6.451,
+      "model": 4.415,
+      "optimal": 4.285,
+      "share_of_achievable_gain": 0.94
     }
   }
 }

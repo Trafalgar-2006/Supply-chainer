@@ -95,15 +95,30 @@ def test_held_out_disruptions_are_detected(nlp):
     assert missed == []
 
 
-def test_labelled_test_split_meets_the_reported_scores(nlp):
-    # ml/nlp_headlines.csv: nothing was tuned on the test split. The figures are
-    # in docs/MODEL_CARD.md; these floors catch a regression.
+def test_the_holdout_split_meets_the_reported_scores(nlp):
+    # ml/nlp_headlines.csv: the holdout split was written after all tuning and is
+    # never used to fit anything. The figures are in docs/MODEL_CARD.md; these
+    # floors catch a regression.
     from backend.engine.threat_intelligence import CARFFilter
     from ml.evaluate_nlp import evaluate, load
-    result = evaluate([r for r in load() if r["split"] == "test"], nlp, CARFFilter())
+    result = evaluate([r for r in load() if r["split"] == "holdout"], nlp, CARFFilter())
     detection = result["detection"]
-    assert detection["auc"] >= 0.98 and detection["recall"] >= 0.9 and detection["false_alarm_rate"] <= 0.05
-    assert result["type_accuracy"] >= 0.8 and result["carf_accuracy"] >= 0.9
+    assert detection["auc"] >= 0.95 and detection["recall"] >= 0.8 and detection["false_alarm_rate"] <= 0.1
+    assert result["type_accuracy"] >= 0.9 and result["carf_accuracy"] >= 0.9
+
+
+def test_the_type_classifier_never_learns_from_the_holdout(nlp):
+    import backend.engine.threat_intelligence as ti
+    from ml.evaluate_nlp import load
+    holdout = {r["headline"] for r in load() if r["split"] == "holdout"}
+    used = []
+    real_encode = nlp.model.encode
+    nlp.model.encode = lambda texts, **kw: used.extend(texts) or real_encode(texts, **kw)
+    try:
+        nlp._fit_type_model([])
+    finally:
+        nlp.model.encode = real_encode
+    assert used and not holdout & set(used)
 
 
 def test_a_threat_in_a_multi_headline_feed_is_not_diluted(nlp):
@@ -124,3 +139,23 @@ def test_a_threat_in_a_multi_headline_feed_is_not_diluted(nlp):
 ])
 def test_threat_type_classification(nlp, text, threat_type):
     assert nlp.classify_threat(text)["type"] == threat_type
+
+
+def test_a_flaky_first_download_is_retried(monkeypatch):
+    import sentence_transformers
+    import backend.engine.threat_intelligence as ti
+    real = sentence_transformers.SentenceTransformer
+    calls = []
+
+    def flaky(name, local_files_only=False):
+        calls.append(local_files_only)
+        if local_files_only or len(calls) <= 3:
+            raise OSError("connection reset")  # not cached yet, then two dropped downloads
+        return real(name, local_files_only=True)
+
+    monkeypatch.setattr(sentence_transformers, "SentenceTransformer", flaky)
+    monkeypatch.setattr(ti.time, "sleep", lambda s: None)
+    engine = ti.ContrastiveNLPEngine()
+    if not engine.ready:
+        pytest.skip("Sentence-transformer model unavailable")
+    assert calls == [True, False, False, False]
