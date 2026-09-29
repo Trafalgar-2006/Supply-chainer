@@ -49,7 +49,7 @@ function pulse(className, label, latlng) {
   }).bindTooltip(label);
 }
 
-export default function RouteMap({ hubs, routes, selected, onSelect, disrupted, liveHubs }) {
+export default function RouteMap({ hubs, routes, selected, onSelect, disrupted, liveHubs, focusLeg }) {
   const container = useRef(null);
   const map = useRef(null);
   const layers = useRef({});
@@ -66,6 +66,7 @@ export default function RouteMap({ hubs, routes, selected, onSelect, disrupted, 
     layers.current = {
       hubs: L.layerGroup().addTo(map.current),
       routes: L.layerGroup().addTo(map.current),
+      focus: L.layerGroup().addTo(map.current),
     };
     const resize = setTimeout(() => map.current && map.current.invalidateSize(), 0);
     return () => { clearTimeout(resize); map.current.remove(); map.current = null; };
@@ -132,6 +133,18 @@ export default function RouteMap({ hubs, routes, selected, onSelect, disrupted, 
     addPulses(disrupted, 'pulse-signal', 'Scenario disruption');
     addPulses(liveHubs, 'pulse-orchid', 'Live news');
 
+    // Origin and destination of the selected route, labelled.
+    const shown = routes[selected];
+    if (shown && shown.legs.length) {
+      [shown.legs[0].from, shown.legs[shown.legs.length - 1].to].forEach((id, i) => {
+        const h = byId[id];
+        if (!h) return;
+        L.circleMarker(anchor[id] || [h.lat, h.lon], { radius: 6, color: '#DCE6EE', weight: 2, fillColor: '#0B1622', fillOpacity: 1 })
+          .bindTooltip(h.display_name, { permanent: true, direction: i ? 'right' : 'left', className: 'endpoint' })
+          .addTo(group);
+      });
+    }
+
     // Refit only when a different route is shown (new results or a new
     // selection), not when only the alerts change. That is also the one moment
     // the chart animates: the route is drawn from origin to destination, then
@@ -149,6 +162,22 @@ export default function RouteMap({ hubs, routes, selected, onSelect, disrupted, 
     // A redraw replaces these elements; stop animating the old ones.
     return () => running.forEach(a => a.revert());
   }, [routes, selected, hubs, onSelect, disrupted, liveHubs]);
+
+  // The leg the user is pointing at in the voyage plan: its stretch of the
+  // route, or the hub itself for a transfer.
+  useEffect(() => {
+    const group = layers.current.focus;
+    group.clearLayers();
+    const route = routes[selected];
+    if (!focusLeg || !route) return;
+    const { positions } = routePositions(route, Object.fromEntries(hubs.map(h => [h.id, h])));
+    const [a, b] = [positions[focusLeg.from], positions[focusLeg.to]];
+    if (!a || !b) return;
+    (focusLeg.from === focusLeg.to
+      ? L.circleMarker(a, { radius: 11, color: '#DCE6EE', weight: 2, fill: false, className: 'leg-focus' })
+      : L.polyline([a, b], { color: '#DCE6EE', weight: 9, opacity: 0.5, className: 'leg-focus' })
+    ).addTo(group);
+  }, [focusLeg, routes, selected, hubs]);
 
   return <div ref={container} className="route-map" role="region" aria-label="Route map" />;
 }

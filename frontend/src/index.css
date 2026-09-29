@@ -165,6 +165,7 @@ h3 { font-size: 1.05rem; }
 }
 
 .link:disabled { color: var(--muted); cursor: not-allowed; }
+.link.swap { display: inline-flex; align-items: center; gap: 0.3rem; align-self: flex-start; font-size: 0.88rem; margin: -0.35rem 0; }
 
 /* ---- Route planner layout ---- */
 .planner {
@@ -208,6 +209,7 @@ h3 { font-size: 1.05rem; }
 .route-map .leaflet-bar a { background: var(--chart); color: var(--text); border-bottom-color: var(--rule); }
 .route-map .leaflet-control-attribution { background: rgba(11, 22, 34, 0.85); color: var(--muted); }
 .route-map .leaflet-control-attribution a { color: var(--contour); }
+.route-map .leaflet-tooltip.endpoint { font-weight: 600; }
 
 .pulse-marker { border-radius: 50%; }
 .pulse-signal { background: var(--signal); animation: pulse-signal 1.8s infinite; }
@@ -239,7 +241,8 @@ h3 { font-size: 1.05rem; }
 
 .options-head { padding: 0 0.75rem 0.4rem 0; border-bottom: 1px solid var(--rule); font-size: 0.85rem; color: var(--muted); }
 .options-head span:nth-child(n + 4) { text-align: right; }
-.options { list-style: none; }
+.options { list-style: none; transition: opacity 0.2s; }
+.options.busy { opacity: 0.45; }
 
 .option {
   width: 100%;
@@ -283,6 +286,7 @@ h3 { font-size: 1.05rem; }
 .legs li.handoff::before { border-color: var(--rule); }
 .legs li.scenario::before { border-color: var(--signal); background: var(--signal); }
 .legs li.live::before { border-color: var(--orchid); background: var(--orchid); }
+.legs li:hover .how, .legs li:focus .how { color: var(--text); }
 .legs .how { display: flex; align-items: center; gap: 0.35rem; color: var(--muted); font-size: 0.85rem; }
 .legs .exposure { font-size: 0.85rem; margin-top: 0.15rem; }
 .legs li.scenario .exposure { color: var(--signal); }
@@ -315,7 +319,9 @@ h3 { font-size: 1.05rem; }
 .recent button:disabled { cursor: not-allowed; opacity: 0.6; }
 .recent small { display: block; color: var(--muted); font-size: 0.82rem; }
 
-.empty { color: var(--muted); max-width: 44ch; }
+.empty { color: var(--muted); max-width: 52ch; }
+.empty p + p { margin-top: 0.6rem; }
+.examples { list-style: none; display: flex; flex-direction: column; gap: 0.35rem; margin-top: 0.35rem; }
 
 /* ---- Full-page views: model evaluation, suppliers ---- */
 .page { display: grid; grid-template-rows: auto minmax(0, 1fr); height: 100vh; }
@@ -323,6 +329,12 @@ h3 { font-size: 1.05rem; }
 
 .model-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 1.25rem; align-content: start; }
 .panel { background: var(--chart); border: 1px solid var(--rule); border-radius: var(--radius); padding: 1.1rem 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.scores { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+.scores th { font-weight: 500; color: var(--muted); text-align: right; padding: 0.3rem 0 0.3rem 1rem; border-bottom: 1px solid var(--rule); }
+.scores th:first-child, .scores td:first-child { text-align: left; padding-left: 0; }
+.scores td { padding: 0.35rem 0 0.35rem 1rem; text-align: right; border-bottom: 1px solid var(--rule); }
+.scores td.num { font-size: 1.1rem; }
+.scores td.better { color: var(--kelp); }
 .facts { padding-left: 1.1rem; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.95rem; max-width: 75ch; }
 .facts code { color: var(--contour); }
 

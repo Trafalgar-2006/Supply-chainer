@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { animate, stagger } from 'animejs';
-import { Truck, Ship, Plane, Train, ArrowRightLeft, Navigation, Download } from 'lucide-react';
+import { Truck, Ship, Plane, Train, ArrowRightLeft, ArrowUpDown, Navigation, Download } from 'lucide-react';
 import RouteMap, { PERSONA_COLOURS, personaLabel, prefersReducedMotion } from './RouteMap.jsx';
 
 const CARGO_TYPES = [
@@ -24,6 +24,14 @@ const ENGINE_STATES = {
 const LEGEND = [
   ['Fastest', PERSONA_COLOURS.FASTEST], ['Best balance', PERSONA_COLOURS.BALANCED],
   ['Lowest risk', PERSONA_COLOURS.SAFEST], ['Scenario disruption', 'var(--signal)'], ['Live news', 'var(--orchid)'],
+];
+// One-click plans for a first visit, each showing a different part of the engine.
+const EXAMPLES = [
+  { label: 'Shanghai to Rotterdam', source: 'PORT-SHANGHAI', destination: 'PORT-ROTTERDAM', scenario: null, mode: 'any' },
+  { label: 'Shanghai to Los Angeles by sea during the port strike', source: 'PORT-SHANGHAI', destination: 'HUB-LOSANGELES',
+    scenario: 'LA_PORT_STRIKE', mode: 'sea' },
+  { label: 'Chennai to Singapore during the monsoon floods', source: 'PORT-CHENNAI', destination: 'PORT-SINGAPORE',
+    scenario: 'CHENNAI_FLOOD', mode: 'any' },
 ];
 const RECENT_KEY = 'supplychainer.recent-plans';
 const RECENT_LIMIT = 8;
@@ -115,6 +123,7 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
   const [scenarios, setScenarios] = useState([]);
   const [hubs, setHubs] = useState([]);
   const [recent, setRecent] = useState(loadRecent);
+  const [focusLeg, setFocusLeg] = useState(null); // the voyage-plan leg highlighted on the map
   const latestQuery = useRef({ source: '', dest: '' });
   const optionList = useRef(null);
 
@@ -269,6 +278,28 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
 
   const toggleAvoid = id => setAvoid(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
 
+  const swapEnds = () => {
+    setSource(destination);
+    setDestination(source);
+    setSearchQuery({ source: searchQuery.dest, dest: searchQuery.source });
+    latestQuery.current = { source: searchQuery.dest, dest: searchQuery.source };
+    setSearchResults({ source: [], dest: [] });
+  };
+
+  const runExample = example => runPlan({
+    source: example.source, sourceName: hubName(example.source),
+    destination: example.destination, destName: hubName(example.destination),
+    transportMode: example.mode, routingPolicy: 'STRICT', cargoType: 'general', priority: 'normal',
+    scenario: example.scenario, liveIntel, avoid: [],
+  });
+
+  // Pointing at a leg (mouse or keyboard) highlights its stretch on the map.
+  const pointAt = leg => ({
+    tabIndex: 0,
+    onMouseEnter: () => setFocusLeg(leg), onMouseLeave: () => setFocusLeg(null),
+    onFocus: () => setFocusLeg(leg), onBlur: () => setFocusLeg(null),
+  });
+
   const [engineState, engineText] = ENGINE_STATES[engineStatus] || ['warming', 'Connecting to the engine'];
 
   const renderHubSearch = (type, label, placeholder) => (
@@ -299,14 +330,14 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
     );
     if (leg.type === 'transfer') {
       return (
-        <li key={idx} className={`handoff ${exposure}`}>
+        <li key={idx} className={`handoff ${exposure}`} {...pointAt(leg)}>
           Transfer at {leg.to_name}, {fmtH(leg.eta)}
           {note}
         </li>
       );
     }
     return (
-      <li key={idx} className={exposure}>
+      <li key={idx} className={exposure} {...pointAt(leg)}>
         {leg.to_name}
         <div className="how"><Icon size={13} aria-hidden="true" /> {capitalise(leg.mode)}, {fmtH(leg.eta)}, {fmtMoney(leg.cost)}</div>
         {note}
@@ -354,6 +385,10 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
 
       <aside className="plan" aria-label="Plan a shipment">
         {renderHubSearch('source', 'Origin', 'City, port or airport')}
+        <button type="button" className="link swap" onClick={swapEnds}
+                disabled={!searchQuery.source && !searchQuery.dest}>
+          <ArrowUpDown size={14} aria-hidden="true" /> Swap origin and destination
+        </button>
         {renderHubSearch('dest', 'Destination', 'City, port or airport')}
 
         <div className="field">
@@ -472,7 +507,7 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
         {error && <div className="error" role="alert">{error}</div>}
 
         <RouteMap hubs={hubs} routes={recommendations} selected={selected} onSelect={setSelected}
-                  disrupted={disruptedHubs} liveHubs={liveHubs} />
+                  disrupted={disruptedHubs} liveHubs={liveHubs} focusLeg={focusLeg} />
 
         {recommendations.length > 0 ? (
           <>
@@ -489,7 +524,7 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
             <div className="options-head options-grid" aria-hidden="true">
               <span /><span>Route</span><span>Door-to-door time</span><span>Landed cost</span><span>Peak risk</span>
             </div>
-            <ul className="options" ref={optionList}>
+            <ul className={`options ${loading ? 'busy' : ''}`} ref={optionList} aria-busy={loading}>
               {recommendations.map((rec, idx) => {
                 const colour = PERSONA_COLOURS[rec.persona];
                 const band = rec.eta_band;
@@ -527,10 +562,24 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
           </>
         ) : (
           !loading && !error && (
-            <p className="empty">
-              Choose an origin and a destination, then plan routes. You get up to three options: the fastest,
-              the lowest-risk, and the best balance of cost, time and risk.
-            </p>
+            <div className="empty">
+              <p>
+                Choose an origin and a destination, then plan routes. You get up to three options: the fastest,
+                the lowest-risk, and the best balance of cost, time and risk.
+              </p>
+              {hubs.length > 0 && (
+                <>
+                  <p>Or try one:</p>
+                  <ul className="examples">
+                    {EXAMPLES.map(example => (
+                      <li key={example.label}>
+                        <button type="button" className="link" onClick={() => runExample(example)}>{example.label}</button>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </div>
           )
         )}
       </main>

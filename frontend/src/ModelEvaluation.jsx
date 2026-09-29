@@ -11,6 +11,16 @@ const TOOLTIP = {
   cursor: { fill: 'rgba(24, 48, 71, 0.6)' },
 };
 const QUANTILE_COLOURS = { p50: '#DCE6EE', p85: '#6CC3D5', p95: '#E3A83B' };
+const pct = x => `${Math.round(x * 100)}%`;
+// Threat-intelligence scores on the held-out headlines: [label, key, format, higher is better].
+const NLP_METRICS = [
+  ['Disruptions detected', 'recall', pct, true],
+  ['False alarms on routine news', 'false_alarm_rate', pct, false],
+  ['Precision', 'precision', pct, true],
+  ['Detection AUC', 'auc', x => x.toFixed(2), true],
+  ['Threat type correct', 'type_accuracy', pct, true],
+  ['CARF: right call per mode', 'carf_accuracy', pct, true],
+];
 
 export default function ModelEvaluation({ onNavigate }) {
   const [report, setReport] = useState(null);
@@ -31,7 +41,12 @@ export default function ModelEvaluation({ onNavigate }) {
     mode: mode.charAt(0).toUpperCase() + mode.slice(1),
     ...Object.fromEntries(quantiles.map(([name, q]) => [name, +(q.coverage_by_mode[mode] * 100).toFixed(1)])),
   })) : [];
-  const loss = quantiles.map(([name, q]) => ({ name, model: q.pinball_loss, naive: q.naive_pinball_loss }));
+  // Naive baseline, this model and the best possible model, all on the same fresh legs.
+  const ceiling = report?.delay_ceiling
+    ? Object.entries(report.delay_ceiling.quantiles).map(([name, q]) => ({ name, ...q }))
+    : [];
+  const nlp = report?.nlp;
+  const nlpNow = nlp && { ...nlp.test.detection, type_accuracy: nlp.test.type_accuracy, carf_accuracy: nlp.test.carf_accuracy };
   const importance = report ? Object.entries(report.p85_permutation_importance).map(([feature, value]) => ({ feature, value })) : [];
 
   return (
@@ -87,21 +102,61 @@ export default function ModelEvaluation({ onNavigate }) {
               </ResponsiveContainer>
             </section>
 
-            <section className="panel">
-              <h2>Pinball loss against a naive baseline</h2>
-              <p className="note">The baseline predicts the empirical quantile of each mode and arrival group. Lower is better.</p>
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={loss}>
-                  <CartesianGrid stroke={GRID} vertical={false} />
-                  <XAxis dataKey="name" tick={AXIS} stroke={GRID} />
-                  <YAxis tick={AXIS} stroke={GRID} />
-                  <Tooltip {...TOOLTIP} />
-                  <Legend />
-                  <Bar dataKey="naive" fill={MUTED} name="Naive baseline" />
-                  <Bar dataKey="model" fill="#49B083" name="Quantile model" />
-                </BarChart>
-              </ResponsiveContainer>
-            </section>
+            {ceiling.length > 0 && (
+              <section className="panel">
+                <h2>Pinball loss: naive baseline, this model, best possible</h2>
+                <p className="note">
+                  Lower is better. The best possible model is computed exactly from the known data generator; this model
+                  gets {ceiling.map(q => `${pct(q.share_of_achievable_gain)} (${q.name})`).join(', ')} of the way
+                  there, on {report.delay_ceiling.legs.toLocaleString()} fresh legs.
+                </p>
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={ceiling}>
+                    <CartesianGrid stroke={GRID} vertical={false} />
+                    <XAxis dataKey="name" tick={AXIS} stroke={GRID} />
+                    <YAxis tick={AXIS} stroke={GRID} />
+                    <Tooltip {...TOOLTIP} />
+                    <Legend />
+                    <Bar dataKey="naive" fill={MUTED} name="Naive baseline" />
+                    <Bar dataKey="model" fill="#49B083" name="This model" />
+                    <Bar dataKey="optimal" fill="#DCE6EE" name="Best possible" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </section>
+            )}
+
+            {nlp && (
+              <section className="panel">
+                <h2>Threat intelligence on held-out headlines</h2>
+                <p className="note">
+                  {nlp.test.headlines} labelled headlines that were never used for tuning: {nlp.test.disrupted} disruptions
+                  and {nlp.test.safe} pieces of routine news, including disruptions that have ended.
+                </p>
+                <table className="scores">
+                  <thead>
+                    <tr><th scope="col">Measure</th><th scope="col">Before</th><th scope="col">Now</th></tr>
+                  </thead>
+                  <tbody>
+                    {NLP_METRICS.map(([label, key, format, higherIsBetter]) => {
+                      const before = nlp.baseline_test?.[key];
+                      const now = nlpNow[key];
+                      const better = before !== undefined && (higherIsBetter ? now > before : now < before);
+                      return (
+                        <tr key={key}>
+                          <td>{label}</td>
+                          <td className="num muted">{before === undefined ? '' : format(before)}</td>
+                          <td className={`num ${better ? 'better' : ''}`}>{format(now)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                <p className="note">
+                  Still missed: {nlp.test.errors.missed.map(h => `"${h}"`).join('; ') || 'none'}.
+                  {' '}False alarms: {nlp.test.errors.false_alarms.map(h => `"${h}"`).join('; ') || 'none'}.
+                </p>
+              </section>
+            )}
 
             <section className="panel">
               <h2>What drives the p85 delay</h2>
@@ -122,7 +177,7 @@ export default function ModelEvaluation({ onNavigate }) {
               <ul className="facts">
                 <li>One gradient-boosted quantile regressor per quantile, trained on {report.n_train.toLocaleString()} legs sampled from the live routing graph.</li>
                 <li>Monotonic in distance, weather and news severity; p50 ≤ p85 ≤ p95 is enforced (raw crossing rate {(report.quantile_crossing_rate * 100).toFixed(2)}%).</li>
-                <li>Pinball loss against the naive baseline: {quantiles.map(([name, q]) => `${name} ${Math.round(q.improvement_vs_naive * 100)}% lower`).join(', ')}.</li>
+                <li>Pinball loss against the naive baseline on the held-out split: {quantiles.map(([name, q]) => `${name} ${Math.round(q.improvement_vs_naive * 100)}% lower`).join(', ')}.</li>
                 <li>The artifact's SHA-256 is pinned in code and checked before loading: <code>{report.sha256.slice(0, 16)}…</code></li>
                 <li>Training data is synthetic and physics-informed. docs/MODEL_CARD.md lists the assumptions and limits.</li>
               </ul>

@@ -30,6 +30,10 @@ from backend.engine.threat_intelligence import CARFFilter, ContrastiveNLPEngine 
 DATA = ROOT / "ml" / "nlp_headlines.csv"
 OUT = ROOT / "Execution" / "nlp_evaluation.json"
 MODES = ("sea", "air", "rail", "road")
+# Test-split scores of the engine before this evaluation existed (all-MiniLM-L6-v2
+# and the original anchors, at commit e550c5f), kept for comparison.
+BASELINE_TEST = {"auc": 0.831, "recall": 0.696, "false_alarm_rate": 0.22, "precision": 0.744,
+                 "type_accuracy": 0.848, "carf_accuracy": 0.859}
 
 
 def load():
@@ -90,7 +94,8 @@ def main():
         sys.exit("The sentence-transformer model could not be loaded.")
     rows = load()
     report = {split: evaluate([r for r in rows if r["split"] == split], nlp, carf) for split in ("dev", "test")}
-    for split, result in report.items():
+    report["baseline_test"] = BASELINE_TEST
+    for split, result in ((s, report[s]) for s in ("dev", "test")):
         d = result["detection"]
         print(f"{split}: AUC {d['auc']}, recall {d['recall']}, false alarms {d['false_alarm_rate']}, "
               f"precision {d['precision']}, type accuracy {result['type_accuracy']}, CARF {result['carf_accuracy']}")

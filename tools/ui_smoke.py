@@ -1,10 +1,12 @@
 """End-to-end smoke test of the dashboard in a real browser.
 
 Drives the running app (backend on :8000, Vite on :5173) with Playwright:
-plans Shanghai -> Rotterdam, switches to SUEZ_BLOCK and re-plans from the
-scenario alert, picks an option, exports it as CSV, then opens the model and
-supplier views and replays a recent plan at phone width. Fails on any console
-error, failed request or missing element, and saves screenshots.
+runs the LA port strike example (ships must divert via Oakland), plans
+Shanghai -> Rotterdam by search (and swaps the ends once), switches to
+SUEZ_BLOCK and re-plans from the scenario alert, picks an option, points at a
+leg, exports the route as CSV, then opens the model and supplier views and
+replays a recent plan at phone width. Fails on any console error, failed
+request or missing element, and saves screenshots.
 
 Usage: python tools/ui_smoke.py [out_dir] [--browser msedge|chrome|chromium]
 (Playwright's own Chromium needs `playwright install chromium` first.)
@@ -53,9 +55,21 @@ def main():
                 break
             time.sleep(1)
 
+        # One-click example: during the LA port strike, ships divert via Oakland.
+        page.click("text=Shanghai to Los Angeles by sea during the port strike")
+        page.wait_for_selector("text=Planned under LA Port Strike", timeout=30_000)
+        check("Oakland" in page.inner_text(".legs"), "LA strike example did not divert via Oakland")
+        check(page.locator(".route-map .leaflet-tooltip.endpoint").count() == 2, "origin and destination not labelled")
+
         pick_hub(page, "#hub-source", "Shanghai")
         pick_hub(page, "#hub-dest", "Rotterdam")
+        page.click("text=Swap origin and destination")
+        check(page.input_value("#hub-source") == "Port of Rotterdam", "swap did not exchange the ends")
+        page.click("text=Swap origin and destination")
+        page.select_option("#scenario", "NORMAL")
+        page.select_option("#mode", "any")
         page.click("button.primary")
+        page.wait_for_selector("text=Planned under", state="detached", timeout=30_000)
         page.wait_for_selector(".option", timeout=30_000)
 
         # Choosing a scenario flags the recent plan it disrupts; re-plan from the alert.
@@ -70,6 +84,9 @@ def main():
         check(page.locator(".option").last.get_attribute("aria-pressed") == "true", "clicked option not selected")
         check(page.locator(".legs li").count() >= 2, "voyage plan has no legs")
         time.sleep(2)  # the route draws on the chart
+        page.locator(".legs li").nth(2).hover()
+        check(page.locator(".route-map path.leg-focus").count() == 1, "pointing at a leg does not highlight it on the map")
+        page.mouse.move(5, 5)
         page.screenshot(path=str(out / "routes.png"))
 
         with page.expect_download() as download:
@@ -79,10 +96,12 @@ def main():
         rows = csv_path.read_text(encoding="utf-8-sig").splitlines()
         check(csv_path.suffix == ".csv" and rows[0].startswith('"leg"') and rows[-1].startswith('"total"'),
               f"unexpected CSV export {csv_path.name}")
-        check(page.locator(".recent li").count() == 2, "recent plans should list the normal and the Suez plan")
+        check(page.locator(".recent li").count() == 3, "recent plans should list the LA, normal and Suez plans")
 
         page.click("text=Model evaluation")
         page.wait_for_selector(".panel .recharts-surface", timeout=15_000)
+        check(page.locator(".scores tbody tr").count() == 6, "threat-intelligence scores missing")
+        check(page.locator("text=Best possible").count() >= 1, "delay-model ceiling missing")
         time.sleep(1)
         page.screenshot(path=str(out / "model.png"))
 
