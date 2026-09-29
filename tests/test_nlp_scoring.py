@@ -16,9 +16,15 @@ def test_a_full_canal_closure_scores_near_maximum(nlp):
     assert nlp.get_semantic_score(CATASTROPHIC[0]) >= 0.9
 
 
+ROUTINE_CONGESTION = "Maritime congestion reported at major transshipment hubs. Berthing delays expected."
+
+
 @pytest.mark.parametrize("text", CATASTROPHIC)
-def test_catastrophic_disruptions_score_high(nlp, text):
-    assert nlp.get_semantic_score(text) >= 0.6
+def test_catastrophic_disruptions_score_above_routine_congestion(nlp, text):
+    # The margin measures how much a headline reads like a disruption, not how
+    # large it is, so an attack need not outscore a strike. It must still clearly
+    # exceed the standing report every sea leg carries.
+    assert nlp.get_semantic_score(text) > max(0.3, nlp.get_semantic_score(ROUTINE_CONGESTION))
 
 
 def test_a_strike_stays_well_below_a_canal_closure(nlp):
@@ -84,10 +90,20 @@ def test_no_false_alarms_on_held_out_safe_news(nlp):
 
 
 def test_held_out_disruptions_are_detected(nlp):
-    # Measured: 6 of 8 at zero false alarms. The misses (a bridge collapse, a
-    # cyclone) sit just under the noise floor; see docs/MODEL_CARD.md.
-    detected = [t for t in HELD_OUT_DISRUPTED if nlp.get_semantic_score(t) > 0]
-    assert len(detected) >= 6, set(HELD_OUT_DISRUPTED) - set(detected)
+    # All 8 at zero false alarms (the MiniLM engine caught 6).
+    missed = [t for t in HELD_OUT_DISRUPTED if nlp.get_semantic_score(t) == 0]
+    assert missed == []
+
+
+def test_labelled_test_split_meets_the_reported_scores(nlp):
+    # ml/nlp_headlines.csv: nothing was tuned on the test split. The figures are
+    # in docs/MODEL_CARD.md; these floors catch a regression.
+    from backend.engine.threat_intelligence import CARFFilter
+    from ml.evaluate_nlp import evaluate, load
+    result = evaluate([r for r in load() if r["split"] == "test"], nlp, CARFFilter())
+    detection = result["detection"]
+    assert detection["auc"] >= 0.98 and detection["recall"] >= 0.9 and detection["false_alarm_rate"] <= 0.05
+    assert result["type_accuracy"] >= 0.8 and result["carf_accuracy"] >= 0.9
 
 
 def test_a_threat_in_a_multi_headline_feed_is_not_diluted(nlp):

@@ -1,0 +1,91 @@
+{
+  "dev": {
+    "headlines": 96,
+    "disrupted": 46,
+    "safe": 50,
+    "detection": {
+      "auc": 0.999,
+      "recall": 0.978,
+      "false_alarm_rate": 0.0,
+      "precision": 1.0
+    },
+    "type_accuracy": 0.957,
+    "type_accuracy_by_type": {
+      "congestion": 1.0,
+      "cyber": 1.0,
+      "geopolitical": 1.0,
+      "infrastructure": 0.78,
+      "labour": 1.0,
+      "weather": 1.0
+    },
+    "carf_accuracy": 1.0,
+    "errors": {
+      "missed": [
+        "Vessel queue outside Singapore anchorage grows to 60 ships"
+      ],
+      "false_alarms": [],
+      "wrong_type": [
+        "Container ship loses power and blocks Bosphorus traffic (infrastructure read as congestion)",
+        "Runway closure at Hong Kong airport disrupts freighter schedules (infrastructure read as geopolitical)"
+      ],
+      "carf_wrongly_dropped": [],
+      "carf_wrongly_kept": []
+    }
+  },
+  "test": {
+    "headlines": 96,
+    "disrupted": 46,
+    "safe": 50,
+    "detection": {
+      "auc": 0.993,
+      "recall": 0.913,
+      "false_alarm_rate": 0.02,
+      "precision": 0.977
+    },
+    "type_accuracy": 0.848,
+    "type_accuracy_by_type": {
+      "congestion": 1.0,
+      "cyber": 0.8,
+      "geopolitical": 0.88,
+      "infrastructure": 0.78,
+      "labour": 0.75,
+      "weather": 0.89
+    },
+    "carf_accuracy": 0.94,
+    "errors": {
+      "missed": [
+        "Sandstorm grounds flights at Dubai airport",
+        "Australian wharfies take industrial action at Sydney terminals",
+        "Customs officers work to rule, causing long lorry delays at Dover",
+        "Export controls on chips tighten and shipments are held at customs"
+      ],
+      "false_alarms": [
+        "Container line posts an on-time performance record"
+      ],
+      "wrong_type": [
+        "Sandstorm grounds flights at Dubai airport (weather read as geopolitical)",
+        "Air traffic controllers strike in France and cargo flights are cancelled (labour read as geopolitical)",
+        "Customs officers work to rule, causing long lorry delays at Dover (labour read as congestion)",
+        "Missile strike hits a tanker near the Bab el-Mandeb strait (geopolitical read as infrastructure)",
+        "Cargo ship collides with a bridge, closing the Baltimore shipping channel (infrastructure read as geopolitical)",
+        "Blackout at Jawaharlal Nehru Port halts vessel loading (infrastructure read as weather)",
+        "IT attack on the customs authority leaves shipments stuck at borders (cyber read as geopolitical)"
+      ],
+      "carf_wrongly_dropped": [
+        "Customs officers work to rule, causing long lorry delays at Dover (sea)",
+        "Cargo ship collides with a bridge, closing the Baltimore shipping channel (road)"
+      ],
+      "carf_wrongly_kept": [
+        "Military blockade of Hormuz feared as tensions escalate (air)",
+        "Military blockade of Hormuz feared as tensions escalate (rail)",
+        "Military blockade of Hormuz feared as tensions escalate (road)",
+        "Cyberattack on DP World Australia halts container movements (air)",
+        "Cyberattack on DP World Australia halts container movements (rail)",
+        "Cyberattack on DP World Australia halts container movements (road)",
+        "Equipment shortage leaves exporters without empty containers (air)",
+        "Equipment shortage leaves exporters without empty containers (rail)",
+        "Equipment shortage leaves exporters without empty containers (road)"
+      ]
+    }
+  }
+}

@@ -4,8 +4,7 @@ import os
 import re
 import torch
 import json
-import time
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional
 import pandas as pd
 
 # Production artifacts live in <repo>/Execution; resolve them from this file so the
@@ -42,7 +41,7 @@ class ThreatIntelligencePredictor:
         if self.is_trained: return
         print("[PREDICTOR] Starting warmup...")
         if not os.path.exists(MODEL_PATH) or not os.path.exists(ENCODER_PATH):
-            print(f"CRITICAL: Production models missing. Running in deterministic fallback mode.")
+            print("CRITICAL: Production models missing. Running in deterministic fallback mode.")
             return
             
         # 1. Load ML Core
@@ -59,7 +58,7 @@ class ThreatIntelligencePredictor:
             print("WARNING: Calibration profiles missing. Using defensive fallbacks.")
             self.profiles = {}
 
-        print(f"Supplychainer V3 Brain Loaded: Production-Ready.")
+        print("Supplychainer V3 Brain Loaded: Production-Ready.")
 
     def _encode_feature(self, value: str, key: str) -> int:
         encoder = self.encoders[key]
@@ -90,7 +89,6 @@ class ThreatIntelligencePredictor:
                 "is_defensible": True
             }
 
-        # t_ml_start = time.perf_counter()
         try:
             feat_origin = self._encode_feature(origin, 'Origin_Node')
             feat_dest = self._encode_feature(destination, 'Destination_Node')
@@ -144,19 +142,41 @@ class ThreatIntelligencePredictor:
 THREAT_TYPE_ANCHORS = {
     "weather": ["Typhoon, hurricane or cyclone forces the port to close.",
                 "Severe storm, heavy rain and flooding disrupt transport.",
-                "Fog and snowstorm ground flights and close highways."],
+                "Fog and snowstorm ground flights and close highways.",
+                "Blizzard, snow and ice close roads and halt freight trains.",
+                "Drought and low water levels restrict ships and barges on the waterway.",
+                "Extreme heat and wildfires damage rail lines and close roads."],
     "labour": ["Dock workers and truck drivers go on strike.",
                "Union walkout halts terminal operations.",
-               "Labour dispute causes a work stoppage at the port."],
+               "Labour dispute causes a work stoppage at the port.",
+               "Rail workers strike and freight trains stop running.",
+               "Airport cargo handlers and air traffic controllers walk out.",
+               "Employer lockout shuts down the rail network.",
+               "Drivers blockade roads and depots in protest."],
     "geopolitical": ["Military conflict and missile attacks threaten commercial shipping.",
                      "Sanctions and a trade embargo block cargo.",
-                     "Naval blockade closes the strait to vessels."],
+                     "Naval blockade closes the strait to vessels.",
+                     "Armed forces or pirates seize and board a merchant ship.",
+                     "War and shelling hit a port and shipping lines suspend calls.",
+                     "Airspace closed by conflict forces flights to reroute.",
+                     "Government export ban and border closure halt trade."],
     "infrastructure": ["Container ship runs aground and blocks the canal.",
                        "Bridge collapse and a train derailment cut the route.",
-                       "Crane failure and a power outage stop the terminal."],
-    "cyber": ["Cyberattack and ransomware shut down port IT systems."],
+                       "Crane failure and a power outage stop the terminal.",
+                       "Explosion and fire destroy port facilities and warehouses.",
+                       "Fire on board a ship forces it to divert.",
+                       "Runway or tunnel closure after an accident blocks traffic.",
+                       "Lock or canal gate failure closes the waterway."],
+    "cyber": ["Cyberattack and ransomware shut down port IT systems.",
+              "Hackers attack booking and scheduling systems, halting operations.",
+              "Malware disrupts logistics company networks and signalling."],
     "congestion": ["Severe congestion and long vessel queues at the port.",
-                   "Container backlog and yard congestion delay cargo."],
+                   "Container backlog and yard congestion delay cargo.",
+                   "Ships wait at anchor for days to reach a berth.",
+                   "Trucks queue for days at a congested border crossing.",
+                   "Air cargo piles up at the airport as handling capacity runs short.",
+                   "Rail yards are overwhelmed and freight trains back up.",
+                   "Equipment shortage slows cargo pickups."],
 }
 MIN_TYPE_SIMILARITY = 0.30  # below this the report matches no category well
 
@@ -187,17 +207,37 @@ HISTORICAL_SAFE = [
     "Air cargo capacity on the transoceanic corridor remains high. Ground handling operations are normalized with no reported backlogs at major hubs.",
 ]
 
-# The historical safe corpus only covers routine operations. Positive business
-# news (new capacity, earnings, record volumes, new services) is common in
-# logistics headlines and would otherwise read as mildly threatening.
+# The historical safe corpus only covers routine operations. Most logistics
+# headlines are routine business news, and news that a disruption has ended
+# shares its words ("strike", "congestion", "storm"); without archetypes for
+# both, they read as threats.
 SAFE_ARCHETYPES = [
     "Port opens a new terminal and expands handling capacity.",
     "Logistics company reports strong quarterly earnings and revenue growth.",
     "Cargo volumes hit a record high as trade flows smoothly.",
     "Carrier launches a new weekly service and invests in new vessels.",
+    "Company announces a new product, investment or appointment.",
+    "Company launches a sustainability or zero-emission programme.",
+    "Freight rates, prices and shipping stocks move with market demand.",
+    "New infrastructure opens and cuts journey times.",
+    "Industry award, anniversary celebration or trade conference.",
+    "Safety drill or inspection completed with no problems found.",
+    "Forecast calls for calm weather this season.",
+    "Disruption ends and operations return to normal.",
+    "Strike is called off after unions and employers reach an agreement.",
+    "Congestion eases as queues clear and waiting times fall.",
+    "Traffic resumes after the route reopens.",
 ]
+# A headline is compared with the mean of its two closest safe anchors, so a
+# single topically close one ("Congestion eases...") cannot cancel a real threat.
+SAFE_TOP_K = 2
 
 MIN_REPORT_WORDS = 4  # shorter fragments ("Light rain forecast") carry no reliable signal
+
+# BAAI/bge-small-en-v1.5 (MIT, ~130 MB). On the dev split of ml/nlp_headlines.csv
+# it separated disruptions from routine news better than all-MiniLM-L6-v2 with
+# the same anchors (AUC 0.987 vs 0.954); see docs/MODEL_CARD.md.
+EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
 
 def split_reports(news_text: str) -> List[str]:
     """One chunk per headline or sentence, so unrelated headlines are not blended."""
@@ -208,14 +248,15 @@ class ContrastiveNLPEngine:
     """Stage 2: PRODUCTION Contrastive NLP Brain."""
     def __init__(self, lazy_load=False):
         self._ready = False
-        # Threat Margin = max cos-sim to a disaster anchor minus max cos-sim to a
-        # safe anchor, per headline. On a labelled set of 33 headlines, safe and
-        # positive news stays below 0.10 (AUC 0.995 against disruptions). Full
-        # closures reach ~0.5, strikes ~0.35, weather and congestion ~0.15-0.25, so
-        # the ramp to 0.50 keeps a strike well below a canal closure. The score
-        # feeds the delay model as incident severity.
-        self.noise_floor = 0.10
-        self.saturation_margin = 0.50
+        # Threat margin = best cosine similarity to a disaster anchor minus the mean
+        # of the two best to safe anchors, per headline. The floor is set on the dev
+        # split of ml/nlp_headlines.csv: above 0.08 it caught 98% of disruptions
+        # with no false alarm. A full canal closure reaches ~0.34, strikes and
+        # attacks ~0.17, routine congestion ~0.13, so the ramp to 0.35 keeps a
+        # closure near 1 and routine congestion low. The score feeds the delay
+        # model as incident severity.
+        self.noise_floor = 0.08
+        self.saturation_margin = 0.35
         if not lazy_load:
             self.warmup()
 
@@ -227,9 +268,9 @@ class ContrastiveNLPEngine:
             try:
                 # Use the cached model without contacting the Hugging Face Hub, so
                 # start-up works offline and on flaky networks.
-                self.model = SentenceTransformer("all-MiniLM-L6-v2", local_files_only=True)
+                self.model = SentenceTransformer(EMBEDDING_MODEL, local_files_only=True)
             except Exception:
-                self.model = SentenceTransformer("all-MiniLM-L6-v2")  # first run: download
+                self.model = SentenceTransformer(EMBEDDING_MODEL)  # first run: download
             self.util = util
             pairs = [(t, s) for t, sentences in THREAT_TYPE_ANCHORS.items() for s in sentences]
             self._type_names = [t for t, _ in pairs]
@@ -241,7 +282,7 @@ class ContrastiveNLPEngine:
                                               self._type_matrix])
             self.safe_matrix = self.model.encode(HISTORICAL_SAFE + SAFE_ARCHETYPES, convert_to_tensor=True)
             self._ready = True
-            print(f"NLP Brain: Anchor matrices ready.")
+            print("NLP Brain: Anchor matrices ready.")
         except Exception as e:
             print(f"[NLP ENGINE] Warmup failed: {e}")
             self._ready = False
@@ -258,10 +299,11 @@ class ContrastiveNLPEngine:
         """
         chunks = split_reports(news_text)
         if not self._ready or not chunks:
-            return {"score": 0.0, "type": "none", "confidence": 0.0, "headline": None}
+            return {"score": 0.0, "margin": 0.0, "type": "none", "confidence": 0.0, "headline": None}
         embeddings = self.model.encode(chunks, convert_to_tensor=True)
         d_scores = self.util.cos_sim(embeddings, self.disaster_matrix).cpu().numpy().max(axis=1)
-        s_scores = self.util.cos_sim(embeddings, self.safe_matrix).cpu().numpy().max(axis=1)
+        safe_sims = np.sort(self.util.cos_sim(embeddings, self.safe_matrix).cpu().numpy(), axis=1)
+        s_scores = safe_sims[:, -SAFE_TOP_K:].mean(axis=1)
         margins = d_scores - s_scores
         top = int(np.argmax(margins))
         margin = float(margins[top])
@@ -270,8 +312,8 @@ class ContrastiveNLPEngine:
         similarity = self.util.cos_sim(embeddings[top:top + 1], self._type_matrix).cpu().numpy()[0]
         best = int(np.argmax(similarity))
         threat_type = self._type_names[best] if similarity[best] >= MIN_TYPE_SIMILARITY else "general"
-        return {"score": score, "type": threat_type, "confidence": round(float(similarity[best]), 3),
-                "headline": chunks[top]}
+        return {"score": score, "margin": round(margin, 4), "type": threat_type,
+                "confidence": round(float(similarity[best]), 3), "headline": chunks[top]}
 
     def get_semantic_score(self, news_text: str) -> float:
         return self.assess(news_text)["score"]
@@ -290,15 +332,20 @@ class CARFFilter:
     names no mode (weather, conflict, cyberattacks) stays relevant to every mode.
     """
     def __init__(self):
-        # Only words that name one mode's infrastructure. Generic words such as
-        # "station" (weather station), "track" (track a storm) or "bridge" (road or
-        # rail) would misfile mode-neutral news and wrongly drop it for other modes.
+        # Only words that name one mode's infrastructure or workforce. Generic words
+        # such as "station" (weather station), "track" (track a storm), "bridge"
+        # (road or rail), "terminal" and "container" (every mode), "freighter"
+        # (ship or cargo plane), "docker" (also software) or "anchorage" (also an
+        # air-cargo city) would misfile news and wrongly drop it for other modes.
         self.relevance_map = {
-            "air": {"airport", "flight", "airspace", "aviation", "airline", "aircraft"},
+            "air": {"airport", "flight", "airspace", "aviation", "airline", "aircraft", "runway", "airfield"},
             "sea": {"port", "seaport", "vessel", "ship", "shipping", "canal", "ocean", "maritime",
-                    "dock", "berth", "berthing", "harbor", "harbour", "strait", "tanker"},
-            "rail": {"rail", "railway", "railroad", "locomotive", "train", "derailment"},
-            "road": {"highway", "motorway", "truck", "trucker", "trucking", "lorry", "road"},
+                    "dock", "berth", "berthing", "harbor", "harbour", "strait", "tanker",
+                    "dockworker", "dockers", "longshore", "longshoreman", "longshoremen", "stevedore",
+                    "wharf", "wharfie", "quay", "pier", "barge", "waterway", "seafarer"},
+            "rail": {"rail", "railway", "railroad", "locomotive", "train", "derailment", "wagon"},
+            "road": {"highway", "motorway", "truck", "trucker", "trucking", "lorry", "road",
+                     "haulier", "haulage", "interstate", "expressway", "freeway", "autobahn", "drayage"},
         }
 
     def modes_mentioned(self, news_context: str) -> set:

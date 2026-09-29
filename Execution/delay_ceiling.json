@@ -1,0 +1,23 @@
+{
+  "legs": 20000,
+  "quantiles": {
+    "p50": {
+      "naive": 8.829,
+      "model": 7.889,
+      "optimal": 7.784,
+      "share_of_achievable_gain": 0.899
+    },
+    "p85": {
+      "naive": 9.556,
+      "model": 7.507,
+      "optimal": 7.264,
+      "share_of_achievable_gain": 0.894
+    },
+    "p95": {
+      "naive": 6.725,
+      "model": 4.603,
+      "optimal": 4.296,
+      "share_of_achievable_gain": 0.873
+    }
+  }
+}

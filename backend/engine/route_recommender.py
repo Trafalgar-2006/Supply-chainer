@@ -48,7 +48,7 @@ class RouteRecommender:
         self.news_ingestor = DynamicNewsIngestor()
         self.resolver = NodeResolver()
 
-        print(f"[STARTUP] Initializing Split-Node Global Topology...")
+        print("[STARTUP] Initializing Split-Node Global Topology...")
         self.unified_graph = network if network is not None else create_multimodal_network()
         self._hub_nodes = {}
         self._city_hubs = {}
@@ -64,7 +64,7 @@ class RouteRecommender:
         if self.demo_mode:
             self.is_warmed_up = True
 
-        print(f"[STARTUP] Unified Engine Ready.")
+        print("[STARTUP] Unified Engine Ready.")
 
     def run_background_warmup(self):
         if self.is_warmed_up: return

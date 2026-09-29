@@ -2,7 +2,6 @@ import networkx as nx
 import json
 import os
 import math
-from typing import List, Dict, Any
 
 MODE_PROFILES = {
     "road": {"speed": 80, "cost_per_km": 1.2, "cargo_restrictions": ["oversize_heavy"]},

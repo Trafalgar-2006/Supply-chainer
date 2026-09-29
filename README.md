@@ -53,13 +53,15 @@ The starter code ran without errors but gave wrong answers. Some examples, all m
   - Each route option plans on its own quantile.
   - Each route's time band comes from a 4,000-sample Monte Carlo simulation with correlated legs.
   - Exact Shapley values explain what drives the delay.
-  - A model evaluation page shows calibration, coverage by mode, loss against a naive baseline, and feature importance.
+  - The model gets 87–90% of the improvement over a naive baseline that the best possible model could get. We computed that optimum exactly from the known data generator.
+  - A model evaluation page shows calibration, coverage by mode, loss against the naive baseline and the optimum, and feature importance.
   - See [docs/MODEL_CARD.md](docs/MODEL_CARD.md).
-- **Threat intelligence that works.**
-  - NLP scores news against disaster and safe anchors that contain no place names, one headline at a time.
+- **Threat intelligence that works, and is measured.**
+  - Each headline is embedded with bge-small-en-v1.5 and compared with anchors for disruptions and for routine news. The anchors contain no place names.
   - Each threat gets a type: weather, labour, geopolitical, infrastructure, cyber or congestion.
   - The context filter (CARF) checks all four transport modes.
   - Live Google News reports for the origin and destination feed both the threat and the delay model.
+  - We scored it on 192 labelled headlines, tuning only on half and testing on the other half. On the test half it went from 70% to 91% of disruptions caught, 22% to 2% false alarms, and AUC 0.83 to 0.99. Threat typing stayed at 85%. `python ml/evaluate_nlp.py` reproduces this.
 - **A network that respects geography.**
   - Ships pass through the real straits: Hormuz, Bab el-Mandeb, Suez, Gibraltar, the Turkish Straits, Panama, Malacca and Lombok, or go around the Cape.
   - Road and rail stay on one landmass.
@@ -79,12 +81,12 @@ The starter code ran without errors but gave wrong answers. Some examples, all m
   - CORS and WebSocket origin checks, and security headers.
   - The model file's SHA-256 is pinned in code. See [SECURITY.md](SECURITY.md).
 - **Tests.**
-  - 223 pytest tests. The starter had none.
+  - 227 pytest tests. The starter had none.
   - A Playwright browser test drives the whole dashboard.
 
 ## Run it
 
-You need Python 3.11 and Node.js 18 or newer (we use Node 24). The first start needs internet access to download the sentence-transformer model (all-MiniLM-L6-v2, about 90 MB); after that it loads from the local cache. The map tiles and live news also need internet. Without it, routing still works on the model and the fallback reports.
+You need Python 3.11 and Node.js 18 or newer (we use Node 24). The first start needs internet access to download the sentence-transformer model (bge-small-en-v1.5, about 130 MB); after that it loads from the local cache. The map tiles and live news also need internet. Without it, routing still works on the model and the fallback reports.
 
 ### 1. Backend
 
@@ -228,7 +230,7 @@ The response below is shortened from a real run of the same request without the 
       "adjusted_eta": 795.9,
       "eta_band": { "p50": 810.4, "p85": 961.9, "p95": 1126.9 },
       "total_cost": 3883.89,
-      "threat_level": 0.11,
+      "threat_level": 0.2,
       "legs": [
         { "to_name": "Strait of Malacca", "mode": "SEA", "type": "transit", "eta": 119.4,
           "delay": { "p50": 10.6, "p85": 26.8, "p95": 55.7 }, "intel_source": "FALLBACK" }
@@ -240,9 +242,9 @@ The response below is shortened from a real run of the same request without the 
       "audit_trace": {
         "eta": { "transit": 672.22, "transfer": 18.0, "delay": 105.63, "scenario": 0.0 },
         "cost": { "transit": 3533.89, "transfer": 350.0, "scenario": 0.0 },
-        "risk": { "baseline": 0.11, "scenario": 0.0, "live": 0.0 }
+        "risk": { "baseline": 0.2, "scenario": 0.0, "live": 0.0 }
       },
-      "explanation": "Fastest option: 796h door to door, 2h sooner than the safest route at about the same cost. ..."
+      "explanation": "Fastest option: 796h door to door, 9h sooner than the safest route at 0.9x its cost. ..."
     }
   ]
 }
@@ -254,7 +256,7 @@ All times are in hours and costs in US dollars.
 
 ```bash
 python -m pip install -r requirements-dev.txt
-python -m pytest                     # 223 tests, about 50 s
+python -m pytest                     # 227 tests, about a minute
 python tools/audit_land_lanes.py     # lists road and rail lanes whose straight line crosses water
 ```
 
@@ -321,7 +323,7 @@ We used **Claude Code** (Anthropic's coding assistant) throughout, as the TatHac
 
 Commits it helped write carry a `Co-Authored-By: Claude` trailer. We reviewed and ran every change, checked the numbers against real scenarios, and can explain and modify every part of the code.
 
-At runtime the app uses one pretrained model, all-MiniLM-L6-v2. It turns text into vectors for threat scoring and doesn't generate anything. The demo video is a screen recording of this code running.
+At runtime the app uses one pretrained model, BAAI/bge-small-en-v1.5. It turns text into vectors for threat scoring and doesn't generate anything. The demo video is a screen recording of this code running.
 
 ## Credits and licences
 
@@ -333,7 +335,7 @@ This project is released under the Apache License 2.0 (see [LICENSE](LICENSE)), 
 | Uvicorn, NetworkX, scikit-learn, NumPy, pandas, SciPy, joblib, PyTorch | BSD-3-Clause |
 | sentence-transformers, Hugging Face transformers, requests | Apache-2.0 |
 | feedparser | BSD-2-Clause |
-| all-MiniLM-L6-v2 (sentence-transformers) | Apache-2.0 |
+| bge-small-en-v1.5 (BAAI) | MIT |
 | React, Vite, recharts, anime.js | MIT |
 | Leaflet | BSD-2-Clause |
 | lucide-react | ISC |

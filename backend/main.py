@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 
 from fastapi.middleware.cors import CORSMiddleware
 from . import security
+from .engine.delay_model import EXECUTION_DIR
 from .engine.multimodal_network import create_multimodal_network, load_canonical_hubs
 from .engine.route_recommender import RouteRecommender
 from .engine.scenario_manager import ScenarioManager
@@ -161,12 +162,24 @@ def get_status():
         "hub_count": len(canonical_hubs)
     }
 
+def load_evaluation(name):
+    """An offline evaluation report from Execution/ (see ml/), or None if not generated."""
+    path = os.path.join(EXECUTION_DIR, name)
+    if not os.path.exists(path):
+        return None
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+# Written by ml/evaluate_nlp.py and ml/delay_ceiling.py.
+EVALUATIONS = {"nlp": load_evaluation("nlp_evaluation.json"),
+               "delay_ceiling": load_evaluation("delay_ceiling.json")}
+
 @app.get("/api/model")
 def get_model_report():
-    """Held-out evaluation of the delay quantile model (coverage, pinball loss, importance)."""
+    """Held-out evaluation of the delay model and its ceiling, and of the threat-intelligence stage."""
     if recommender.delay_model is None:
-        return {"available": False, "error": recommender.delay_model_error}
-    return {"available": True, **recommender.delay_model.report}
+        return {"available": False, "error": recommender.delay_model_error, **EVALUATIONS}
+    return {"available": True, **recommender.delay_model.report, **EVALUATIONS}
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
