@@ -7,7 +7,7 @@
     "unit_cost": 420.00,
     "base_lead_time_days": 14.0,
     "historical_reliability": 0.95,
-    "transit_choke_points": ["CHOKE-MALACCA", "CHOKE-SUEZ"]
+    "transit_choke_points": ["CHOKE-MALACCA", "CHOKE-BABEL", "CHOKE-SUEZ"]
   },
   {
     "id": "SUP-RESIL-02",

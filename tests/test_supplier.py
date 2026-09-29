@@ -20,6 +20,20 @@ def test_suez_block_adds_documented_lead_time_penalty():
     assert hit["effective_lead_time"] - normal["effective_lead_time"] == pytest.approx(240 / 24 * 0.1)
 
 
+def test_the_red_sea_route_to_europe_passes_bab_el_mandeb():
+    disruptions = ScenarioManager().get_disruptions("RED_SEA_CONFLICT")
+    normal = by_id(scorer.get_ranked_suppliers("Electronics"), "SUP-GLOBAL-01")
+    hit = by_id(scorer.get_ranked_suppliers("Electronics", disruptions), "SUP-GLOBAL-01")
+    assert hit["effective_lead_time"] > normal["effective_lead_time"]
+    assert hit["decision_score"] < normal["decision_score"]
+
+
+def test_advice_is_written_in_sentence_case():
+    for stock in (0, 1000, 5000):
+        text = scorer.get_procurement_advice(stock, 1500, 800)["recommendation"]
+        assert text[0].isupper() and not text.isupper() and not any(w.isupper() and len(w) > 3 for w in text.split())
+
+
 def test_unaffected_supplier_is_not_penalised():
     disruptions = ScenarioManager().get_disruptions("SUEZ_BLOCK")
     normal = by_id(scorer.get_ranked_suppliers("Electronics"), "SUP-RESIL-02")

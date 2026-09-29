@@ -25,12 +25,12 @@ ALLOWED_ORIGINS = [o.strip() for o in os.getenv(
 SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
-    "Referrer-Policy": "no-referrer",
 }
 # The API only returns JSON: nothing in a response may load or be framed.
 API_HEADERS = {
     "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'",
     "Cache-Control": "no-store",
+    "Referrer-Policy": "no-referrer",
 }
 # The dashboard, when this server serves it: its own scripts, Google Fonts,
 # OpenStreetMap tiles, and the API and status socket on the same origin.
@@ -40,6 +40,9 @@ DASHBOARD_HEADERS = {
         "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
         "font-src https://fonts.gstatic.com; img-src 'self' data: https://tile.openstreetmap.org; "
         "connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"),
+    # OpenStreetMap's tile servers answer requests without a Referer with an
+    # "Access blocked" tile; this sends them the page's origin, never its path.
+    "Referrer-Policy": "strict-origin-when-cross-origin",
 }
 DOCS_PATHS = ("/docs", "/redoc")  # FastAPI's interactive docs load their own scripts from a CDN
 
@@ -95,8 +98,10 @@ def require_api_key(request: Request):
 
 
 def rate_limit(request: Request):
+    # Each endpoint has its own budget, so the supplier page refreshing as you
+    # type never uses up route planning.
     client = request.client.host if request.client else "unknown"
-    retry_after = limiter.check(client)
+    retry_after = limiter.check(f"{client} {request.url.path}")
     if retry_after:
         raise HTTPException(status_code=429, detail="Too many requests",
                             headers={"Retry-After": str(int(retry_after) + 1)})

@@ -157,8 +157,10 @@ def test_a_slow_feed_cannot_stall_a_request(live_recommender, monkeypatch):
     monkeypatch.setattr(rr, "LIVE_INTEL_TIMEOUT_S", 0.5)
     monkeypatch.setattr(live_recommender.news_ingestor, "fetch_headlines", lambda place: time.sleep(3) or None)
     started = time.perf_counter()
-    recommend(live_recommender, live_intel=True)
+    result = recommend(live_recommender, live_intel=True)
     assert time.perf_counter() - started < 2.5
+    # The places still loading are named, so the dashboard can say so.
+    assert result["live_intel_pending"] == ["Rotterdam", "Shanghai"]
 
 
 def test_a_leg_shows_the_report_that_actually_raised_its_threat(live_recommender, monkeypatch):

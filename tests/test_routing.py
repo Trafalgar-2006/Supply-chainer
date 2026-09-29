@@ -67,8 +67,9 @@ def test_audit_trace_adds_up_to_the_totals(recommender, scenario):
         assert rec["eta_band"]["p50"] <= rec["eta_band"]["p85"] <= rec["eta_band"]["p95"]
         assert rec["eta_band"]["p85"] >= rec["adjusted_eta"]
         assert cost["transit"] + cost["transfer"] + cost["scenario"] == pytest.approx(rec["total_cost"], abs=0.1)
-        # Each leg ETA is rounded to 0.1h, so allow half a rounding step per leg.
-        assert sum(l["eta"] for l in rec["legs"]) == pytest.approx(rec["adjusted_eta"], abs=0.05 * len(rec["legs"]) + 0.05)
+        # Legs are rounded so that they add up exactly to the route's totals.
+        assert round(sum(l["eta"] for l in rec["legs"]), 1) == rec["adjusted_eta"]
+        assert round(sum(l["cost"] for l in rec["legs"]), 2) == rec["total_cost"]
 
 
 def test_la_port_strike_affects_ships_bound_for_los_angeles(recommender):
@@ -167,6 +168,9 @@ def test_hub_search_offers_the_best_matches_first_and_no_chokepoints(client):
     assert search("Shanghai")[0]["display_name"] == "Port of Shanghai"
     assert len(search("po")) == 12  # a short query no longer floods the list
     assert search("suez") == []
+    assert search("   ") == []  # blank, not twelve arbitrary hubs
+    assert all(h["country"] == "India" for h in search("India")[:5])  # before Indianapolis
+    assert "HUB-LOSANGELES" in {h["id"] for h in search("Los Angeles")}  # found by its city
 
 
 def test_an_impossible_request_names_the_constraints_to_relax(recommender):
@@ -197,7 +201,11 @@ def test_every_scenario_route_avoids_the_disruption_or_pays_for_it(recommender, 
         if through:
             assert rec["audit_trace"]["eta"]["scenario"] >= scenario["delay_hours"] and rec["threat_level"] >= scenario["threat_level"]
         else:
-            assert rec["audit_trace"]["eta"]["scenario"] == 0 and rec["explanation"].startswith("Avoids the disrupted")
+            # Only a route of the disrupted hubs' own mode is said to avoid them.
+            modes = {l["mode"].lower() for l in rec["legs"] if l["type"] == "transit"}
+            disrupted = {m for h in scenario["affected_nodes"] for m in recommender._hub_modes(h)}
+            assert rec["audit_trace"]["eta"]["scenario"] == 0
+            assert rec["explanation"].startswith("Avoids the disrupted") == bool(modes & disrupted), rec["explanation"]
 
 
 def test_explanations_speak_of_percentiles_and_estimates(recommender):
@@ -242,3 +250,49 @@ def test_explanations_do_not_claim_meaningless_differences(recommender):
             assert not re.search(r"(?<!\d)[01]% cheaper", text), text
             assert not re.search(r"(?<!\d)1\.0x its cost", text), text
             assert not re.search(r"(?<!\d)[+-]?0h (sooner|on its ETA)", text), text
+
+
+STRICT_PAIRS = [("Shanghai", "Rotterdam"), ("Shanghai", "Los Angeles"), ("Chennai", "Singapore"), ("Mumbai", "Rotterdam"),
+                ("PORT-HAMBURG", "PORT-NEWYORK"), ("RAIL-DELHI", "RAIL-KOLKATA"), ("AIR-DUBAI", "AIR-FRANKFURT"),
+                ("DC-BHARUCH", "HUB-NAGPUR"), ("HUB-LOSANGELES", "HUB-NEWYORK"), ("PORT-SINGAPORE", "PORT-SYDNEY")]
+
+
+@pytest.mark.parametrize("mode", ["sea", "rail", "air"])
+def test_only_this_mode_means_road_just_for_the_first_and_last_mile(recommender, mode):
+    # Transit legs must read road..., mode..., road...: at least one leg in the
+    # chosen mode, and no road leg between two of them.
+    for src, dst in STRICT_PAIRS:
+        result = recommender.recommend(src, dst, transport_preference=mode, routing_policy="STRICT")
+        if "error" in result:
+            assert "No route meets these constraints" in result["error"] or "same hub" in result["error"], result
+            continue
+        for rec in result["recommendations"]:
+            modes = [l["mode"].lower() for l in rec["legs"] if l["type"] == "transit"]
+            assert set(modes) <= {mode, "road"} and mode in modes, (src, dst, modes)
+            first, last = modes.index(mode), len(modes) - 1 - modes[::-1].index(mode)
+            assert set(modes[first:last + 1]) == {mode}, (src, dst, modes)
+
+
+def test_the_la_strike_example_still_ends_by_road(recommender):
+    rec = recommend(recommender, "PORT-SHANGHAI", "HUB-LOSANGELES", transport_preference="sea",
+                    scenario="LA_PORT_STRIKE")["recommendations"][0]
+    modes = [l["mode"] for l in rec["legs"] if l["type"] == "transit"]
+    assert modes[0] == "SEA" and modes[-1] == "ROAD" and "PORT-OAKLAND" in route_hubs(rec)
+
+
+@pytest.mark.parametrize("scenario", [None, "SUEZ_BLOCK", "CHENNAI_FLOOD"])
+def test_the_peak_risk_is_the_largest_of_its_parts(recommender, scenario):
+    src, dst = ("Chennai", "Singapore") if scenario == "CHENNAI_FLOOD" else ("Shanghai", "Rotterdam")
+    for rec in recommend(recommender, src, dst, scenario=scenario)["recommendations"]:
+        assert rec["threat_level"] == pytest.approx(max(rec["audit_trace"]["risk"].values()), abs=0.01)
+
+
+def test_legs_without_news_give_no_canned_reason(recommender):
+    legs = [l for rec in recommend(recommender)["recommendations"] for l in rec["legs"]]
+    assert all(l["reason"] == "Standard conditions" for l in legs if l["intel_source"] == "FALLBACK")
+
+
+def test_a_flight_is_not_said_to_avoid_a_canal(recommender):
+    for rec in recommend(recommender, scenario="SUEZ_BLOCK")["recommendations"]:
+        modes = {l["mode"] for l in rec["legs"] if l["type"] == "transit"}
+        assert rec["explanation"].startswith("Avoids the disrupted Suez Canal") == ("SEA" in modes), rec["explanation"]

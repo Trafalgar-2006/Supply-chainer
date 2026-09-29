@@ -1,4 +1,5 @@
 import json
+import re
 from collections import Counter
 
 from backend.engine.scenario_manager import ScenarioManager
@@ -58,3 +59,12 @@ def test_supplier_hubs_exist(hub_index):
         if node not in hub_index
     ]
     assert missing == []
+
+
+def test_every_hub_names_its_city(hubs):
+    # Live news is searched and applied by city; a hub without one, or with its
+    # own name as its city ("Hong Kong International"), misses its city's news.
+    facility = re.compile(r"(International|Intl|Airport|Terminal|Logistics|Hub|ICD|Complex|Freight|Corridor|Gateway|Crossing|Park)")
+    cities = [h for h in hubs if h["type"] != "choke_point"]
+    assert [h["id"] for h in cities if not h.get("parent_city")] == []
+    assert [(h["id"], h["parent_city"]) for h in cities if facility.search(h["parent_city"])] == []

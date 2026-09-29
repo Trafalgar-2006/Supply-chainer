@@ -1598,7 +1598,7 @@
     "country": "Saudi Arabia",
     "importance": 8,
     "strategic_role": "Red Sea's primary container and Hajj logistics gateway",
-    "parent_city": "Jeddah Islamic",
+    "parent_city": "Jeddah",
     "connections": [
       {
         "to": "PORT-JEBEL",
@@ -1865,7 +1865,7 @@
     "country": "Belgium",
     "importance": 9,
     "strategic_role": "Europe's second largest port and chemical cargo hub",
-    "parent_city": "Antwerp-Bruges",
+    "parent_city": "Antwerp",
     "connections": [
       {
         "to": "AIR-LIEGE",
@@ -2817,7 +2817,7 @@
     "country": "Hong Kong",
     "importance": 10,
     "strategic_role": "World's busiest air cargo hub by international freight tonnes",
-    "parent_city": "Hong Kong International",
+    "parent_city": "Hong Kong",
     "connections": [
       {
         "to": "PORT-HONGKONG",
@@ -3002,7 +3002,7 @@
     "country": "USA",
     "importance": 10,
     "strategic_role": "FedEx global superhub and world's second busiest cargo airport",
-    "parent_city": "Memphis International",
+    "parent_city": "Memphis",
     "connections": [
       {
         "to": "HUB-MEMPHIS",
@@ -3149,7 +3149,7 @@
     "country": "South Korea",
     "importance": 9,
     "strategic_role": "Northeast Asia's premier air cargo transshipment hub",
-    "parent_city": "Incheon International",
+    "parent_city": "Incheon",
     "connections": [
       {
         "to": "PORT-BUSAN",
@@ -3214,7 +3214,7 @@
     "country": "USA",
     "importance": 9,
     "strategic_role": "Strategic polar route refueling and cargo sorting hub",
-    "parent_city": "Ted Stevens Anchorage Intl",
+    "parent_city": "Anchorage",
     "connections": [
       {
         "to": "AIR-ANCHORAGE2",
@@ -3456,7 +3456,7 @@
     "country": "UAE",
     "importance": 8,
     "strategic_role": "Dubai's dedicated cargo mega-airport and free trade zone",
-    "parent_city": "Al Maktoum International",
+    "parent_city": "Dubai",
     "connections": [
       {
         "to": "PORT-JEBEL",
@@ -3529,7 +3529,7 @@
     "country": "USA",
     "importance": 9,
     "strategic_role": "UPS global air hub and Americas sorting mega-facility",
-    "parent_city": "Louisville Muhammad Ali Intl",
+    "parent_city": "Louisville",
     "connections": [
       {
         "to": "AIR-CHICAGO",
@@ -3587,7 +3587,7 @@
     "country": "Japan",
     "importance": 8,
     "strategic_role": "Japan's primary international air cargo terminal",
-    "parent_city": "Narita International",
+    "parent_city": "Tokyo",
     "connections": [
       {
         "to": "PORT-TOKYO",
@@ -3632,7 +3632,7 @@
     "country": "Taiwan",
     "importance": 8,
     "strategic_role": "East Asia high-tech cargo hub and transshipment gateway",
-    "parent_city": "Taoyuan International",
+    "parent_city": "Taipei",
     "connections": [
       {
         "to": "PORT-KAOHSIUNG",
@@ -3829,7 +3829,7 @@
     "country": "Netherlands",
     "importance": 8,
     "strategic_role": "Europe's third largest cargo airport and pharma corridor",
-    "parent_city": "Amsterdam Schiphol",
+    "parent_city": "Amsterdam",
     "connections": [
       {
         "to": "PORT-ROTTERDAM",
@@ -3891,7 +3891,7 @@
     "country": "France",
     "importance": 8,
     "strategic_role": "France's primary cargo airport and European e-commerce hub",
-    "parent_city": "Paris Charles de Gaulle",
+    "parent_city": "Paris",
     "connections": [
       {
         "to": "PORT-LEHAVRE",
@@ -3945,7 +3945,7 @@
     "country": "UK",
     "importance": 8,
     "strategic_role": "UK's primary air cargo gateway for high-value freight",
-    "parent_city": "London Heathrow",
+    "parent_city": "London",
     "connections": [
       {
         "to": "PORT-FELIXSTOWE",
@@ -4019,7 +4019,7 @@
     "country": "Germany",
     "importance": 8,
     "strategic_role": "DHL Express European superhub and e-commerce fulfillment center",
-    "parent_city": "Leipzig/Halle",
+    "parent_city": "Leipzig",
     "connections": [
       {
         "to": "PORT-HAMBURG",
@@ -4129,7 +4129,7 @@
     "country": "Qatar",
     "importance": 8,
     "strategic_role": "Qatar Airways cargo hub and Middle East-Asia air bridge",
-    "parent_city": "Hamad International",
+    "parent_city": "Doha",
     "connections": [
       {
         "to": "PORT-HAMAD",
@@ -4434,7 +4434,7 @@
     "country": "India",
     "importance": 7,
     "strategic_role": "India's tech export and pharma air cargo hub",
-    "parent_city": "Kempegowda International",
+    "parent_city": "Bengaluru",
     "connections": [
       {
         "to": "PORT-CHENNAI",
@@ -4499,7 +4499,7 @@
     "country": "USA",
     "importance": 8,
     "strategic_role": "Americas perishable cargo hub and Latin America gateway",
-    "parent_city": "Miami International",
+    "parent_city": "Miami",
     "connections": [
       {
         "to": "AIR-MEMPHIS",
@@ -4529,7 +4529,7 @@
     "country": "USA",
     "importance": 8,
     "strategic_role": "US Midwest primary air cargo hub and intermodal connector",
-    "parent_city": "Chicago O'Hare International",
+    "parent_city": "Chicago",
     "connections": [
       {
         "to": "AIR-LOUISVILLE",
@@ -4670,7 +4670,7 @@
     "country": "USA",
     "importance": 7,
     "strategic_role": "US Southeast air cargo hub and connecting gateway",
-    "parent_city": "Hartsfield-Jackson Atlanta",
+    "parent_city": "Atlanta",
     "connections": [
       {
         "to": "PORT-SAVANNAH",
@@ -4715,7 +4715,7 @@
     "country": "USA",
     "importance": 9,
     "strategic_role": "North America's largest rail interchange handling 25% of US freight rail",
-    "parent_city": "Chicago Intermodal Complex",
+    "parent_city": "Chicago",
     "connections": [
       {
         "to": "AIR-LOUISVILLE",
@@ -4806,7 +4806,7 @@
     "country": "Germany",
     "importance": 9,
     "strategic_role": "World's largest inland port and China-Europe rail terminus",
-    "parent_city": "Duisburg Intermodal Terminal",
+    "parent_city": "Duisburg",
     "connections": [
       {
         "to": "PORT-HAMBURG",
@@ -4875,7 +4875,7 @@
     "country": "China",
     "importance": 8,
     "strategic_role": "Primary China-Europe Railway Express origin terminal",
-    "parent_city": "Zhengzhou International Hub",
+    "parent_city": "Zhengzhou",
     "connections": [
       {
         "to": "RAIL-XIAN",
@@ -4912,7 +4912,7 @@
     "country": "China",
     "importance": 8,
     "strategic_role": "Western China Belt & Road rail gateway to Europe",
-    "parent_city": "Chengdu International",
+    "parent_city": "Chengdu",
     "connections": [
       {
         "to": "RAIL-CHONGQING",
@@ -5033,7 +5033,7 @@
     "country": "USA",
     "importance": 8,
     "strategic_role": "18,000-acre multimodal logistics hub with BNSF intermodal",
-    "parent_city": "Alliance Texas Logistics Hub",
+    "parent_city": "Dallas",
     "connections": [
       {
         "to": "PORT-HOUSTON",
@@ -5145,7 +5145,7 @@
     "country": "USA",
     "importance": 8,
     "strategic_role": "Busiest US-Mexico land port handling 40% of US-Mexico trade",
-    "parent_city": "Laredo Border Crossing",
+    "parent_city": "Laredo",
     "connections": [
       {
         "to": "PORT-HOUSTON",
@@ -5192,7 +5192,7 @@
     "country": "USA",
     "importance": 8,
     "strategic_role": "Pacific Northwest gateway and Alaska/Asia trade corridor",
-    "parent_city": "Seattle-Tacoma",
+    "parent_city": "Seattle",
     "connections": [
       {
         "to": "RAIL-SEATTLE",
@@ -5270,7 +5270,7 @@
     "country": "Sri Lanka",
     "importance": 7,
     "strategic_role": "Indian Ocean air cargo transshipment and Sri Lanka gateway",
-    "parent_city": "Bandaranaike International",
+    "parent_city": "Colombo",
     "connections": [
       {
         "to": "PORT-COLOMBO",
@@ -5311,7 +5311,7 @@
     "country": "India",
     "importance": 7,
     "strategic_role": "India's pharma export hub and central logistics node",
-    "parent_city": "Rajiv Gandhi International",
+    "parent_city": "Hyderabad",
     "connections": [
       {
         "to": "AIR-BANGALORE",
@@ -5546,7 +5546,7 @@
     "country": "India",
     "importance": 6,
     "strategic_role": "India's geographic center multimodal logistics hub",
-    "parent_city": "Nagpur MIHAN Hub",
+    "parent_city": "Nagpur",
     "connections": [
       {
         "to": "AIR-HYDERABAD",
@@ -5604,7 +5604,7 @@
     "country": "France",
     "importance": 7,
     "strategic_role": "UK-Europe freight gateway handling 25% of cross-Channel trade",
-    "parent_city": "Calais Channel Tunnel Hub",
+    "parent_city": "Calais",
     "connections": [
       {
         "to": "PORT-LEHAVRE",
@@ -5646,7 +5646,7 @@
     "country": "Argentina",
     "importance": 7,
     "strategic_role": "Argentina's primary container port and Mercosur trade gateway",
-    "parent_city": "Buenos",
+    "parent_city": "Buenos Aires",
     "connections": [
       {
         "to": "RAIL-BUENOSAIRES",
@@ -5904,7 +5904,7 @@
     "country": "Brazil",
     "importance": 8,
     "strategic_role": "Latin America's largest air cargo hub",
-    "parent_city": "Guarulhos International",
+    "parent_city": "Sao Paulo",
     "connections": [
       {
         "to": "PORT-SANTOS",
@@ -5953,7 +5953,7 @@
     "country": "Colombia",
     "importance": 7,
     "strategic_role": "Andean region primary air cargo hub and flower export gateway",
-    "parent_city": "El Dorado International",
+    "parent_city": "Bogota",
     "connections": [
       {
         "to": "AIR-MEMPHIS",
@@ -5982,7 +5982,7 @@
     "country": "Chile",
     "importance": 7,
     "strategic_role": "Chile's air cargo gateway for high-value Pacific trade",
-    "parent_city": "Arturo Merino Benitez Intl",
+    "parent_city": "Santiago",
     "connections": [
       {
         "to": "PORT-VALPARAISO",
@@ -6015,7 +6015,7 @@
     "country": "Mexico",
     "importance": 8,
     "strategic_role": "Latin America's second largest air cargo airport",
-    "parent_city": "Mexico City International",
+    "parent_city": "Mexico City",
     "connections": [
       {
         "to": "PORT-LAZAROCARDENAS",
@@ -6049,7 +6049,7 @@
     "country": "Nigeria",
     "importance": 8,
     "strategic_role": "West Africa's largest port complex and Nigeria trade gateway",
-    "parent_city": "Lagos Tin Can/Apapa",
+    "parent_city": "Lagos",
     "connections": [
       {
         "to": "PORT-ALGECIRAS",
@@ -6304,7 +6304,7 @@
     "country": "South Africa",
     "importance": 8,
     "strategic_role": "Africa's busiest cargo airport and sub-Saharan air hub",
-    "parent_city": "OR Tambo International",
+    "parent_city": "Johannesburg",
     "connections": [
       {
         "to": "PORT-DURBAN",
@@ -6345,7 +6345,7 @@
     "country": "Kenya",
     "importance": 7,
     "strategic_role": "East Africa's primary air cargo hub and flower export center",
-    "parent_city": "Jomo Kenyatta International",
+    "parent_city": "Nairobi",
     "connections": [
       {
         "to": "PORT-MOMBASA",
@@ -6382,7 +6382,7 @@
     "country": "Ethiopia",
     "importance": 7,
     "strategic_role": "Ethiopian Cargo hub and Africa-to-world air freight gateway",
-    "parent_city": "Bole International",
+    "parent_city": "Addis Ababa",
     "connections": [
       {
         "to": "AIR-DUBAI",
@@ -6411,7 +6411,7 @@
     "country": "Egypt",
     "importance": 7,
     "strategic_role": "North Africa's primary air cargo terminal",
-    "parent_city": "Cairo International",
+    "parent_city": "Cairo",
     "connections": [
       {
         "to": "PORT-ALEXANDR",
@@ -6452,7 +6452,7 @@
     "country": "Kazakhstan",
     "importance": 8,
     "strategic_role": "China-Kazakhstan border crossing and BRI dry port mega-hub",
-    "parent_city": "Khorgos Gateway",
+    "parent_city": "Khorgos",
     "connections": [
       {
         "to": "RAIL-ALMATY",
@@ -6497,7 +6497,7 @@
     "country": "Russia",
     "importance": 8,
     "strategic_role": "Russia's central rail freight hub and Trans-Siberian anchor",
-    "parent_city": "Moscow Freight Terminal",
+    "parent_city": "Moscow",
     "connections": [
       {
         "to": "PORT-STPETERSBURG",
@@ -6625,7 +6625,7 @@
     "country": "Uzbekistan",
     "importance": 6,
     "strategic_role": "Central Asia's rail crossroads and cotton/mineral export hub",
-    "parent_city": "Tashkent Freight Hub",
+    "parent_city": "Tashkent",
     "connections": [
       {
         "to": "RAIL-SAMARKAND",
@@ -6657,7 +6657,7 @@
     "country": "Kazakhstan",
     "importance": 6,
     "strategic_role": "Kazakhstan's commercial capital rail terminal",
-    "parent_city": "Almaty Logistics Center",
+    "parent_city": "Almaty",
     "connections": [
       {
         "to": "RAIL-KHORGOS",
@@ -6698,7 +6698,7 @@
     "country": "Azerbaijan",
     "importance": 6,
     "strategic_role": "Caspian region air cargo hub and East-West corridor node",
-    "parent_city": "Heydar Aliyev International",
+    "parent_city": "Baku",
     "connections": [
       {
         "to": "PORT-BAKU",
@@ -6846,7 +6846,7 @@
     "country": "Hungary",
     "importance": 7,
     "strategic_role": "Central European rail crossroads on Rhine-Danube corridor",
-    "parent_city": "Budapest Intermodal Terminal",
+    "parent_city": "Budapest",
     "connections": [
       {
         "to": "HUB-PRAGUE",
@@ -6875,7 +6875,7 @@
     "country": "Czech Republic",
     "importance": 6,
     "strategic_role": "Central European distribution hub for automotive and electronics",
-    "parent_city": "Prague Logistics Park",
+    "parent_city": "Prague",
     "connections": [
       {
         "to": "AIR-LEIPZIG",
@@ -7038,7 +7038,7 @@
     "country": "Myanmar",
     "importance": 6,
     "strategic_role": "Myanmar's primary port and Thilawa SEZ gateway",
-    "parent_city": "Myanmar International Terminal",
+    "parent_city": "Yangon",
     "connections": [
       {
         "to": "PORT-SINGAPORE",
@@ -7095,7 +7095,7 @@
     "country": "Thailand",
     "importance": 8,
     "strategic_role": "Southeast Asia's second largest cargo airport",
-    "parent_city": "Suvarnabhumi",
+    "parent_city": "Bangkok",
     "connections": [
       {
         "to": "PORT-LAEMCHA",
@@ -7128,7 +7128,7 @@
     "country": "Malaysia",
     "importance": 7,
     "strategic_role": "Malaysia's primary air cargo hub and regional e-commerce center",
-    "parent_city": "KL International",
+    "parent_city": "Kuala Lumpur",
     "connections": [
       {
         "to": "PORT-PORTKLANG",
@@ -7165,7 +7165,7 @@
     "country": "Vietnam",
     "importance": 7,
     "strategic_role": "Northern Vietnam's air cargo gateway for electronics exports",
-    "parent_city": "Noi Bai International",
+    "parent_city": "Hanoi",
     "connections": [
       {
         "to": "PORT-HAIPHONG",
@@ -7198,7 +7198,7 @@
     "country": "Philippines",
     "importance": 7,
     "strategic_role": "Philippines primary air cargo terminal and semiconductor hub",
-    "parent_city": "Ninoy Aquino International",
+    "parent_city": "Manila",
     "connections": [
       {
         "to": "PORT-MANILA",
@@ -7281,7 +7281,7 @@
     "country": "Australia",
     "importance": 7,
     "strategic_role": "New South Wales primary container port and import gateway",
-    "parent_city": "Port Botany Sydney",
+    "parent_city": "Sydney",
     "connections": [
       {
         "to": "AIR-SYDNEY",
@@ -7458,7 +7458,7 @@
     "country": "Australia",
     "importance": 8,
     "strategic_role": "Oceania's largest air cargo hub",
-    "parent_city": "Sydney Kingsford Smith",
+    "parent_city": "Sydney",
     "connections": [
       {
         "to": "PORT-SYDNEY",
@@ -7491,7 +7491,7 @@
     "country": "Australia",
     "importance": 7,
     "strategic_role": "Australia's second air cargo hub and pharma import center",
-    "parent_city": "Melbourne Tullamarine",
+    "parent_city": "Melbourne",
     "connections": [
       {
         "to": "PORT-MELBOURNE",
@@ -7528,7 +7528,7 @@
     "country": "New Zealand",
     "importance": 6,
     "strategic_role": "New Zealand's primary air cargo and perishable export gateway",
-    "parent_city": "Auckland International",
+    "parent_city": "Auckland",
     "connections": [
       {
         "to": "PORT-TAURANGA",
@@ -7565,7 +7565,7 @@
     "country": "Qatar",
     "importance": 7,
     "strategic_role": "Qatar's mega-port replacing Doha Port for container and bulk operations",
-    "parent_city": "Hamad",
+    "parent_city": "Doha",
     "connections": [
       {
         "to": "AIR-DOHA",
@@ -8097,7 +8097,7 @@
     "country": "Netherlands",
     "importance": 6,
     "strategic_role": "Europe's largest fresh produce logistics hub and crossdock center",
-    "parent_city": "Venlo Logistics Corridor",
+    "parent_city": "Venlo",
     "connections": [
       {
         "to": "PORT-ROTTERDAM",
@@ -8150,7 +8150,7 @@
     "country": "China",
     "importance": 8,
     "strategic_role": "Belt & Road inland port and China-Europe Express major terminal",
-    "parent_city": "Xi'an International",
+    "parent_city": "Xi'an",
     "connections": [
       {
         "to": "RAIL-ZHENGZHOU",
@@ -8320,7 +8320,7 @@
     "country": "India",
     "importance": 7,
     "strategic_role": "South India's primary inland container depot cluster",
-    "parent_city": "Chennai ICD Complex",
+    "parent_city": "Chennai",
     "connections": [
       {
         "to": "PORT-CHENNAI",
@@ -8415,7 +8415,7 @@
     "country": "USA",
     "importance": 8,
     "strategic_role": "Intermodal crossroads co-located with FedEx SuperHub",
-    "parent_city": "Memphis Logistics Hub",
+    "parent_city": "Memphis",
     "connections": [
       {
         "to": "AIR-MEMPHIS",
@@ -8460,7 +8460,7 @@
     "country": "USA",
     "importance": 7,
     "strategic_role": "UPS Worldport adjacent distribution mega-cluster",
-    "parent_city": "Louisville Logistics Park",
+    "parent_city": "Louisville",
     "connections": [
       {
         "to": "AIR-LOUISVILLE",
@@ -8726,7 +8726,7 @@
     "country": "Peru",
     "importance": 7,
     "strategic_role": "Andean region air cargo hub and perishable export center",
-    "parent_city": "Jorge Chavez International",
+    "parent_city": "Lima",
     "connections": [
       {
         "to": "PORT-CALLAO",
@@ -8759,7 +8759,7 @@
     "country": "Panama",
     "importance": 7,
     "strategic_role": "Americas air transit hub and Copa Cargo gateway",
-    "parent_city": "Tocumen International",
+    "parent_city": "Panama City",
     "connections": [
       {
         "to": "PORT-COLON",
@@ -8796,7 +8796,7 @@
     "country": "Mexico",
     "importance": 7,
     "strategic_role": "Mexico's northern industrial corridor and nearshoring hub",
-    "parent_city": "Monterrey Industrial Hub",
+    "parent_city": "Monterrey",
     "connections": [
       {
         "to": "HUB-LAREDO",
@@ -8976,7 +8976,7 @@
     "country": "USA",
     "importance": 8,
     "strategic_role": "Mississippi rail-barge interchange",
-    "parent_city": "Memphis Intermodal Yard",
+    "parent_city": "Memphis",
     "connections": [
       {
         "to": "AIR-MEMPHIS",
@@ -9012,7 +9012,7 @@
     "country": "USA",
     "importance": 8,
     "strategic_role": "Gulf Coast rail hub",
-    "parent_city": "Houston Intermodal Terminal",
+    "parent_city": "Houston",
     "connections": [
       {
         "to": "PORT-HOUSTON",
@@ -9064,7 +9064,7 @@
     "country": "USA",
     "importance": 7,
     "strategic_role": "Southeast US intermodal gateway",
-    "parent_city": "Atlanta Norfolk Southern Hub",
+    "parent_city": "Atlanta",
     "connections": [
       {
         "to": "PORT-SAVANNAH",
@@ -9108,7 +9108,7 @@
     "country": "USA",
     "importance": 7,
     "strategic_role": "PNW rail-port connector",
-    "parent_city": "Seattle BNSF Terminal",
+    "parent_city": "Seattle",
     "connections": [
       {
         "to": "PORT-SEATTLE",
@@ -9140,7 +9140,7 @@
     "country": "USA",
     "importance": 7,
     "strategic_role": "Dual rail access mega terminal",
-    "parent_city": "Savannah Inland",
+    "parent_city": "Savannah",
     "connections": [
       {
         "to": "PORT-SAVANNAH",
@@ -9256,7 +9256,7 @@
     "country": "Italy",
     "importance": 7,
     "strategic_role": "Northern Italy intermodal hub",
-    "parent_city": "Milano Smistamento Terminal",
+    "parent_city": "Milan",
     "connections": [
       {
         "to": "PORT-GENOA",
@@ -9304,7 +9304,7 @@
     "country": "India",
     "importance": 7,
     "strategic_role": "South India tech corridor ICD",
-    "parent_city": "Whitefield ICD Bangalore",
+    "parent_city": "Bengaluru",
     "connections": [
       {
         "to": "PORT-CHENNAI",
@@ -9376,7 +9376,7 @@
     "country": "India",
     "importance": 7,
     "strategic_role": "Gujarat inland depot",
-    "parent_city": "Ahmedabad ICD Khodiyar",
+    "parent_city": "Ahmedabad",
     "connections": [
       {
         "to": "PORT-MUMBAI",
@@ -9496,7 +9496,7 @@
     "country": "India",
     "importance": 7,
     "strategic_role": "Punjab industrial ICD",
-    "parent_city": "Ludhiana ICD",
+    "parent_city": "Ludhiana",
     "connections": [
       {
         "to": "AIR-DELHI",
@@ -9584,7 +9584,7 @@
     "country": "China",
     "importance": 7,
     "strategic_role": "China-Europe Express origin",
-    "parent_city": "Yiwu International Trade City",
+    "parent_city": "Yiwu",
     "connections": [
       {
         "to": "PORT-SHANGHAI",
@@ -9720,7 +9720,7 @@
     "country": "Turkey",
     "importance": 7,
     "strategic_role": "Europe-Asia rail bridge terminus",
-    "parent_city": "Halkali",
+    "parent_city": "Istanbul",
     "connections": [
       {
         "to": "AIR-ISTANBUL",
@@ -9784,7 +9784,7 @@
     "country": "Pakistan",
     "importance": 6,
     "strategic_role": "Pakistan northern corridor",
-    "parent_city": "Lahore Dry",
+    "parent_city": "Lahore",
     "connections": [
       {
         "to": "RAIL-LUDHIANA",
@@ -9812,7 +9812,7 @@
     "country": "Kenya",
     "importance": 7,
     "strategic_role": "SGR inland terminal",
-    "parent_city": "Nairobi ICD Embakasi",
+    "parent_city": "Nairobi",
     "connections": [
       {
         "to": "PORT-MOMBASA",
@@ -9848,7 +9848,7 @@
     "country": "South Africa",
     "importance": 7,
     "strategic_role": "Southern Africa largest ICD",
-    "parent_city": "City Deep Container Terminal",
+    "parent_city": "Johannesburg",
     "connections": [
       {
         "to": "PORT-DURBAN",
@@ -9888,7 +9888,7 @@
     "country": "Brazil",
     "importance": 7,
     "strategic_role": "Brazil port-hinterland rail",
-    "parent_city": "Santos-SP",
+    "parent_city": "Sao Paulo",
     "connections": [
       {
         "to": "PORT-SANTOS",
@@ -9936,7 +9936,7 @@
     "country": "Argentina",
     "importance": 6,
     "strategic_role": "Argentine agriculture-port rail",
-    "parent_city": "Buenos",
+    "parent_city": "Buenos Aires",
     "connections": [
       {
         "to": "PORT-BUENOSAIRES",
@@ -9968,7 +9968,7 @@
     "country": "India",
     "importance": 8,
     "strategic_role": "India's largest ICD",
-    "parent_city": "JNPT-Dadri ICD Complex",
+    "parent_city": "Dadri",
     "connections": [
       {
         "to": "AIR-DELHI",
@@ -10012,7 +10012,7 @@
     "country": "Kazakhstan",
     "importance": 8,
     "strategic_role": "China-Kazakhstan gauge-change dry port",
-    "parent_city": "Khorgos ICBC Dry",
+    "parent_city": "Khorgos",
     "connections": [
       {
         "to": "RAIL-KHORGOS",
@@ -10056,7 +10056,7 @@
     "country": "Turkey",
     "importance": 7,
     "strategic_role": "Turkey primary customs terminal",
-    "parent_city": "Istanbul Halkali Customs Hub",
+    "parent_city": "Istanbul",
     "connections": [
       {
         "to": "AIR-ISTANBUL",
@@ -10092,7 +10092,7 @@
     "country": "Saudi Arabia",
     "importance": 7,
     "strategic_role": "Saudi interior customs hub",
-    "parent_city": "Riyadh Dry",
+    "parent_city": "Riyadh",
     "connections": [
       {
         "to": "AIR-RIYADH",
@@ -10124,7 +10124,7 @@
     "country": "Australia",
     "importance": 7,
     "strategic_role": "Victoria inland container interchange",
-    "parent_city": "Melbourne Intermodal Terminal",
+    "parent_city": "Melbourne",
     "connections": [
       {
         "to": "PORT-MELBOURNE",
@@ -10160,7 +10160,7 @@
     "country": "USA",
     "importance": 7,
     "strategic_role": "US-Canada primary freight corridor",
-    "parent_city": "Buffalo-Niagara Border Hub",
+    "parent_city": "Buffalo",
     "connections": [
       {
         "to": "PORT-NEWYORK",
@@ -10216,7 +10216,7 @@
     "country": "USA",
     "importance": 7,
     "strategic_role": "Second busiest US-Mexico land port",
-    "parent_city": "El Paso-Ciudad Juarez Gateway",
+    "parent_city": "El Paso",
     "connections": [
       {
         "to": "BORDER-NOGALES",
@@ -10248,7 +10248,7 @@
     "country": "USA",
     "importance": 8,
     "strategic_role": "US-Canada busiest auto trade crossing",
-    "parent_city": "Detroit-Windsor Tunnel Hub",
+    "parent_city": "Detroit",
     "connections": [
       {
         "to": "AIR-CHICAGO",
@@ -10304,7 +10304,7 @@
     "country": "UK",
     "importance": 7,
     "strategic_role": "UK busiest ro-ro freight port",
-    "parent_city": "Dover Freight",
+    "parent_city": "Dover",
     "connections": [
       {
         "to": "PORT-FELIXSTOWE",
@@ -10340,7 +10340,7 @@
     "country": "Austria",
     "importance": 7,
     "strategic_role": "Alpine Italy-Germany freight corridor",
-    "parent_city": "Brenner Pass Corridor",
+    "parent_city": "Brenner",
     "connections": [
       {
         "to": "RAIL-VERONA",
@@ -10368,7 +10368,7 @@
     "country": "Netherlands",
     "importance": 7,
     "strategic_role": "Dedicated Rotterdam-Germany freight rail",
-    "parent_city": "Betuwe Route Corridor",
+    "parent_city": "Betuwe",
     "connections": [
       {
         "to": "PORT-ROTTERDAM",
@@ -10421,7 +10421,7 @@
     "country": "USA",
     "importance": 7,
     "strategic_role": "US geographic center logistics hub",
-    "parent_city": "Indianapolis Crossroads Hub",
+    "parent_city": "Indianapolis",
     "connections": [
       {
         "to": "AIR-LOUISVILLE",
@@ -10490,7 +10490,7 @@
     "country": "USA",
     "importance": 7,
     "strategic_role": "Central Ohio multimodal hub",
-    "parent_city": "Columbus Rickenbacker Hub",
+    "parent_city": "Columbus",
     "connections": [
       {
         "to": "AIR-LOUISVILLE",
@@ -10563,7 +10563,7 @@
     "country": "Spain",
     "importance": 7,
     "strategic_role": "Europe's largest logistics park",
-    "parent_city": "PLAZA Zaragoza",
+    "parent_city": "Zaragoza",
     "connections": [
       {
         "to": "PORT-VALENCIA",
@@ -10655,7 +10655,7 @@
     "country": "India",
     "importance": 7,
     "strategic_role": "Tamil Nadu automotive logistics zone",
-    "parent_city": "Chennai Logistics Park",
+    "parent_city": "Chennai",
     "connections": [
       {
         "to": "PORT-CHENNAI",
@@ -10789,7 +10789,7 @@
     "country": "Egypt",
     "importance": 8,
     "strategic_role": "Suez Canal north transshipment hub",
-    "parent_city": "Port Said East",
+    "parent_city": "Port Said",
     "connections": [
       {
         "to": "PORT-ALEXANDR",
@@ -10866,7 +10866,7 @@
     "country": "China",
     "importance": 8,
     "strategic_role": "South China primary cargo airport",
-    "parent_city": "Baiyun International",
+    "parent_city": "Guangzhou",
     "connections": [
       {
         "to": "PORT-SHENZHEN",
@@ -10902,7 +10902,7 @@
     "country": "USA",
     "importance": 8,
     "strategic_role": "Central US air cargo hub",
-    "parent_city": "Dallas/Fort Worth International",
+    "parent_city": "Dallas",
     "connections": [
       {
         "to": "PORT-HOUSTON",
@@ -11014,7 +11014,7 @@
     "country": "Saudi Arabia",
     "importance": 7,
     "strategic_role": "Saudi primary air cargo terminal",
-    "parent_city": "King Khalid International",
+    "parent_city": "Riyadh",
     "connections": [
       {
         "to": "ICD-RIYADH",
@@ -11050,7 +11050,7 @@
     "country": "China",
     "importance": 7,
     "strategic_role": "Western China BRI air hub",
-    "parent_city": "Chengdu Tianfu International",
+    "parent_city": "Chengdu",
     "connections": [
       {
         "to": "RAIL-CHENGDU",
@@ -11086,7 +11086,7 @@
     "country": "China",
     "importance": 7,
     "strategic_role": "iPhone assembly air export hub",
-    "parent_city": "Zhengzhou Xinzheng",
+    "parent_city": "Zhengzhou",
     "connections": [
       {
         "to": "RAIL-ZHENGZHOU",
@@ -11739,7 +11739,7 @@
     "country": "Uganda",
     "importance": 6,
     "strategic_role": "Northern Corridor inland terminus for landlocked East Africa",
-    "parent_city": "Kampala Freight Terminal",
+    "parent_city": "Kampala",
     "connections": [
       {
         "to": "RAIL-NAIROBI",
@@ -11771,7 +11771,7 @@
     "country": "Rwanda",
     "importance": 5,
     "strategic_role": "Central Africa distribution node and Great Lakes logistics anchor",
-    "parent_city": "Kigali Logistics Hub",
+    "parent_city": "Kigali",
     "connections": [
       {
         "to": "RAIL-KAMPALA",
@@ -11795,7 +11795,7 @@
     "country": "Tanzania",
     "importance": 6,
     "strategic_role": "Central Corridor inland freight staging area",
-    "parent_city": "Dar es Salaam Logistics Zone",
+    "parent_city": "Dar es Salaam",
     "connections": [
       {
         "to": "PORT-DARESSALAAM",
@@ -11827,7 +11827,7 @@
     "country": "USA",
     "importance": 6,
     "strategic_role": "Arizona-Sonora produce corridor and USMCA alternate crossing",
-    "parent_city": "Nogales Border Crossing",
+    "parent_city": "Nogales",
     "connections": [
       {
         "to": "BORDER-ELPASOCD",
@@ -11852,7 +11852,7 @@
     "country": "USA",
     "importance": 7,
     "strategic_role": "Easternmost US-Mexico crossing with rail and deep-water port access",
-    "parent_city": "Brownsville-Matamoros Gateway",
+    "parent_city": "Brownsville",
     "connections": [
       {
         "to": "PORT-HOUSTON",
@@ -11949,7 +11949,7 @@
     "country": "Argentina",
     "importance": 6,
     "strategic_role": "Trans-Andean freight corridor connecting Atlantic Argentina to Pacific Chile",
-    "parent_city": "Mendoza Trans-Andean",
+    "parent_city": "Mendoza",
     "connections": [
       {
         "to": "PORT-VALPARAISO",
@@ -12156,7 +12156,7 @@
     "country": "UAE",
     "importance": 6,
     "strategic_role": "Dubai overflow cargo facility for peak season resilience",
-    "parent_city": "Sharjah Cargo Village",
+    "parent_city": "Sharjah",
     "connections": [
       {
         "to": "PORT-JEBEL",
@@ -12209,7 +12209,7 @@
     "country": "USA",
     "importance": 7,
     "strategic_role": "US Midwest dedicated cargo airport alternate to O'Hare",
-    "parent_city": "Rickenbacker Cargo",
+    "parent_city": "Columbus",
     "connections": [
       {
         "to": "AIR-LOUISVILLE",
@@ -12273,7 +12273,7 @@
     "country": "Belgium",
     "importance": 6,
     "strategic_role": "European e-commerce overflow hub alternate to Leipzig",
-    "parent_city": "Liege Bierset Cargo",
+    "parent_city": "Liège",
     "connections": [
       {
         "to": "PORT-ANTWERP",
@@ -12314,7 +12314,7 @@
     "country": "Kazakhstan",
     "importance": 6,
     "strategic_role": "Central Asia air cargo hub on Middle Corridor air bridge",
-    "parent_city": "Almaty International",
+    "parent_city": "Almaty",
     "connections": [
       {
         "to": "RAIL-KHORGOS",
@@ -12417,7 +12417,7 @@
     "country": "Kazakhstan",
     "importance": 7,
     "strategic_role": "China-Kazakhstan alternate gauge-change to Khorgos",
-    "parent_city": "Dostyk Border Terminal",
+    "parent_city": "Dostyk",
     "connections": [
       {
         "to": "RAIL-KHORGOS",
@@ -12458,7 +12458,7 @@
     "country": "China",
     "importance": 7,
     "strategic_role": "China-Russia direct rail border crossing bypassing Central Asia",
-    "parent_city": "Manzhouli Border Station",
+    "parent_city": "Manzhouli",
     "connections": [
       {
         "to": "RAIL-HARBIN",
@@ -12486,7 +12486,7 @@
     "country": "China",
     "importance": 6,
     "strategic_role": "Yangtze Delta BRI origin alternate to Zhengzhou/Yiwu",
-    "parent_city": "Suzhou West",
+    "parent_city": "Suzhou",
     "connections": [
       {
         "to": "PORT-SHANGHAI",
@@ -12538,7 +12538,7 @@
     "country": "Egypt",
     "importance": 7,
     "strategic_role": "Suez Canal adjacent logistics park and transshipment staging area",
-    "parent_city": "East",
+    "parent_city": "Port Said",
     "connections": [
       {
         "to": "PORT-ALEXANDR",
@@ -12578,7 +12578,7 @@
     "country": "UAE",
     "importance": 8,
     "strategic_role": "World's largest free zone adjacent to Jebel Ali port",
-    "parent_city": "Jebel Ali Free Zone",
+    "parent_city": "Dubai",
     "connections": [
       {
         "to": "PORT-JEBEL",
@@ -12712,7 +12712,7 @@
     "country": "Saudi Arabia",
     "importance": 7,
     "strategic_role": "Persian Gulf industrial port bypassing Hormuz via pipeline corridor",
-    "parent_city": "King Abdulaziz",
+    "parent_city": "Dammam",
     "connections": [
       {
         "to": "ICD-RIYADH",
@@ -12753,7 +12753,7 @@
     "country": "Indonesia",
     "importance": 6,
     "strategic_role": "Singapore Strait alternate anchorage for Malacca overflow",
-    "parent_city": "Tanjung Sauh Anchorage",
+    "parent_city": "Batam",
     "connections": [
       {
         "to": "PORT-SINGAPORE",
@@ -12782,7 +12782,7 @@
     "country": "Vietnam",
     "importance": 7,
     "strategic_role": "Vietnam deep-water alternate to HCMC for mega-vessel direct calls",
-    "parent_city": "Cai Mep International Terminal",
+    "parent_city": "Cai Mep",
     "connections": [
       {
         "to": "PORT-HOCHIMINH",
@@ -12815,7 +12815,7 @@
     "country": "France",
     "importance": 7,
     "strategic_role": "Northern France rail-road crossroads for UK-EU-Benelux trade",
-    "parent_city": "Lille Logistics Hub",
+    "parent_city": "Lille",
     "connections": [
       {
         "to": "PORT-LEHAVRE",
@@ -12855,7 +12855,7 @@
     "country": "Italy",
     "importance": 7,
     "strategic_role": "Italy's primary intermodal terminal for North-South freight",
-    "parent_city": "Bologna Interporto",
+    "parent_city": "Bologna",
     "connections": [
       {
         "to": "PORT-GENOA",
@@ -12903,7 +12903,7 @@
     "country": "Italy",
     "importance": 7,
     "strategic_role": "Europe's most active intermodal hub for Alpine transit",
-    "parent_city": "Verona Quadrante Europa",
+    "parent_city": "Verona",
     "connections": [
       {
         "to": "PORT-GENOA",
@@ -12988,7 +12988,7 @@
     "country": "Germany",
     "importance": 8,
     "strategic_role": "World's largest inland port and BRI European terminus cluster",
-    "parent_city": "Duisburg Logport",
+    "parent_city": "Duisburg",
     "connections": [
       {
         "to": "PORT-HAMBURG",
@@ -13113,7 +13113,7 @@
     "country": "Norway",
     "importance": 6,
     "strategic_role": "Nordic air cargo hub for seafood exports and Arctic logistics",
-    "parent_city": "Oslo Gardermoen Cargo",
+    "parent_city": "Oslo",
     "connections": [
       {
         "to": "AIR-FRANKFURT",
@@ -13180,7 +13180,7 @@
     "country": "Sweden",
     "importance": 7,
     "strategic_role": "Baltic-Nordic logistics gateway",
-    "parent_city": "Stockholm Logistics Hub",
+    "parent_city": "Stockholm",
     "connections": [
       {
         "to": "PORT-GOTHENBURG",
@@ -13213,7 +13213,7 @@
     "country": "Finland",
     "importance": 7,
     "strategic_role": "Finland's primary container gateway",
-    "parent_city": "Helsinki Vuosaari",
+    "parent_city": "Helsinki",
     "connections": [
       {
         "to": "RAIL-HELSINKI",
@@ -13313,7 +13313,7 @@
     "country": "USA",
     "importance": 8,
     "strategic_role": "Strategic Trans-Pacific air cargo refueling and sorting hub",
-    "parent_city": "PANC Cargo Hub",
+    "parent_city": "Anchorage",
     "connections": [
       {
         "to": "AIR-ANCHORAGE",
@@ -13457,7 +13457,7 @@
     "country": "Canada",
     "importance": 7,
     "strategic_role": "North America's largest tri-modal inland port",
-    "parent_city": "Winnipeg CentrePort Canada",
+    "parent_city": "Winnipeg",
     "connections": [
       {
         "to": "AIR-MEMPHIS",
@@ -13495,7 +13495,7 @@
     "country": "USA",
     "importance": 8,
     "strategic_role": "US Midwest primary data center and e-commerce cluster",
-    "parent_city": "Elk Grove Village Logistics",
+    "parent_city": "Chicago",
     "connections": [
       {
         "to": "AIR-LOUISVILLE",
@@ -13842,6 +13842,7 @@
     "lat": 28.5,
     "lon": 77.28,
     "country": "India",
+    "parent_city": "Delhi",
     "importance": 8,
     "strategic_role": "India's largest dry port",
     "connections": [
@@ -13884,6 +13885,7 @@
     "lat": 1.3521,
     "lon": 103.8198,
     "country": "Singapore",
+    "parent_city": "Singapore",
     "importance": 9,
     "strategic_role": "Global transshipment distribution anchor",
     "connections": [
@@ -13911,6 +13913,7 @@
     "lat": 51.9225,
     "lon": 4.4792,
     "country": "Netherlands",
+    "parent_city": "Rotterdam",
     "importance": 9,
     "strategic_role": "Europe's primary port-rail gateway",
     "connections": [
@@ -13961,6 +13964,7 @@
     "lat": 53.5511,
     "lon": 9.9937,
     "country": "Germany",
+    "parent_city": "Hamburg",
     "importance": 8,
     "strategic_role": "Northern Europe distribution anchor",
     "connections": [
@@ -14011,6 +14015,7 @@
     "lat": 34.0522,
     "lon": -118.2437,
     "country": "USA",
+    "parent_city": "Los Angeles",
     "importance": 9,
     "strategic_role": "US West Coast logistics anchor",
     "connections": [
@@ -14045,6 +14050,7 @@
     "lat": 40.7128,
     "lon": -74.006,
     "country": "USA",
+    "parent_city": "New York",
     "importance": 9,
     "strategic_role": "US East Coast distribution anchor",
     "connections": [
@@ -14080,6 +14086,7 @@
     "lat": 40.7128,
     "lon": -74.006,
     "country": "USA",
+    "parent_city": "New York",
     "importance": 8,
     "strategic_role": "Northeast US rail anchor",
     "connections": [
@@ -14124,6 +14131,7 @@
     "lat": 12.3714,
     "lon": -1.5197,
     "country": "Burkina Faso",
+    "parent_city": "Ouagadougou",
     "importance": 7,
     "strategic_role": "Sahel transit corridor terminus for Abidjan imports",
     "connections": [
@@ -14148,6 +14156,7 @@
     "lat": -31.9505,
     "lon": 115.8605,
     "country": "Australia",
+    "parent_city": "Perth",
     "importance": 8,
     "strategic_role": "Western Australia export corridor gateway",
     "connections": [
@@ -14176,6 +14185,7 @@
     "lat": -36.8485,
     "lon": 174.7633,
     "country": "New Zealand",
+    "parent_city": "Auckland",
     "importance": 8,
     "strategic_role": "Primary intermodal node for New Zealand North Island corridor",
     "connections": [
@@ -14207,6 +14217,7 @@
     "lat": -16.5,
     "lon": -68.1193,
     "country": "Bolivia",
+    "parent_city": "La Paz",
     "importance": 7,
     "strategic_role": "Primary rail terminus for landlocked Bolivia trade via Chile",
     "connections": [
@@ -16899,6 +16910,10 @@
     "region": "Gujarat",
     "connections": [
       {
+        "to": "RAIL-BHUSAWAL",
+        "mode": "road"
+      },
+      {
         "to": "PORT-HAZIRA",
         "mode": "road"
       },
@@ -17841,6 +17856,10 @@
     "region": "Maharashtra",
     "connections": [
       {
+        "to": "RAIL-NAGPUR",
+        "mode": "road"
+      },
+      {
         "to": "AIR-AURANGABAD",
         "mode": "road"
       },
@@ -18168,6 +18187,10 @@
     "region": "Maharashtra",
     "connections": [
       {
+        "to": "DC-AURANGABAD",
+        "mode": "road"
+      },
+      {
         "to": "DC-VAPI",
         "mode": "road"
       },
@@ -18347,6 +18370,10 @@
     "parent_city": "Aurangabad",
     "region": "Maharashtra",
     "connections": [
+      {
+        "to": "DC-BUTIBORI",
+        "mode": "road"
+      },
       {
         "to": "AIR-AURANGABAD",
         "mode": "road"
@@ -18790,7 +18817,7 @@
     "country": "India",
     "importance": 9,
     "strategic_role": "Deep-water mineral and bulk gateway",
-    "parent_city": "Vizag",
+    "parent_city": "Visakhapatnam",
     "region": "Andhra Pradesh",
     "connections": [
       {
@@ -18884,7 +18911,7 @@
     "country": "India",
     "importance": 7,
     "strategic_role": "Strategic industrial port for East Coast",
-    "parent_city": "Vizag",
+    "parent_city": "Visakhapatnam",
     "region": "Andhra Pradesh",
     "connections": [
       {
@@ -19317,7 +19344,7 @@
     "country": "India",
     "importance": 7,
     "strategic_role": "Strategic gateway for East Coast pharma",
-    "parent_city": "Vizag",
+    "parent_city": "Visakhapatnam",
     "region": "Andhra Pradesh",
     "connections": [
       {

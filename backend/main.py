@@ -1,4 +1,5 @@
-from fastapi import Depends, FastAPI, Query, Request, WebSocket
+from fastapi import Depends, FastAPI, Query, Request, WebSocket, WebSocketDisconnect
+from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from typing import List, Literal, Optional
 import asyncio
@@ -8,7 +9,7 @@ import threading
 from contextlib import asynccontextmanager
 
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from . import security
 from .engine.delay_model import EXECUTION_DIR
@@ -97,6 +98,25 @@ app.add_middleware(
     allow_headers=["Content-Type", "X-API-Key"],
 )
 
+MAX_BODY_BYTES = 16 * 1024  # a route request is well under 1 KB
+
+@app.middleware("http")
+async def limit_body_size(request: Request, call_next):
+    # Declared before the headers middleware, so its refusals get the headers too.
+    if request.method == "POST":
+        length = request.headers.get("content-length", "")
+        if not length.isdigit():
+            return JSONResponse({"detail": "A request body needs a Content-Length header."}, status_code=411)
+        if int(length) > MAX_BODY_BYTES:
+            return JSONResponse({"detail": f"Request body over {MAX_BODY_BYTES // 1024} KB."}, status_code=413)
+    return await call_next(request)
+
+@app.exception_handler(RequestValidationError)
+async def validation_error(request: Request, exc: RequestValidationError):
+    # Say where each problem is, without echoing the input back.
+    return JSONResponse(status_code=422, content={"detail": [
+        {"loc": list(e["loc"]), "msg": e["msg"], "type": e["type"]} for e in exc.errors()]})
+
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
     response = await call_next(request)
@@ -124,22 +144,28 @@ SEARCH_LIMIT = 12
 def search_hubs(q: str = Query(..., min_length=1, max_length=100)):
     """Hubs a shipment can start or end at, matching a name, alias, ID or country.
 
-    Best matches first: an exact name, then a word starting with the query, then
-    any substring, then the country; busier hubs first within each group.
+    Best matches first: an exact name or city, then an exact country, then a
+    word starting with the query, then any substring, then part of a country
+    name; busier hubs first within each group. A blank query matches nothing.
     Chokepoints are waypoints, so they are never offered.
     """
     q = q.lower().strip()
+    if not q:
+        return []
 
     def rank(hub):
-        names = [hub["display_name"].lower(), hub["id"].lower(), *(a.lower() for a in hub["aliases"])]
+        names = [hub["display_name"].lower(), hub["id"].lower(), *(a.lower() for a in hub["aliases"]),
+                 hub.get("parent_city", "").lower()]
         if q in names:
             return 0
+        if q == hub["country"].lower():
+            return 1  # "India" lists India's hubs before Indianapolis
         if any(word.startswith(q) for name in names for word in name.replace("-", " ").split()):
-            return 1
-        if any(q in name for name in names):
             return 2
-        if q in hub["country"].lower():
+        if any(q in name for name in names):
             return 3
+        if q in hub["country"].lower():
+            return 4
         return None
 
     ranked = [(r, -hub["importance"], hub["display_name"], hub) for hub in canonical_hubs
@@ -219,8 +245,10 @@ async def websocket_endpoint(websocket: WebSocket):
             }
             await websocket.send_text(json.dumps(state))
             await asyncio.sleep(2.0)
+    except WebSocketDisconnect:
+        pass  # the page was closed or reloaded
     except Exception as e:
-        print(f"WebSocket closed: {e}")
+        print(f"[WS] Status socket failed: {type(e).__name__}: {e}")
 
 @app.get("/api/cities")
 def get_cities():
@@ -263,7 +291,12 @@ def get_suppliers(req: SourcingRequest):
     }
 
 # The built dashboard, when present (run.py builds it), is served from the same
-# port as the API. Mounted last, so every API route above takes precedence.
+# port as the API: its page at / and its files under /assets. There is no
+# catch-all, so a wrong method on an API route still answers 405.
 DASHBOARD = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
-if os.path.isfile(os.path.join(DASHBOARD, "index.html")):
-    app.mount("/", StaticFiles(directory=DASHBOARD, html=True), name="dashboard")
+if os.path.isfile(os.path.join(DASHBOARD, "index.html")) and os.path.isdir(os.path.join(DASHBOARD, "assets")):
+    app.mount("/assets", StaticFiles(directory=os.path.join(DASHBOARD, "assets")), name="assets")
+
+    @app.get("/", include_in_schema=False)
+    def dashboard():
+        return FileResponse(os.path.join(DASHBOARD, "index.html"))

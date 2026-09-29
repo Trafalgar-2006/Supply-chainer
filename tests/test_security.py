@@ -68,6 +68,9 @@ def test_compute_endpoints_are_rate_limited(client, monkeypatch):
     monkeypatch.setattr(security.limiter, "limit", 3)
     codes = [client.post("/api/suppliers", json={}).status_code for _ in range(4)]
     assert codes == [200, 200, 200, 429]
+    # Each endpoint has its own budget: the supplier page can't use up routing.
+    codes = [client.post("/api/recommend", json=ROUTE).status_code for _ in range(4)]
+    assert codes == [200, 200, 200, 429]
     blocked = client.post("/api/recommend", json=ROUTE)
     assert blocked.status_code == 429 and int(blocked.headers["retry-after"]) >= 1
 
@@ -109,6 +112,23 @@ def test_security_headers(client):
     assert response.headers["referrer-policy"] == "no-referrer"
     assert response.headers["content-security-policy"] == "default-src 'none'; frame-ancestors 'none'"
     assert response.headers["cache-control"] == "no-store"
+
+
+def test_the_dashboard_page_sends_its_origin_as_the_referrer(client):
+    # OpenStreetMap serves an "Access blocked" tile to requests without a Referer.
+    assert client.get("/").headers["referrer-policy"] == "strict-origin-when-cross-origin"
+
+
+def test_oversized_bodies_are_refused_and_errors_do_not_echo_the_input(client):
+    assert client.post("/api/recommend", content=b"{" + b" " * 20_000 + b"}",
+                       headers={"Content-Type": "application/json"}).status_code == 413
+    marker = "x" * 5_000
+    r = client.post("/api/recommend", json={**ROUTE, "cargo_type": marker})
+    assert r.status_code == 422 and marker not in r.text and r.json()["detail"][0]["loc"] == ["body", "cargo_type"]
+
+
+def test_a_wrong_method_on_an_api_route_is_405(client):
+    assert client.get("/api/recommend").status_code == 405
 
 
 def test_the_dashboard_page_gets_a_content_security_policy(client):

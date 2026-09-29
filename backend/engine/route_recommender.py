@@ -1,3 +1,6 @@
+import heapq
+import itertools
+import math
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor, wait
@@ -39,6 +42,66 @@ LIVE_INTEL_TIMEOUT_S = 3.0
 CHOKEPOINT_REFRESH_S = 900  # the chokepoint watch runs as often as the news cache expires
 CHOKEPOINT_FETCH_GAP_S = 1.0  # spaced out, to be polite to the feeds
 RAIN_SCORE, STORM_SCORE = 0.25, 0.6
+# The dashboard's example plans: the watch keeps their news and weather cached,
+# so a first click never waits on a cold feed.
+WARM_HUBS = ("PORT-SHANGHAI", "PORT-ROTTERDAM", "HUB-LOSANGELES", "PORT-CHENNAI", "PORT-SINGAPORE")
+
+
+def phased_path(G, source, target, weight, main_mode):
+    """Cheapest path whose transit legs go road, then `main_mode`, then road.
+
+    The STRICT policy: road only for the first and last mile, and at least one
+    leg in the chosen mode. Dijkstra over (node, phase) states: phase 0 before
+    the main mode, 1 on it, 2 on the last mile. Transfers never change phase.
+    """
+    best = {(source, 0): 0.0}
+    came = {}
+    order = itertools.count()
+    heap = [(0.0, next(order), source, 0)]
+    while heap:
+        cost, _, u, phase = heapq.heappop(heap)
+        if cost > best[(u, phase)]:
+            continue
+        if u == target and phase:
+            path, state = [u], (u, phase)
+            while state in came:
+                state = came[state]
+                path.append(state[0])
+            return path[::-1]
+        for v, d in G[u].items():
+            w = weight(u, v, d)
+            if w is None:
+                continue
+            nxt = phase
+            if d["type"] == "transit":
+                if d["transport_mode"] == main_mode:
+                    if phase == 2:
+                        continue  # back to the main mode after the last mile
+                    nxt = 1
+                elif phase == 1:
+                    nxt = 2  # road after the main mode: the last mile
+            state, total = (v, nxt), cost + w
+            if total < best.get(state, math.inf):
+                best[state] = total
+                came[state] = (u, phase)
+                heapq.heappush(heap, (total, next(order), v, nxt))
+    raise nx.NetworkXNoPath(f"No {main_mode} route from {source} to {target}")
+
+
+def round_to_total(values, step):
+    """Round values to multiples of `step` so that they add up to their rounded total.
+
+    Largest-remainder rounding: each value moves by less than one step, and the
+    rounded parts of a route (its legs) add up exactly to its rounded total.
+    """
+    units = [v / step for v in values]
+    floors = [math.floor(u + 1e-9) for u in units]
+    short = round(sum(units)) - sum(floors)
+    for i in sorted(range(len(units)), key=lambda i: floors[i] - units[i])[:max(short, 0)]:
+        floors[i] += 1
+    digits = max(0, -math.floor(math.log10(step) + 1e-9))
+    return [round(f * step, digits) for f in floors]
+
 
 class RouteRecommender:
     """
@@ -206,7 +269,7 @@ class RouteRecommender:
 
     # ---- Live intelligence --------------------------------------------------
 
-    def _live_intel(self, points):
+    def _live_intel(self, points, pending=None):
         """Live news and current weather per hub, for (place name, lat, lon) points.
 
         A report about a city applies to every hub in it (port, rail yard, airport,
@@ -214,7 +277,9 @@ class RouteRecommender:
         the route enters the city through a road depot. The delay model's weather
         input is the worse of what the news says and the weather measured now.
         Nothing is fetched until the NLP engine can score the news, and all the
-        fetches share one time budget.
+        fetches share one time budget. Places whose fetches were still running
+        when it ran out are appended to `pending`; they finish in the background
+        and are cached for the next request.
         """
         if not self.nlp.ready:
             return {}  # news that cannot be scored is not worth a network round trip
@@ -231,6 +296,8 @@ class RouteRecommender:
 
         intel = {}
         for place, _, _ in points:
+            if pending is not None and any(f not in done for f, p in {**news, **weather}.items() if p == place):
+                pending.append(place)
             report = self._report(place, sorted(self._city_hubs.get(place, ())), result(news, place), result(weather, place))
             for hub_id in report["hubs"] if report else []:
                 intel[hub_id] = report
@@ -273,10 +340,19 @@ class RouteRecommender:
             time.sleep(CHOKEPOINT_FETCH_GAP_S)
         self._chokepoint_intel = reports
 
+    def warm_example_places(self):
+        """Fetch news and weather for the dashboard's example plans into the cache."""
+        G = self.unified_graph
+        for hub_id in WARM_HUBS:
+            data = G.nodes[self._hub_nodes[hub_id][0]]
+            self.news_ingestor.fetch_headlines(data.get("parent_city") or data["display_name"])
+            self.news_ingestor.fetch_weather(data["lat"], data["lon"])
+
     def watch_chokepoints(self):
         """Keep chokepoint intel fresh forever (run in a daemon thread once warmed up)."""
         while self.nlp.ready:
             try:
+                self.warm_example_places()
                 self.refresh_chokepoint_intel()
             except Exception as e:  # a bad refresh keeps the previous reports
                 print(f"[WATCH] Chokepoint refresh failed: {e}")
@@ -326,13 +402,13 @@ class RouteRecommender:
         disruptions = self.scenario_mgr.get_disruptions(scenario)
 
         # 3. Live news and weather: origin, destination and chokepoints (optional; needs network)
-        intel = {}
+        intel, pending = {}, []
         if live_intel:
             # Origin and destination are fetched now; chokepoints come from the watch.
             intel = {**self._chokepoint_intel} if self.nlp.ready else {}
             intel |= self._live_intel([(G.nodes[n].get("parent_city") or G.nodes[n]["display_name"],
                                        G.nodes[n]["lat"], G.nodes[n]["lon"])
-                                      for n in (s_vnode, d_vnode)])
+                                      for n in (s_vnode, d_vnode)], pending)
         intel_delays = self._intel_delays(intel) if intel else {}
 
         def hub(n):
@@ -399,7 +475,10 @@ class RouteRecommender:
                 return weight * preference_factor(u, v, d)
 
             try:
-                path = nx.dijkstra_path(G, s_vnode, d_vnode, weight=weight_func)
+                if strict_modes is not None and transport_preference != "road":
+                    path = phased_path(G, s_vnode, d_vnode, weight_func, transport_preference)
+                else:
+                    path = nx.dijkstra_path(G, s_vnode, d_vnode, weight=weight_func)
             except nx.NetworkXNoPath:
                 continue
             route = self._compose_route(persona, path, origin_id, disruptions, delays, leg_news, intel)
@@ -440,13 +519,16 @@ class RouteRecommender:
         route_hubs = {h for c in final[:3] for leg in c["legs"] for h in (leg["from"], leg["to"])}
         preference = transport_preference if soft_preference else None
         affected = {h: G.nodes[self._hub_nodes[h][0]]["display_name"] for h in disruptions if h in self._hub_nodes}
+        affected_modes = {m for h in affected for m in self._hub_modes(h)}
         for c in final:
             c["delay_drivers"] = self._delay_drivers(c.pop("_leg_features"))
             c["explanation"] = self._explain(c, final, preference)
-            # Say so when a route stays clear of the scenario, so a zero scenario
-            # delay reads as a diversion, not as the scenario being ignored.
+            # Say so when a route of the disrupted hubs' own mode stays clear of
+            # them (ships diverting from a closed canal), so a zero scenario delay
+            # reads as a diversion. A flight never passes a canal: nothing to say.
             visited = {c["legs"][0]["from"]} | {leg["to"] for leg in c["legs"]}
-            if affected and not visited & set(affected):
+            modes = {leg["mode"].lower() for leg in c["legs"] if leg["type"] == "transit"}
+            if affected and not visited & set(affected) and modes & affected_modes:
                 names = sorted(affected.values())
                 named = names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
                 c["explanation"] = f"Avoids the disrupted {named}. " + c["explanation"]
@@ -457,9 +539,16 @@ class RouteRecommender:
             # Origin and destination reports, and chokepoint reports on the routes returned.
             "live_intel": [r for r in {id(r): r for r in intel.values()}.values()
                            if not set(r["hubs"]) <= set(self._chokepoint_intel) or set(r["hubs"]) & route_hubs],
+            # Places whose news or weather was still loading when the time budget ran out.
+            "live_intel_pending": sorted(set(pending)),
             "delay_model": self.delay_model is not None,
             "recommendations": final[:3]
         }
+
+    def _hub_modes(self, hub_id):
+        """The modes a hub is for: a port is for ships, even though trucks reach it."""
+        modes = {self.unified_graph.nodes[n]["mode"] for n in self._hub_nodes[hub_id]}
+        return modes - {"road"} or modes
 
     @staticmethod
     def _leg_impact(d, from_id, to_id, origin_id, disruptions, charged=None, extra_threat=0.0):
@@ -490,8 +579,8 @@ class RouteRecommender:
 
     def _compose_route(self, persona, path, origin_id, disruptions, delays, leg_news, intel):
         G = self.unified_graph
-        legs, leg_features, leg_quantiles = [], [], []
-        total_cost = max_threat = 0.0
+        legs, leg_features, leg_quantiles, raw_etas, raw_costs = [], [], [], [], []
+        max_threat = 0.0
         fixed_hours = 0.0  # nominal transit and transfer time plus scenario delay
         trace = {
             "eta": {"transit": 0.0, "transfer": 0.0, "delay": 0.0, "scenario": 0.0},
@@ -518,8 +607,10 @@ class RouteRecommender:
             trace["eta"]["scenario"] += impact["delay"]
             trace["cost"][bucket] += base_cost
             trace["cost"]["scenario"] += impact["premium"]
+            # Standing risk covers every leg, transfers included, so the peak on the
+            # route is always the largest of the three risk parts.
+            trace["risk"]["baseline"] = max(trace["risk"]["baseline"], d.get("base_threat", 0.05))
             if bucket == "transit":
-                trace["risk"]["baseline"] = max(trace["risk"]["baseline"], d.get("base_threat", 0.05))
                 leg_quantiles.append(q)
                 if self.delay_model is not None:
                     leg_features.append(self._leg_features(u, v, d, intel))
@@ -529,7 +620,6 @@ class RouteRecommender:
 
             fixed_hours += base_time + impact["delay"]
             l_cost = base_cost + impact["premium"]
-            total_cost += l_cost
             max_threat = max(max_threat, impact["threat"])
 
             scenario_hub = impact["exposed"][-1] if impact["exposed"] else None
@@ -538,16 +628,20 @@ class RouteRecommender:
             elif news_hub:
                 reason, source = intel[news_hub]["headline"], "LIVE"
             else:
-                reason, source = d.get("base_news", "Standard conditions"), "FALLBACK"
+                # The mode's standing report sets the baseline threat, but it is a
+                # canned text, not news, so it is never passed off as a reason.
+                reason, source = "Standard conditions", "FALLBACK"
+            raw_etas.append(base_time + q[0] + impact["delay"])
+            raw_costs.append(l_cost)
             legs.append({
                 "from": from_id,
                 "to": to_id,
                 "to_name": G.nodes[v].get("display_name", to_id),
                 "mode": d["transport_mode"].upper(),
                 "type": d["type"],
-                "eta": round(base_time + q[0] + impact["delay"], 1),
+                "eta": None,  # set below, rounded to add up to the route's total
                 "delay": dict(zip(QUANTILE_NAMES, (round(x, 1) for x in q))),
-                "cost": round(l_cost, 2),
+                "cost": None,
                 "threat": round(impact["threat"], 2),
                 "reason": reason,
                 "intel_source": source
@@ -555,16 +649,18 @@ class RouteRecommender:
 
         for part in trace:
             trace[part] = {k: round(x, 2) for k, x in trace[part].items()}
-        typical = fixed_hours + sum(q[0] for q in leg_quantiles)
+        for leg, eta, cost in zip(legs, round_to_total(raw_etas, 0.1), round_to_total(raw_costs, 0.01)):
+            leg["eta"], leg["cost"] = eta, cost
         return {
             "persona": persona,
             "primary_mode": "MULTIMODAL",
             "legs": legs,
-            # Typical ETA adds each leg's median delay; the band is the simulated
-            # distribution of the whole route's door-to-door time.
-            "adjusted_eta": round(typical, 1),
+            # Typical ETA adds each leg's median delay, so it is exactly the sum of
+            # the legs. The band is the simulated distribution of the whole trip;
+            # its median is a little higher, because delays are skewed.
+            "adjusted_eta": round(sum(leg["eta"] for leg in legs), 1),
             "eta_band": self._eta_band(fixed_hours, leg_quantiles),
-            "total_cost": round(total_cost, 2),
+            "total_cost": round(sum(leg["cost"] for leg in legs), 2),
             "threat_level": round(max_threat, 2),
             "audit_trace": trace,
             "_leg_features": leg_features,

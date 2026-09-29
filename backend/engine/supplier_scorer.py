@@ -2,6 +2,9 @@ import json
 import os
 from typing import List, Dict, Any
 
+SUPPLIER_DELAY_SHARE = 0.1  # share of a disruption's delay added to a supplier's lead time
+
+
 class SupplierScorer:
     """
     Supplychainer Supplier Intelligence Engine.
@@ -40,8 +43,11 @@ class SupplierScorer:
             if active_disruptions:
                 for node, impact in active_disruptions.items():
                     if node == s['location_hub'] or node in s.get('transit_choke_points', []):
-                        # Apply lead time penalty: 10% of delay hours converted to days
-                        penalty_days = impact['delay'] / 24.0 * 0.1
+                        # Lead-time penalty: 10% of the disruption's delay, in days: the
+                        # starter's documented rule, and an assumption. A lead time is an
+                        # average over a supplier's orders, and only some of them wait out
+                        # a closure in full, as a single routed shipment does.
+                        penalty_days = impact['delay'] / 24.0 * SUPPLIER_DELAY_SHARE
                         effective_lead_time += penalty_days
                         disruption_penalty += penalty_days
 
@@ -104,7 +110,7 @@ class SupplierScorer:
         
         if projected_stock <= 0:
             status = "CRITICAL_SHORTAGE"
-            recommendation = "EMERGENCY REPLENISHMENT REQUIRED. Projected stockout in current cycle."
+            recommendation = "Emergency replenishment required: stock runs out this cycle."
             urgency = "CRITICAL"
         elif projected_stock < safety_stock:
             status = "SAFETY_STOCK_VIOLATION"
