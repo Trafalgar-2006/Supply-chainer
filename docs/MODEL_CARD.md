@@ -83,13 +83,15 @@ At prediction time the model enforces `p50 ≤ p85 ≤ p95` and clips delays at 
 
 ### Distance from the best possible model
 
-The data comes from a known generator, so the best possible quantile of every leg can be computed exactly. `ml/delay_ceiling.py` does this: the delay is a mixture over the hidden incident state, weighted by how well each state explains the leg's news score. On 20,000 fresh legs:
+The data comes from a known generator, so the best possible quantile of every leg can be computed exactly. `ml/delay_ceiling.py` does this: the delay is a mixture over the hidden incident state, weighted by how well each state explains the leg's news score. On 100,000 fresh legs:
 
 | Quantile | Naive baseline | This model | Best possible | Share of the achievable gain |
 |---|---|---|---|---|
-| p50 | 8.70 | 7.73 | 7.63 | **90%** |
-| p85 | 9.36 | 7.29 | 7.05 | **90%** |
-| p95 | 6.45 | 4.42 | 4.29 | **94%** |
+| p50 | 8.71 | 7.75 | 7.65 | **91%** |
+| p85 | 9.38 | 7.31 | 7.19 | **95%** |
+| p95 | 6.44 | 4.51 | 4.39 | **94%** |
+
+The p95 loss hangs on rare incidents, so on samples of 20,000 legs these shares moved by up to 4 points from one sample to another; 100,000 legs keep the estimate steady.
 
 The rest of the loss is noise that no model can predict: whether an unreported incident is hiding behind a quiet news score, and the log-normal spread. Retraining on 200,000 legs, or with larger trees, moved these shares by 1–3 points in both directions, which is within sampling noise, so the pinned model was kept.
 
@@ -144,7 +146,7 @@ Each headline of four words or more is embedded with `BAAI/bge-small-en-v1.5` (M
 - **Threat type:** a logistic regression on the embeddings of the archetypes and the labelled disruptions: weather, labour, geopolitical, infrastructure, cyber or congestion. Weather reports set the delay model's `condition` feature: rainy from a score of 0.25, stormy from 0.6.
 - **Standing reports** (the per-mode fallback texts every leg carries when there's no live news) are capped at minor (0.2). They describe routine conditions, not incidents.
 - **CARF:** a report is dropped for a leg when it names another mode's infrastructure or workforce and none of the leg's own ("dockworkers", "barge", "runway", "haulier"...). Mode-neutral news (weather, conflict, cyberattacks) applies to every mode. Ambiguous words stay out: "terminal" and "container" (every mode), "freighter" (ship or cargo plane), "docker" (also software), "anchorage" (also an air-cargo city).
-- **Live news and weather:** Google News RSS for the origin and destination cities on each request, and for all 15 chokepoints through a background watch refreshed every 15 minutes; current weather for the same places from Open-Meteo (thunderstorms, heavy snow or gale-force wind count as stormy; fog, rain or snow as rainy). Both are fetched only once the NLP engine is ready. A headline counts only if it was published in the last three days and names the place or one of its hubs (a search for Los Angeles can return Middle East news), and at most the three newest count. The whole fetch has a 3 s budget. Results are cached for 15 minutes, and a failure is retried after five minutes. A report applies to every hub in its city. A leg shows the report that actually raised its threat, and a transfer is filtered for both modes it joins. With no network, there's no live signal; the static fallback texts are never passed off as news.
+- **Live news and weather:** Google News RSS for the origin and destination cities on each request, and for all 15 chokepoints through a background watch refreshed every 15 minutes; current weather for the same places from Open-Meteo (thunderstorms, heavy snow or gale-force wind count as stormy; fog, rain or snow as rainy). Both are fetched only once the NLP engine is ready. Each hub belongs to a city, and a report applies to every hub in it. A headline counts only if it was published in the last three days and names the place or one of its hubs (a search for Los Angeles can return Middle East news), and at most the three newest count. The whole fetch has a 3 s budget. Results are cached for 15 minutes, and a failure is retried after five minutes. A report applies to every hub in its city. A leg shows the report that actually raised its threat, and a transfer is filtered for both modes it joins. With no network, there's no live signal; the static fallback texts are never passed off as news.
 
 ### Evaluation on real news
 

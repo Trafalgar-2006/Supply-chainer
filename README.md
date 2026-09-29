@@ -43,7 +43,7 @@ The starter code ran without errors but gave wrong answers. Some examples, all m
 | `SUEZ_BLOCK`, Shanghai to Rotterdam | waits at the blocked canal (+240 h) | sails around the Cape of Good Hope |
 | `LA_PORT_STRIKE`, Shanghai to Los Angeles | no effect: LA and Long Beach had no shipping lanes | diverts via Oakland and trucks south |
 | Explanation text | "reduces total landed cost by 396%" | real comparisons against the other routes returned |
-| Start-up warm-up | over 5 minutes | about 7 seconds |
+| News-model warm-up | over 5 minutes | a few seconds once the libraries are loaded |
 
 [docs/BUGFIXES.md](docs/BUGFIXES.md) lists each bug with its root cause, its fix and the test that guards it.
 
@@ -53,7 +53,7 @@ The starter code ran without errors but gave wrong answers. Some examples, all m
   - Each route option plans on its own quantile.
   - Each route's time band comes from a 4,000-sample Monte Carlo simulation with correlated legs.
   - Exact Shapley values explain what drives the delay.
-  - The model gets 90–94% of the improvement over a naive baseline that the best possible model could get. We computed that optimum exactly from the known data generator.
+  - The model gets 91–95% of the improvement over a naive baseline that the best possible model could get. We computed that optimum exactly from the known data generator.
   - A model evaluation page shows calibration, coverage by mode, loss against the naive baseline and the optimum, and feature importance.
   - See [docs/MODEL_CARD.md](docs/MODEL_CARD.md).
 - **Threat intelligence that works, and is measured on real news.**
@@ -82,16 +82,19 @@ The starter code ran without errors but gave wrong answers. Some examples, all m
   - Export the selected route to CSV, or every option to JSON in the API's own shape with the request that produced it, for a TMS or ERP to import. Print the plan as a report, or save it as a PDF.
   - Costs are labelled as estimates, with their basis, and can be shown in euros, pounds, rupees, yuan, yen or Singapore dollars at the European Central Bank's reference rate.
   - Recent plans are kept with the result they got. Reopening one shows exactly what was recommended then; planning it again lists what changed since. Choosing a scenario lists the recent plans it disrupts.
-  - Once an input changes, the routes shown dim and can't be exported until you plan again. Plans the engine would refuse, such as the same hub at both ends or cargo on the one mode it can't use, are explained before they're sent. Supplier counts are checked on their fields.
+  - Each page has its own address (`#model`, `#suppliers`), so Back and reload work, and going to another page and back keeps your plan.
+  - Place search works from the keyboard (arrow keys, Enter, Escape) and says when nothing matches or the server can't be reached. A rendering error shows a reset screen instead of a blank page.
+  - Once an input changes, the routes shown turn grey and can't be exported until you plan again. Plans the engine would refuse, such as the same hub at both ends or cargo on the one mode it can't use, are explained before they're sent. Supplier counts are checked on their fields.
   - The layout works on phones, controls are labelled, animation respects reduced motion, and an axe-core scan finds no accessibility violations on any page.
 - **Security.**
   - Strict request validation.
-  - Per-client rate limiting.
+  - Per-client rate limiting, with a separate budget for each endpoint.
+  - Request bodies are capped at 16 KB, and validation errors never echo the input back.
   - An optional API key that stays on the server.
   - CORS and WebSocket origin checks, security headers, and a Content-Security-Policy on the dashboard and the API.
   - The model file's SHA-256 is pinned in code. See [SECURITY.md](SECURITY.md).
 - **Tests.**
-  - 264 pytest tests. The starter had none.
+  - 279 pytest tests. The starter had none.
   - A Playwright browser test drives the whole dashboard, and GitHub Actions runs the tests and the dashboard build on every push.
 
 ## Run it
@@ -126,7 +129,7 @@ pip install -r requirements.txt
 uvicorn backend.main:app --port 8000
 ```
 
-The API is ready when the log shows `Application startup complete`. The news model then warms up in the background for about 7 seconds; the dashboard shows "Engine ready" when it's done. API docs are at http://127.0.0.1:8000/docs.
+The API is ready when the log shows `Application startup complete`: about 10 seconds on a machine that has run it before, but one to two minutes on the first start after a reboot, while Windows loads PyTorch from disk. The news model then warms up in the background for a few more seconds, and the dashboard shows "Engine ready" when it's done. Routes can be planned during the warm-up; only live news waits for it. API docs are at http://127.0.0.1:8000/docs.
 
 ### 2. Dashboard
 
@@ -227,11 +230,11 @@ POST /api/recommend
 Other accepted values:
 
 - `transport_preference`: `any`, `sea`, `air`, `rail` or `road`
-- `routing_policy`: `STRICT` or `PREFERRED`
+- `routing_policy`: `STRICT` (at least one leg in the chosen mode, with road only to reach it and to leave it) or `PREFERRED` (favours the chosen mode)
 - `cargo_type`: `general`, `perishable_urgent`, `hazardous_waste` or `oversize_heavy`
 - `priority`: `low`, `normal` or `urgent`
 
-Unknown fields, scenarios and hub IDs are rejected with a 422. So is a request the engine can't serve, such as an unknown place, the same hub at both ends, or no route under the constraints; its body gives the reason as `{"error": "..."}`.
+Unknown fields, scenarios and hub IDs are rejected with a 422 that names the field without echoing the input, and bodies over 16 KB with a 413. So is a request the engine can't serve, such as an unknown place, the same hub at both ends, or no route under the constraints; its body gives the reason as `{"error": "..."}`.
 
 The response below is shortened from a real run of the same request without the `overrides`:
 
@@ -268,13 +271,15 @@ The response below is shortened from a real run of the same request without the 
 }
 ```
 
-All times are in hours and costs in US dollars. Costs are estimates for comparing options: a flat rate per kilometre for each mode, fixed transfer fees, and a risk premium on legs through a disruption.
+`live_intel_pending` lists the places whose news or weather was still loading when the 3-second budget ran out; they are cached for the next request.
+
+All times are in hours and costs in US dollars. `adjusted_eta` is the sum of each leg's typical time (nominal time plus its median delay), and the legs' times and costs add up to the totals exactly. `eta_band.p50` is the median of the simulated whole trip, a little higher, because delays are skewed. Costs are estimates for comparing options: a flat rate per kilometre for each mode, fixed transfer fees, and a risk premium on legs through a disruption.
 
 ## Tests
 
 ```bash
 python -m pip install -r requirements-dev.txt
-python -m pytest                     # 264 tests, about two minutes
+python -m pytest                     # 279 tests, about two minutes
 python tools/audit_land_lanes.py     # lists road and rail lanes whose straight line crosses water
 ```
 
@@ -286,9 +291,9 @@ The browser test needs the backend and the dashboard running:
 python tools/ui_smoke.py             # uses Microsoft Edge; add --browser chrome for Chrome
 ```
 
-It runs the LA port strike example (ships must divert via Oakland), checks that editing an input marks the routes stale, plans a route by search, swaps its ends, re-plans it from the scenario alert, and checks the voyage plan, the map highlight, the CSV and JSON exports, the printed report, costs in euros and the comparison with the last run. It then opens the other two pages (rejecting a negative inventory), reopens a saved plan at phone width, and leaves the planner right after planning a few times. It fails on any console error or failed request, and saves screenshots and the report PDF to `ui-screens/`.
+It runs the LA port strike example (ships must divert via Oakland), checks that editing an input marks the routes stale, plans a route by search, swaps its ends, re-plans it from the scenario alert, and checks the voyage plan, the map highlight, the CSV and JSON exports, the printed report, costs in euros and the comparison with the last run. It picks a place with the keyboard, then opens the other two pages (rejecting a negative inventory) and checks that Back, reload and returning to the planner keep your place and your plan. It reopens a saved plan at phone width, leaves the planner right after planning a few times, and checks that map tiles are requested with a Referer, which OpenStreetMap requires. It fails on any console error or failed request, and saves screenshots and the report PDF to `ui-screens/`. Add `--url http://127.0.0.1:8000/` to test the one-port setup that `run.py` serves (without an API key).
 
-`python tools/a11y_check.py` runs the axe-core accessibility checks on all three pages and fails on any violation. It needs internet access to fetch axe-core.
+`python tools/a11y_check.py` runs the axe-core accessibility checks on all three pages, and on the planner with suggestions open and stale results and the supplier page with an invalid count, and fails on any violation. It needs internet access to fetch axe-core, and takes `--url` too.
 
 ## Project layout
 
@@ -318,6 +323,9 @@ Starter files the app never used have been removed: an earlier US-only prototype
 - **Costs and nominal times come from fixed rates and speeds for each mode,** not live freight rates or schedules. They are for comparing the options, not quotes.
 - **Live news covers the origin, the destination and the 15 chokepoints,** not every port or depot along the way; those use scenarios and standing reports. The source is English Google News RSS.
 - **Nothing is stored on the server.** Recent plans and their results are kept in the browser that made them; there are no user accounts.
+- **One process.** Routing is CPU-bound, so simultaneous requests queue: in a test, 20 at once took up to 10 seconds each. That suits a demo; production would run several workers.
+- **Supplier lead times rise by 10% of a disruption's delay,** the rule documented in the starter code, while a routed shipment is charged the full delay. The supplier page says so.
+- **The air-leg delay is time at the arrival terminal** (ground handling and customs, a 6-hour prior), not a late flight, so a short flight can show a delay close to its flying time.
 - **The dashboard is in English only.**
 - **Map tiles come from the public OpenStreetMap servers,** whose usage policy suits a demo but not heavy use.
 

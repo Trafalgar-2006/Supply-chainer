@@ -18,7 +18,7 @@ a regression test in `tests/`. "Before" numbers come from the original commit
 | `CHENNAI_FLOOD`, Chennai → Singapore | 0 h delay, threat 0.05 | **+48 h, threat 0.75** |
 | Explanation text | "reduces total landed cost by **396%**" | Real comparison against the other routes returned, e.g. "N% cheaper than the fastest route, +X h on its ETA" |
 | Supplier lead time under `SUEZ_BLOCK` (SUP-GLOBAL-01) | 14 → 19 days (50%) | 14 → **15 days** (the documented 10%) |
-| Start-up warm-up | over 5 min (hidden while NLP was off) | **~7 s** |
+| News-model warm-up | over 5 min (hidden while NLP was off) | **a few seconds** once the libraries are loaded |
 
 ## Threat intelligence
 
@@ -90,6 +90,19 @@ A review with OpenAI Codex drove the finished dashboard in a browser and tried t
 | Costs used the browser's locale ($1,38,753) and read as quotes | en-US grouping everywhere, labelled as estimates with their basis | — |
 | The development build logged a WebSocket error at start-up: React's double mount closed a socket that was still connecting | The socket is closed once it opens | — |
 | The API answered an unknown place or an impossible plan with HTTP 200 | 422 with the reason | `test_requests_the_engine_cannot_serve_are_refused_with_the_reason` |
+| In one-port mode (`run.py`) the map showed "Access blocked" tiles: the page sent no Referer, which OpenStreetMap requires | The dashboard sends its origin as the Referer; the API still sends none | `test_the_dashboard_page_sends_its_origin_as_the_referrer`, `tools/ui_smoke.py --url` |
+| "Only this mode" allowed road legs in the middle of a route, and a rail-only plan could come back all road | Road only before the first and after the last leg in the chosen mode, and at least one such leg | `test_only_this_mode_means_road_just_for_the_first_and_last_mile` |
+| 144 hubs had no city or their own name as their city ("Hong Kong International"), so live news searched the wrong name and a city's news missed its other hubs | Every hub names its real city | `test_every_hub_names_its_city` |
+| A saved plan with an unknown value, or a saved result missing a field, blanked the page | Saved plans and results are checked field by field, and an error screen with a reset replaces a blank page | `tools/ui_smoke.py` |
+| The risk table read 0% / 0% / 0% under a 5% peak: transfers were left out of standing risk | Standing risk covers every leg; the peak is the largest of the three parts | `test_the_peak_risk_is_the_largest_of_its_parts` |
+| Flights "avoided the disrupted Suez Canal" | Said only of routes of the disrupted hub's own mode | `test_a_flight_is_not_said_to_avoid_a_canal` |
+| Exports gave canned standing reports ("Aviation fuel surcharge volatility...") as leg reasons, which read like news | "Standard conditions" | `test_legs_without_news_give_no_canned_reason` |
+| Leg times summed to 41.1 h against a 41.3 h total | Legs are rounded so they add up to the totals exactly | `test_audit_trace_adds_up_to_the_totals` |
+| The Red Sea scenario missed the Shanghai-to-Europe supplier, whose route skipped Bab el-Mandeb | The route lists it | `test_the_red_sea_route_to_europe_passes_bab_el_mandeb` |
+| Going to another page and back wiped the plan; Back left the app | Pages stay mounted and have addresses | `tools/ui_smoke.py` |
+| Bharuch to Nagpur by road went via Pune, Solapur and Hyderabad | NH53 and the Samruddhi expressway added | — |
+| A search of spaces returned 12 arbitrary hubs; "India" listed Indianapolis first | Blank searches return nothing; a country ranks its hubs first | `test_hub_search_offers_the_best_matches_first_and_no_chokepoints` |
+| Stale results were dimmed below the contrast minimum | They turn grey instead, at full contrast | `tools/a11y_check.py` |
 
 ## Repository
 

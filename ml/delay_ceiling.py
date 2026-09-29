@@ -27,7 +27,7 @@ from backend.engine.delay_features import QUANTILES, encode  # noqa: E402
 from backend.engine.delay_model import DelayQuantileModel  # noqa: E402
 
 OUT = ROOT / "Execution" / "delay_ceiling.json"
-N_LEGS = 20_000
+N_LEGS = 100_000  # the p95 loss hangs on rare incidents; a large sample keeps the estimate steady
 SAMPLE_SEED = 2026                             # a different draw from the training data
 SEVERITY_GRID = np.linspace(0.3, 1.0, 141)     # incident severity is U(0.3, 1)
 CLIPPED = 0.9999                               # news scores are clipped at 1
