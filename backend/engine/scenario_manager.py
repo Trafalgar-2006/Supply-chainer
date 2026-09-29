@@ -44,10 +44,10 @@ class ScenarioManager:
         },
         "DUBAI_AIR_CONGESTION": {
             "name": "Dubai Hub Surge",
-            "description": "Massive cargo backlog at DXB/DWC.",
+            "description": "Massive cargo backlog at Dubai International (DXB).",
             "affected_nodes": ["AIR-DUBAI"],
             "threat_level": 0.65,
-            "delay_hours": 24,
+            "delay_hours": 48, # the 48h clearance backlog stated in the reason
             "reason": "Regional cargo surge exceeding ground handling capacity. 48h clearance backlog.",
             "mode": "air"
         },

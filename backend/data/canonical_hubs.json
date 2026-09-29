@@ -3483,11 +3483,31 @@
         "mode": "road"
       },
       {
-        "to": "AIR-DUBAI",
+        "to": "AIR-FRANKFURT",
         "mode": "air"
       },
       {
-        "to": "AIR-FRANKFURT",
+        "to": "AIR-MUMBAI",
+        "mode": "air"
+      },
+      {
+        "to": "AIR-DELHI",
+        "mode": "air"
+      },
+      {
+        "to": "AIR-CHENNAI",
+        "mode": "air"
+      },
+      {
+        "to": "AIR-HONGKONG",
+        "mode": "air"
+      },
+      {
+        "to": "AIR-SHANGHAI",
+        "mode": "air"
+      },
+      {
+        "to": "AIR-CHANGI",
         "mode": "air"
       }
     ]

@@ -2,7 +2,7 @@ import networkx as nx
 import pytest
 
 from backend.engine.multimodal_network import (
-    _haversine, create_multimodal_network, land_link_possible, land_route_km, sea_basin,
+    LOCAL_ROAD_KM, _haversine, create_multimodal_network, land_link_possible, land_route_km, sea_basin,
 )
 
 
@@ -16,16 +16,28 @@ def sea(G):
     return G.subgraph(n for n, d in G.nodes(data=True) if d["mode"] == "sea")
 
 
-def test_every_land_and_air_lane_is_navigable_both_ways(G, hubs):
+def test_every_land_and_air_lane_is_navigable_both_ways(G, hubs, hub_index):
+    def mode_of(h, c):
+        # A listed "flight" between airports this close is trucked instead.
+        t = hub_index[c["to"]]
+        short = _haversine(h["lat"], h["lon"], t["lat"], t["lon"]) < LOCAL_ROAD_KM
+        return "road" if c["mode"] == "air" and short else c["mode"]
     missing = [
         (h["id"], c["to"], c["mode"])
         for h in hubs
         for c in h.get("connections", [])
         if c["mode"] != "sea"
-        and not (G.has_edge(f'{h["id"]}:{c["mode"]}', f'{c["to"]}:{c["mode"]}')
-                 and G.has_edge(f'{c["to"]}:{c["mode"]}', f'{h["id"]}:{c["mode"]}'))
+        and not (G.has_edge(f'{h["id"]}:{mode_of(h, c)}', f'{c["to"]}:{mode_of(h, c)}')
+                 and G.has_edge(f'{c["to"]}:{mode_of(h, c)}', f'{h["id"]}:{mode_of(h, c)}'))
     ]
     assert missing == []
+
+
+def test_no_flight_is_shorter_than_a_truck_ride(G):
+    # The data listed 8 such "flights", e.g. Memphis hub to Memphis airport (14 km)
+    # and Al Maktoum to Dubai International (45 km).
+    short = [(u, v) for u, v, d in G.edges(data=True) if d["transport_mode"] == "air" and d["distance"] < LOCAL_ROAD_KM]
+    assert short == []
 
 
 def test_every_possible_sea_lane_is_navigable_both_ways(sea, hubs, hub_index):

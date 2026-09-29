@@ -118,6 +118,9 @@ def _pacific_americas(lat, lon):
 ISLAND_LANDMASSES = {"UK", "Ireland", "Japan", "Taiwan", "Sri Lanka", "Indonesia", "Philippines",
                      "Australia", "New Zealand", "Madagascar", "Iceland"}
 CHANNEL_TUNNEL_PORTALS = ((51.096, 1.137), (50.925, 1.813))  # Folkestone (UK), Coquelles (FR)
+# Hubs closer than this are wired by road (step 4 below). Air cargo between
+# airports this close moves by truck ("road feeder service"), never by plane.
+LOCAL_ROAD_KM = 200
 
 def landmass(hub):
     if hub["country"] in ISLAND_LANDMASSES:
@@ -255,17 +258,20 @@ def create_multimodal_network():
                         continue  # no land link between these landmasses
                     segments = [(hub, target, dist)]
                 else:
-                    segments = [(hub, target, _haversine(hub["lat"], hub["lon"], target["lat"], target["lon"]))]
+                    dist = _haversine(hub["lat"], hub["lon"], target["lat"], target["lon"])
+                    if dist < LOCAL_ROAD_KM:
+                        continue  # a "flight" this short is trucked; step 4 adds the road
+                    segments = [(hub, target, dist)]
 
                 for h1, h2, dist in segments:
                     _add_lane(G, f"{h1['id']}:{mode}", f"{h2['id']}:{mode}", mode, dist)
 
-    # 4. Local Road Auto-wire (hubs < 200 km apart on the same landmass)
+    # 4. Local Road Auto-wire (hubs < LOCAL_ROAD_KM apart on the same landmass)
     for i, h1 in enumerate(hubs):
         if "road" not in h1["modes"]: continue
         for h2 in hubs[i+1:]:
             if "road" not in h2["modes"]: continue
-            if _haversine(h1["lat"], h1["lon"], h2["lat"], h2["lon"]) >= 200: continue
+            if _haversine(h1["lat"], h1["lon"], h2["lat"], h2["lon"]) >= LOCAL_ROAD_KM: continue
             dist = land_route_km(h1, h2)
             u, v = f"{h1['id']}:road", f"{h2['id']}:road"
             if dist is not None and G.has_node(u) and G.has_node(v) and not G.has_edge(u, v):

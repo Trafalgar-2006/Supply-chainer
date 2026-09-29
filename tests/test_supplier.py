@@ -27,6 +27,18 @@ def test_unaffected_supplier_is_not_penalised():
     assert hit["decision_score"] == normal["decision_score"]
 
 
+@pytest.mark.parametrize("category", ["Electronics", "Raw Materials", "Chemicals"])
+def test_scores_stay_between_zero_and_one_at_any_price_level(category):
+    # Raw Materials cost over $1,000 a unit; a fixed $1,000 cap made their cost score negative.
+    ranked = scorer.get_ranked_suppliers(category)
+    assert ranked
+    for s in ranked:
+        assert all(0 <= v <= 1 for v in s["audit_trace"]["scores"].values()), s
+        assert 0 <= s["decision_score"] <= 1
+    cheapest = min(ranked, key=lambda s: s["unit_cost"])
+    assert cheapest["audit_trace"]["scores"]["cost"] == 1.0
+
+
 @pytest.mark.parametrize("inventory, safety, forecast, status", [
     (1000, 1500, 800, "SAFETY_STOCK_VIOLATION"),
     (500, 1500, 800, "CRITICAL_SHORTAGE"),

@@ -18,6 +18,8 @@ QUANTILE_NAMES = ("p50", "p85", "p95")
 BALANCED_WEIGHTS = {"low": (0.2, 0.6), "normal": (0.3, 0.5), "urgent": (0.5, 0.3)}
 NO_DELAY = (0.0, 0.0, 0.0)
 # Explanations call two routes equal when they differ by less than this.
+CARGO_NAMES = {"perishable_urgent": "urgent perishable", "hazardous_waste": "hazardous waste",
+               "oversize_heavy": "oversize or heavy"}
 SAME_TIME_H = 1.0
 SAME_COST_RATIO = 0.02
 # Route ETA band: legs are log-normal (fitted to each leg's p50 and p95) and share
@@ -340,7 +342,20 @@ class RouteRecommender:
             candidates.append(route)
 
         if not candidates:
-            return {"error": "No valid multimodal route under the current constraints."}
+            # Name the constraints that made routing impossible, so the user knows what to relax.
+            active = []
+            if strict_modes is not None:
+                active.append(f"only {transport_preference} transport"
+                              + ("" if transport_preference == "road" else ", with road for the first and last mile"))
+            active += [f"no {mode} for {CARGO_NAMES.get(cargo_type, cargo_type)} cargo"
+                       for mode, profile in MODE_PROFILES.items() if cargo_type in profile.get("cargo_restrictions", [])]
+            if avoid_hubs:
+                active.append(f"avoiding {len(avoid_hubs)} chokepoint{'s' if len(avoid_hubs) > 1 else ''}")
+            if cost_ceiling < 999999 or max_delay < 9999:
+                active.append("the cost or time limit")
+            if not active:
+                return {"error": "No route connects these two hubs."}
+            return {"error": f"No route meets these constraints: {'; '.join(active)}. Relax one and plan again."}
 
         # Deduplicate: personas that chose the same path become one route that
         # lists every persona it is best for.

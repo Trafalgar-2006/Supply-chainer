@@ -22,12 +22,15 @@ class SupplierScorer:
         Ranks suppliers based on cost, lead time, reliability, and active disruption impact.
         """
         filtered = [s for s in self.suppliers if s['category'] == category]
-        
+        cheapest = min((s['unit_cost'] for s in filtered), default=0.0)
+
         scored_suppliers = []
         for s in filtered:
             # Deterministic Scoring Base
-            # 1. Cost Score (0.3)
-            cost_score = 1.0 - (s['unit_cost'] / 1000.0) # Normalized to $1k cap for demo
+            # 1. Cost Score (0.3): price relative to the cheapest supplier in the
+            # category, so it stays in 0-1 at any price level. (A fixed $1,000 cap
+            # made every Raw Materials supplier's cost score negative.)
+            cost_score = cheapest / s['unit_cost'] if s['unit_cost'] > 0 else 1.0
             
             # 2. Lead Time Score (0.3)
             # Base lead time + disruption penalty

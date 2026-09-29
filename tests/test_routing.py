@@ -169,6 +169,13 @@ def test_hub_search_offers_the_best_matches_first_and_no_chokepoints(client):
     assert search("suez") == []
 
 
+def test_an_impossible_request_names_the_constraints_to_relax(recommender):
+    assert recommender.recommend("Shanghai", "Rotterdam", transport_preference="road") == {
+        "error": "No route meets these constraints: only road transport. Relax one and plan again."}
+    error = recommender.recommend("AIR-GUANGZHOU", "HUB-SINGAPORE", cargo_type="oversize_heavy")["error"]
+    assert "no road for oversize or heavy cargo" in error
+
+
 def test_routing_does_not_modify_the_shared_graph(recommender):
     before = recommender.unified_graph.number_of_edges()
     recommend(recommender, transport_preference="sea", routing_policy="STRICT",

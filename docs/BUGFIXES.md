@@ -71,6 +71,9 @@ minus best safe-anchor similarity. Scores start at a margin of 0.10 and reach 1 
 | 22 | A route whose origin and destination were the same hub came back with no legs, which the dashboard could not draw | Rejected with a clear error | `test_same_origin_and_destination_is_an_error_not_an_empty_route` |
 | 23 | Solapur Freight Terminal had no connections, so no route could start or end there (found by a 1,500-request randomised sweep) | Connected by rail and road to Pune and Hyderabad, as on the real Central Railway line and NH65 | `test_every_origin_can_reach_and_be_reached_from_every_other` |
 | 24 | Hub search returned every match unranked (about 150 for "po") and offered canals and straits as origins | Best matches first, at most 12, no chokepoints; routing rejects a chokepoint as an origin or destination | `test_hub_search_offers_the_best_matches_first_and_no_chokepoints`, `test_a_chokepoint_is_not_an_origin_or_destination` |
+| 25 | A supplier's cost score was `1 - price / $1,000`, so every Raw Materials supplier (over $1,000 a unit) scored below zero | Price relative to the cheapest supplier in the category, always 0-1; the ranking order is unchanged | `test_scores_stay_between_zero_and_one_at_any_price_level` |
+| 26 | 8 "flights" were shorter than a truck ride, e.g. Memphis hub to Memphis airport (14 km) and Al Maktoum to Dubai International (45 km); under the Dubai surge the fastest route from Dubai to Mumbai flew via Frankfurt and Doha | Lanes under 200 km are never flown (the road link already exists), and Al Maktoum, Dubai's cargo airport, gained its main routes to India and Asia | `test_no_flight_is_shorter_than_a_truck_ride` |
+| 27 | The Dubai surge said "48h clearance backlog" but charged 24 h, and named both Dubai airports while disrupting one | 48 h, and the description names the one airport it disrupts | `test_scenario_delay_is_charged_once_per_disrupted_hub` |
 
 ## Repository
 

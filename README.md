@@ -32,7 +32,7 @@ This is our TatHack '26 preliminary submission for **PS6: Supplychainer**. It bu
 
 ## What we changed
 
-### Fixed: 24 bugs, each with a regression test
+### Fixed: 27 bugs, each with a regression test
 
 The starter code ran without errors but gave wrong answers. Some examples, all measured on the starter commit and on ours:
 
@@ -82,7 +82,7 @@ The starter code ran without errors but gave wrong answers. Some examples, all m
   - CORS and WebSocket origin checks, and security headers.
   - The model file's SHA-256 is pinned in code. See [SECURITY.md](SECURITY.md).
 - **Tests.**
-  - 227 pytest tests. The starter had none.
+  - 232 pytest tests. The starter had none.
   - A Playwright browser test drives the whole dashboard.
 
 ## Run it
@@ -258,7 +258,7 @@ All times are in hours and costs in US dollars.
 
 ```bash
 python -m pip install -r requirements-dev.txt
-python -m pytest                     # 227 tests, about a minute
+python -m pytest                     # 232 tests, about a minute
 python tools/audit_land_lanes.py     # lists road and rail lanes whose straight line crosses water
 ```
 
