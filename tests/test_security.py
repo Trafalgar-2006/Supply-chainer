@@ -45,6 +45,16 @@ def test_invalid_supplier_requests_are_rejected(client, patch):
     assert client.post("/api/suppliers", json=patch).status_code == 422
 
 
+@pytest.mark.parametrize("patch, reason", [
+    ({"source": "Atlantis"}, "Entry point unavailable"),
+    ({"destination": "Shanghai"}, "the same hub"),
+    ({"cargo_type": "perishable_urgent", "transport_preference": "sea"}, "No route meets these constraints"),
+])
+def test_requests_the_engine_cannot_serve_are_refused_with_the_reason(client, patch, reason):
+    r = client.post("/api/recommend", json={**ROUTE, **patch})
+    assert r.status_code == 422 and reason in r.json()["error"]
+
+
 def test_valid_overrides_still_work(client):
     body = client.post("/api/recommend", json={**ROUTE, "overrides": {"avoid_chokepoints": ["CHOKE-SUEZ"]}}).json()
     assert all("CHOKE-SUEZ" not in [l["to"] for l in r["legs"]] for r in body["recommendations"])
@@ -99,6 +109,12 @@ def test_security_headers(client):
     assert response.headers["referrer-policy"] == "no-referrer"
     assert response.headers["content-security-policy"] == "default-src 'none'; frame-ancestors 'none'"
     assert response.headers["cache-control"] == "no-store"
+
+
+def test_the_dashboard_page_gets_a_content_security_policy(client):
+    policy = client.get("/").headers["content-security-policy"]
+    assert "script-src 'self';" in policy and "frame-ancestors 'none'" in policy
+    assert "content-security-policy" not in client.get("/docs").headers  # Swagger UI loads from a CDN
 
 
 def test_cors_allows_only_the_dashboard_origin(client):

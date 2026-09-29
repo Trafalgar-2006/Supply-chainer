@@ -8,6 +8,7 @@ import threading
 from contextlib import asynccontextmanager
 
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from . import security
 from .engine.delay_model import EXECUTION_DIR
@@ -99,7 +100,10 @@ app.add_middleware(
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
     response = await call_next(request)
-    headers = {**security.SECURITY_HEADERS, **(security.API_HEADERS if request.url.path.startswith("/api/") else {})}
+    path = request.url.path
+    extra = (security.API_HEADERS if path.startswith("/api/") else
+             {} if path.startswith(security.DOCS_PATHS) else security.DASHBOARD_HEADERS)
+    headers = {**security.SECURITY_HEADERS, **extra}
     for name, value in headers.items():
         response.headers.setdefault(name, value)
     return response
@@ -240,7 +244,9 @@ def recommend_routes(req: RecommendRequest):
         overrides=req.overrides.model_dump(exclude_none=True) if req.overrides else None,
         live_intel=req.live_intel
     )
-    return result
+    # A well-formed request the engine can't serve (an unknown place, the same
+    # hub twice, no route under the constraints) is a 422 with the reason.
+    return JSONResponse(result, status_code=422) if "error" in result else result
 
 @app.post("/api/suppliers", dependencies=PROTECTED)
 def get_suppliers(req: SourcingRequest):

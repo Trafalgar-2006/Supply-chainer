@@ -3,11 +3,12 @@ import { animate, stagger } from 'animejs';
 import { Truck, Ship, Plane, Train, ArrowRightLeft, ArrowUpDown, Navigation, Download, Printer } from 'lucide-react';
 import RouteMap, { PERSONA_COLOURS, personaLabel, prefersReducedMotion } from './RouteMap.jsx';
 
+// `forbids`: the mode the engine never uses for this cargo (MODE_PROFILES' cargo_restrictions).
 const CARGO_TYPES = [
   { value: 'general', label: 'General cargo' },
-  { value: 'perishable_urgent', label: 'Perishable, urgent (no sea)' },
-  { value: 'hazardous_waste', label: 'Hazardous waste (no air)' },
-  { value: 'oversize_heavy', label: 'Oversize or heavy (no road)' },
+  { value: 'perishable_urgent', label: 'Perishable, urgent (no sea)', forbids: 'sea' },
+  { value: 'hazardous_waste', label: 'Hazardous waste (no air)', forbids: 'air' },
+  { value: 'oversize_heavy', label: 'Oversize or heavy (no road)', forbids: 'road' },
 ];
 const THREAT_TYPE_LABELS = {
   weather: 'Weather', labour: 'Labour', geopolitical: 'Geopolitical', infrastructure: 'Infrastructure',
@@ -37,6 +38,7 @@ const EXAMPLES = [
 ];
 const RECENT_KEY = 'supplychainer.recent-plans';
 const RECENT_LIMIT = 8;
+const SEARCH_MAX = 100; // the API's limit on a hub search
 
 // Hours, shown as days once a trip passes two days (a 640 h voyage reads 26.7
 // days). Figures read together pass `days` so they share one unit.
@@ -334,6 +336,12 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
     source, sourceName: searchQuery.source, destination, destName: searchQuery.dest,
     transportMode, routingPolicy, cargoType, priority, scenario: selectedScenario, liveIntel, avoid,
   });
+  // Plans the engine would refuse, explained before they are sent.
+  const cargoRule = CARGO_TYPES.find(c => c.value === cargoType);
+  const conflict = source && source === destination ? 'Choose a destination different from the origin.'
+    : cargoRule.forbids === transportMode && routingPolicy === 'STRICT'
+      ? `${cargoRule.label.split(' (')[0]} cargo can't go by ${transportMode}. Choose another mode, or set the mode policy to prefer it.`
+      : null;
   // The routes shown no longer match the controls: they are dimmed and can't be exported.
   const inputsChanged = resultContext && planKey(planFromControls()) !== planKey(resultContext);
   const stale = !loading && (inputsChanged || scenarioChanged);
@@ -352,7 +360,7 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
       const res = await fetch(`/api/hubs/search?q=${encodeURIComponent(query)}`);
       const data = await res.json();
       // Responses can arrive out of order while typing; keep only the latest.
-      if (latestQuery.current[type] === query) {
+      if (latestQuery.current[type] === query && Array.isArray(data)) {
         setSearchResults(prev => ({ ...prev, [type]: data }));
       }
     } catch {
@@ -397,7 +405,7 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
     <div className="field">
       <label htmlFor={`hub-${type}`}>{label}</label>
       <input
-        id={`hub-${type}`} type="text" value={searchQuery[type]} autoComplete="off"
+        id={`hub-${type}`} type="text" value={searchQuery[type]} autoComplete="off" maxLength={SEARCH_MAX}
         onChange={e => handleSearch(type, e.target.value)}
         className="control" placeholder={placeholder}
       />
@@ -553,9 +561,11 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
         </div>
 
         <button type="button" className="primary" onClick={() => runPlan(planFromControls())}
-                disabled={loading || !source || !destination}>
+                disabled={loading || !source || !destination || Boolean(conflict)}
+                aria-describedby={conflict ? 'plan-conflict' : undefined}>
           {loading ? 'Planning routes…' : 'Plan routes'}
         </button>
+        {conflict && <p id="plan-conflict" className="field-error" role="status">{conflict}</p>}
 
         {recent.length > 0 && (
           <>

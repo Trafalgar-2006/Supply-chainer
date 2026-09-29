@@ -152,7 +152,9 @@ export default function RouteMap({ hubs, routes, selected, onSelect, disrupted, 
     const running = [];
     if (focus && fitted.current !== routes[selected]) {
       fitted.current = routes[selected];
-      map.current.fitBounds(focus, { padding: [30, 30], maxZoom: 5 });
+      // No zoom animation: Leaflet finishes one on a timer that throws if the
+      // map is removed first (leaving the planner right after planning).
+      map.current.fitBounds(focus, { padding: [30, 30], maxZoom: 5, animate: false });
       if (!prefersReducedMotion()) {
         running.push(animate(svg.createDrawable(selectedLine.getElement()), { draw: ['0 0', '0 1'], duration: 1400, ease: 'inOutQuad' }));
         const overlays = exposures.map(e => e.getElement());

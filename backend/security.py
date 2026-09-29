@@ -32,6 +32,16 @@ API_HEADERS = {
     "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'",
     "Cache-Control": "no-store",
 }
+# The dashboard, when this server serves it: its own scripts, Google Fonts,
+# OpenStreetMap tiles, and the API and status socket on the same origin.
+# Inline styles are allowed because Leaflet and the charts position with them.
+DASHBOARD_HEADERS = {
+    "Content-Security-Policy": (
+        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src https://fonts.gstatic.com; img-src 'self' data: https://tile.openstreetmap.org; "
+        "connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"),
+}
+DOCS_PATHS = ("/docs", "/redoc")  # FastAPI's interactive docs load their own scripts from a CDN
 
 
 class RateLimiter:

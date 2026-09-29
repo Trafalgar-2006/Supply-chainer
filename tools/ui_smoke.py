@@ -5,11 +5,11 @@ runs the LA port strike example (ships must divert via Oakland), checks that
 editing an input marks those routes stale, plans Shanghai -> Rotterdam by
 search (and swaps the ends once), switches to SUEZ_BLOCK and re-plans from
 the scenario alert, picks an option, points at a leg, exports the route as
-CSV and JSON and the printed report as PDF, shows costs in euros, plans again
-to compare with the last run, then opens the model and supplier views (and
-rejects a negative inventory), and reopens a saved plan at phone width.
-Fails on any console error, failed request or missing element, and saves
-screenshots.
+CSV and JSON and the printed report as PDF, shows costs in euros, plans
+again to compare with the last run, then opens the model and supplier views
+(and rejects a negative inventory), reopens a saved plan at phone width, and
+leaves the planner right after planning a few times. Fails on any console
+error, failed request or missing element, and saves screenshots.
 
 Usage: python tools/ui_smoke.py [out_dir] [--browser msedge|chrome|chromium]
 (Playwright's own Chromium needs `playwright install chromium` first.)
@@ -152,6 +152,16 @@ def main():
         overflow = page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth")
         check(overflow <= 0, f"page scrolls sideways at phone width by {overflow}px")
         page.screenshot(path=str(out / "phone.png"), full_page=True)
+
+        # Leaving the planner right after a plan: the map must tear down cleanly
+        # (a zoom animation still running once threw from Leaflet here).
+        page.set_viewport_size({"width": 1680, "height": 1000})
+        for i in range(6):
+            page.click("text=Model evaluation")
+            page.click("text=Route planner")
+            page.wait_for_selector(".examples button", timeout=20_000)
+            page.locator(".examples button").nth(i % 3).click()
+            page.wait_for_selector(".option", timeout=60_000)
         browser.close()
 
     for problem in problems:
