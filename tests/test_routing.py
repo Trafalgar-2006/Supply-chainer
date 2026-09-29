@@ -176,6 +176,35 @@ def test_an_impossible_request_names_the_constraints_to_relax(recommender):
     assert "no road for oversize or heavy cargo" in error
 
 
+def test_a_route_clear_of_the_scenario_says_it_avoids_the_disrupted_hubs(recommender):
+    # A reviewer read "scenario delay: none" on the LA strike example as the strike
+    # being ignored; the route in fact lands at Oakland. The explanation says so.
+    for rec in recommend(recommender, src="PORT-SHANGHAI", dst="HUB-LOSANGELES", scenario="LA_PORT_STRIKE",
+                         transport_preference="sea")["recommendations"]:
+        through = {"PORT-LOSANGELES", "PORT-LONGBEACH"} & set(route_hubs(rec))
+        assert through or rec["explanation"].startswith(
+            "Avoids the disrupted Port of Long Beach and Port of Los Angeles."), rec["explanation"]
+
+
+@pytest.mark.parametrize("scenario_id", list(ScenarioManager.SCENARIOS))
+def test_every_scenario_route_avoids_the_disruption_or_pays_for_it(recommender, scenario_id):
+    scenario = ScenarioManager.SCENARIOS[scenario_id]
+    pairs = {"SUEZ_BLOCK": ("Shanghai", "Rotterdam"), "RED_SEA_CONFLICT": ("Shanghai", "Rotterdam"),
+             "LA_PORT_STRIKE": ("Shanghai", "Los Angeles"), "CHENNAI_FLOOD": ("Chennai", "Singapore"),
+             "DUBAI_AIR_CONGESTION": ("AIR-DUBAI", "AIR-MUMBAI"), "HORMUZ_CLOSURE": ("PORT-JEBEL", "Mumbai")}
+    for rec in recommend(recommender, *pairs[scenario_id], scenario=scenario_id)["recommendations"]:
+        through = set(scenario["affected_nodes"]) & ({rec["legs"][0]["from"]} | set(route_hubs(rec)))
+        if through:
+            assert rec["audit_trace"]["eta"]["scenario"] >= scenario["delay_hours"] and rec["threat_level"] >= scenario["threat_level"]
+        else:
+            assert rec["audit_trace"]["eta"]["scenario"] == 0 and rec["explanation"].startswith("Avoids the disrupted")
+
+
+def test_explanations_speak_of_percentiles_and_estimates(recommender):
+    for rec in recommend(recommender, transport_preference="sea")["recommendations"]:
+        assert "confidence" not in rec["explanation"] and "landed" not in rec["explanation"]
+
+
 def test_routing_does_not_modify_the_shared_graph(recommender):
     before = recommender.unified_graph.number_of_edges()
     recommend(recommender, transport_preference="sea", routing_policy="STRICT",

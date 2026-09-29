@@ -162,8 +162,8 @@ def test_a_slow_feed_cannot_stall_a_request(live_recommender, monkeypatch):
 
 
 def test_a_leg_shows_the_report_that_actually_raised_its_threat(live_recommender, monkeypatch):
-    feed = {"Shanghai": "Dock workers strike shuts down the port; container backlog grows for a second week.",
-            "Rotterdam": "Airport cargo handlers report minor delays on evening flights"}
+    feed = {"Shanghai": "Dock workers strike shuts down the port of Shanghai; container backlog grows for a second week.",
+            "Rotterdam": "Airport cargo handlers at Rotterdam report minor delays on evening flights"}
     monkeypatch.setattr(live_recommender.news_ingestor, "fetch_headlines", lambda place: feed.get(place))
     result = recommend(live_recommender, transport_preference="sea", live_intel=True)
     live_legs = [l for x in result["recommendations"] for l in x["legs"] if l["intel_source"] == "LIVE"]
@@ -210,6 +210,22 @@ def test_live_chokepoint_news_reaches_the_routes_through_it(watched):
 def test_chokepoint_reports_off_the_routes_are_not_listed(watched):
     result = recommend(watched, src="Mumbai", dst="Delhi", live_intel=True)
     assert all(r["place"] != "Bab el-Mandeb Strait" for r in result["live_intel"])
+
+
+def test_a_headline_that_does_not_name_the_place_is_ignored(live_recommender, monkeypatch):
+    # A search for Los Angeles returned Middle East news; it must not become an LA threat.
+    feed = {"Los Angeles": "WFP acts to keep food moving as Middle East conflict escalates"}
+    monkeypatch.setattr(live_recommender.news_ingestor, "fetch_headlines", lambda place: feed.get(place))
+    result = recommend(live_recommender, src="Shanghai", dst="Los Angeles", live_intel=True)
+    assert all(r["place"] != "Los Angeles" for r in result["live_intel"])
+    assert all(leg["intel_source"] != "LIVE" for x in result["recommendations"] for leg in x["legs"])
+
+
+def test_a_headline_naming_a_hub_alias_counts_for_its_city(live_recommender, monkeypatch):
+    feed = {"Los Angeles": "Longshore strike shuts San Pedro terminals for a third day"}
+    monkeypatch.setattr(live_recommender.news_ingestor, "fetch_headlines", lambda place: feed.get(place))
+    intel = live_recommender._live_intel([("Los Angeles", 34.05, -118.24)])
+    assert intel["PORT-LOSANGELES"]["score"] > 0.2 and intel["PORT-LOSANGELES"]["threat_type"] == "labour"
 
 
 def test_live_intel_is_off_unless_requested(live_recommender, monkeypatch):

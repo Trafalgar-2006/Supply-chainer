@@ -1,3 +1,4 @@
+import re
 import time
 from concurrent.futures import ThreadPoolExecutor, wait
 
@@ -6,7 +7,7 @@ import numpy as np
 
 from .delay_features import CONDITIONS, FEATURES, arrival_kind
 from .delay_model import DelayQuantileModel, label as feature_label
-from .multimodal_network import MODE_PROFILES, create_multimodal_network
+from .multimodal_network import MODE_PROFILES, create_multimodal_network, load_canonical_hubs
 from .threat_intelligence import MINOR_SCORE, ContrastiveNLPEngine, CARFFilter
 from .news_ingestion import DynamicNewsIngestor
 from .node_resolver import NodeResolver
@@ -19,6 +20,9 @@ QUANTILE_NAMES = ("p50", "p85", "p95")
 BALANCED_WEIGHTS = {"low": (0.2, 0.6), "normal": (0.3, 0.5), "urgent": (0.5, 0.3)}
 NO_DELAY = (0.0, 0.0, 0.0)
 # Explanations call two routes equal when they differ by less than this.
+# Extra names the feeds use for some chokepoints, beyond the registry's aliases.
+CHOKEPOINT_NAMES = {"CHOKE-BABEL": ["Bab al-Mandeb", "Red Sea"]}
+GENERIC_ALIASES = {"port"}  # registry aliases too common to identify a place
 CARGO_NAMES = {"perishable_urgent": "urgent perishable", "hazardous_waste": "hazardous waste",
                "oversize_heavy": "oversize or heavy"}
 SAME_TIME_H = 1.0
@@ -65,6 +69,15 @@ class RouteRecommender:
             if data["type"] == "choke_point":
                 chokepoints[data["physical_id"]] = (data["display_name"], data["lat"], data["lon"])
         self._chokepoints = sorted(chokepoints.items())
+        # Names a headline must mention to count as news about a place: the place
+        # itself plus the aliases of its hubs. A headline about the Middle East
+        # returned by a search for Los Angeles is not news about Los Angeles.
+        self._place_names = {}
+        for hub in load_canonical_hubs():
+            names = {hub["display_name"], *(a for a in hub["aliases"] if len(a) >= 3 and a.lower() not in GENERIC_ALIASES),
+                     *CHOKEPOINT_NAMES.get(hub["id"], [])}
+            for place in {hub.get("parent_city") or hub["display_name"], hub["display_name"]}:
+                self._place_names.setdefault(place, {place}).update(names)
         self._chokepoint_intel = {}  # hub id -> live report, kept fresh by watch_chokepoints
 
         self.delay_model_error = None
@@ -223,8 +236,17 @@ class RouteRecommender:
                 intel[hub_id] = report
         return intel
 
+    def _mentions(self, place, headline):
+        return any(re.search(rf"(?<![A-Za-z]){re.escape(name)}(?![A-Za-z])", headline, re.IGNORECASE)
+                   for name in self._place_names.get(place, {place}))
+
     def _report(self, place, hubs, headlines, measured):
-        """A live report from a place's headlines and measured weather, or None if neither exists."""
+        """A live report from a place's headlines and measured weather, or None if neither exists.
+
+        Only headlines that name the place count, at most the three newest.
+        """
+        named = [h for h in (headlines or "").split(" | ") if h.strip() and self._mentions(place, h)]
+        headlines = " | ".join(named[:3]) or None
         if not headlines and not measured:
             return None
         assessment = self.nlp.assess(headlines or "")
@@ -417,9 +439,17 @@ class RouteRecommender:
 
         route_hubs = {h for c in final[:3] for leg in c["legs"] for h in (leg["from"], leg["to"])}
         preference = transport_preference if soft_preference else None
+        affected = {h: G.nodes[self._hub_nodes[h][0]]["display_name"] for h in disruptions if h in self._hub_nodes}
         for c in final:
             c["delay_drivers"] = self._delay_drivers(c.pop("_leg_features"))
             c["explanation"] = self._explain(c, final, preference)
+            # Say so when a route stays clear of the scenario, so a zero scenario
+            # delay reads as a diversion, not as the scenario being ignored.
+            visited = {c["legs"][0]["from"]} | {leg["to"] for leg in c["legs"]}
+            if affected and not visited & set(affected):
+                names = sorted(affected.values())
+                named = names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
+                c["explanation"] = f"Avoids the disrupted {named}. " + c["explanation"]
 
         return {
             "origin": source, "destination": destination,
@@ -583,12 +613,13 @@ class RouteRecommender:
                 parts.append(f"Best cost-time-risk balance: {saving_text} cheaper than the {ref['persona'].lower()} "
                              f"route, {timing}.")
             else:
-                parts.append(f"Best cost-time-risk balance at ${cost:,.0f} landed.")
+                parts.append(f"Best cost-time-risk balance at an estimated ${cost:,.0f}.")
 
         parts.append(f"{transfers} mode transfer{'s' if transfers != 1 else ''}.")
         band = route["eta_band"]
         if band["p95"] > band["p50"]:
-            parts.append(f"Plan for {band['p85']:.0f}h (85% confidence), up to {band['p95']:.0f}h in a bad case.")
+            parts.append(f"Plan for {band['p85']:.0f}h (85% of simulated trips arrive by then), "
+                         f"up to {band['p95']:.0f}h in a bad case (95th percentile).")
         drivers = (route.get("delay_drivers") or {}).get("drivers") or []
         top = next((d for d in drivers if d["hours"] >= 1), None)
         if top:

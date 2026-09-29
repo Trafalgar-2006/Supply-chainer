@@ -47,3 +47,22 @@ def test_weather_is_not_fetched_before_the_nlp_engine_is_ready(recommender, monk
     assert not recommender.nlp.ready
     monkeypatch.setattr(recommender.news_ingestor, "fetch_weather", fail)
     assert recommender.recommend("Shanghai", "Rotterdam", live_intel=True)["live_intel"] == []
+
+
+def feed(*entries):
+    """An RSS body with (title, hours ago) items."""
+    import email.utils
+    import time
+    items = "".join(f"<item><title>{t}</title><pubDate>{email.utils.formatdate(time.time() - h * 3600)}</pubDate></item>"
+                    for t, h in entries)
+    return f"<rss><channel>{items}</channel></rss>".encode()
+
+
+def test_only_recent_headlines_count_newest_first(monkeypatch):
+    class Page:
+        content = feed(("Old strike at Rotterdam", 24 * 30), ("Storm hits Rotterdam", 5), ("Rotterdam queue grows", 1))
+
+        def raise_for_status(self):
+            pass
+    monkeypatch.setattr(news_ingestion.requests, "get", lambda *a, **kw: Page())
+    assert DynamicNewsIngestor().fetch_headlines("Rotterdam") == "Rotterdam queue grows | Storm hits Rotterdam"

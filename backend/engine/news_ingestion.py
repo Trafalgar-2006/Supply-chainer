@@ -1,3 +1,5 @@
+import calendar
+
 import feedparser
 import requests
 import urllib.parse
@@ -5,6 +7,7 @@ import time
 from typing import Optional
 
 FEED_TIMEOUT_S = 2.0
+NEWS_MAX_AGE_S = 3 * 24 * 3600  # older headlines describe events that may be over
 
 WEATHER_URL = "https://api.open-meteo.com/v1/forecast"
 # WMO weather codes (open-meteo.com/en/docs). Fog, drizzle, rain, snow and showers
@@ -40,11 +43,12 @@ class DynamicNewsIngestor:
             "rail": "Rail freight scheduling adjustments due to infrastructure maintenance."
         }
 
-    def fetch_headlines(self, location: str, max_items: int = 3) -> Optional[str]:
-        """Latest logistics-disruption headlines for a place, or None if the feed is unavailable.
+    def fetch_headlines(self, location: str, max_items: int = 8) -> Optional[str]:
+        """Recent logistics-disruption headlines for a place, newest first, or None.
 
-        None means "no live signal", which callers must not confuse with the static
-        fallback reports.
+        Only headlines from the last three days count; the feed's search results
+        can be months old. None means "no live signal", which callers must not
+        confuse with the static fallback reports.
         """
         query = f"{location} logistics disruption"
         key = (query, max_items)
@@ -60,9 +64,11 @@ class DynamicNewsIngestor:
             # Per-request timeout; socket.setdefaulttimeout would change every socket in the process.
             response = requests.get(url, timeout=FEED_TIMEOUT_S)
             response.raise_for_status()
-            entries = feedparser.parse(response.content).entries
-            if entries:
-                content = " | ".join(entry.title for entry in entries[:max_items])
+            recent = sorted((e for e in feedparser.parse(response.content).entries
+                             if e.get("published_parsed") and now - calendar.timegm(e.published_parsed) <= NEWS_MAX_AGE_S),
+                            key=lambda e: e.published_parsed, reverse=True)
+            if recent:
+                content = " | ".join(entry.title for entry in recent[:max_items])
         except Exception as e:
             print(f"[NEWS] Feed unavailable for {location!r}: {e}")
         self.cache[key] = (now, content)
