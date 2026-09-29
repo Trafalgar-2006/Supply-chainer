@@ -1,13 +1,17 @@
 """Evaluate the threat-intelligence stage on labelled headlines.
 
-`ml/nlp_headlines.csv` holds 288 headlines written for this evaluation: about
-half describe a disruption (with its type and the transport modes it concerns),
-the rest are routine or positive logistics news, including hard cases such as
-"Union and port employers strike a deal". Three splits of 96:
-- `dev`: used to choose the model, anchors and threshold
-- `test`: scored after that tuning; one keyword was removed after seeing it
-- `holdout`: written afterwards and scored once, after the threat-type
-  classifier learned from the dev and test disruptions. The honest figures.
+`ml/nlp_headlines.csv` holds 288 synthetic headlines written for this project:
+about half describe a disruption (with its type, severity 1-3 and the transport
+modes it concerns), the rest are routine or positive logistics news, including
+hard cases such as "Union and port employers strike a deal". Its three splits
+(dev, test, holdout) were used in turn to build the engine and now all train
+it, so their scores are in-sample.
+
+`ml/nlp_real_headlines.csv` (split `real`) is the honest test: 188 real
+headlines fetched from Google News on 29 Sep 2026, labelled before the engine
+was run on them, and never read by the engine. Where the cause and the effect
+differ ("typhoon deepens port congestion") both types are listed
+("congestion|weather") and either counts.
 
 Reports, per split:
 - detection: ROC AUC of the threat margin, and recall, false-alarm rate and
@@ -24,6 +28,7 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
+from scipy.stats import spearmanr
 from sklearn.metrics import roc_auc_score
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -31,18 +36,22 @@ sys.path.insert(0, str(ROOT))
 from backend.engine.threat_intelligence import CARFFilter, ContrastiveNLPEngine  # noqa: E402
 
 DATA = ROOT / "ml" / "nlp_headlines.csv"
+REAL = ROOT / "ml" / "nlp_real_headlines.csv"
 OUT = ROOT / "Execution" / "nlp_evaluation.json"
 MODES = ("sea", "air", "rail", "road")
-SPLITS = ("dev", "test", "holdout")
-# Holdout scores of the engine before this evaluation existed (all-MiniLM-L6-v2
-# and the original anchors, at commit e550c5f), kept for comparison.
-BASELINE_HOLDOUT = {"auc": 0.863, "recall": 0.696, "false_alarm_rate": 0.1, "precision": 0.865,
-                    "type_accuracy": 0.761, "carf_accuracy": 0.929}
+SPLITS = ("dev", "test", "holdout", "real")
+# Real-news scores of the engine before any of this work (all-MiniLM-L6-v2 and
+# the original anchors, at commit e550c5f), kept for comparison.
+BASELINE_REAL = {"auc": 0.859, "recall": 0.681, "false_alarm_rate": 0.165, "precision": 0.795,
+                 "type_accuracy": 0.758, "severity_rank_correlation": 0.242, "carf_accuracy": 0.882}
 
 
 def load():
     with open(DATA, newline="", encoding="utf-8") as f:
-        return list(csv.DictReader(f))
+        rows = list(csv.DictReader(f))
+    with open(REAL, newline="", encoding="utf-8") as f:
+        rows += [{**r, "split": "real"} for r in csv.DictReader(f)]
+    return rows
 
 
 def evaluate(rows, nlp, carf):
@@ -57,7 +66,7 @@ def evaluate(rows, nlp, carf):
     wrong_type = []
     for r, a in disrupted:
         per_type[r["threat_type"]][1] += 1
-        if a["type"] == r["threat_type"]:
+        if a["type"] in r["threat_type"].split("|"):
             per_type[r["threat_type"]][0] += 1
         else:
             wrong_type.append(f'{r["headline"]} ({r["threat_type"]} read as {a["type"]})')
@@ -85,6 +94,9 @@ def evaluate(rows, nlp, carf):
             "precision": round(tp / (tp + len(false_alarms)), 3) if tp + len(false_alarms) else None,
         },
         "type_accuracy": round(sum(c for c, _ in per_type.values()) / len(disrupted), 3),
+        # How well the predicted severity ranks the labelled 1-3 severities.
+        "severity_rank_correlation": round(float(spearmanr([a["severity"] for _, a in disrupted],
+                                                           [int(r["severity"]) for r, _ in disrupted])[0]), 3),
         "type_accuracy_by_type": {t: round(c / n, 2) for t, (c, n) in sorted(per_type.items())},
         "carf_accuracy": round(carf_right / (len(disrupted) * len(MODES)), 3),
         "errors": {"missed": missed, "false_alarms": false_alarms, "wrong_type": wrong_type,
@@ -98,12 +110,13 @@ def main():
         sys.exit("The sentence-transformer model could not be loaded.")
     rows = load()
     report = {split: evaluate([r for r in rows if r["split"] == split], nlp, carf) for split in SPLITS}
-    report["baseline_holdout"] = BASELINE_HOLDOUT
+    report["baseline_real"] = BASELINE_REAL
     for split in SPLITS:
         result = report[split]
         d = result["detection"]
         print(f"{split}: AUC {d['auc']}, recall {d['recall']}, false alarms {d['false_alarm_rate']}, "
-              f"precision {d['precision']}, type accuracy {result['type_accuracy']}, CARF {result['carf_accuracy']}")
+              f"precision {d['precision']}, type accuracy {result['type_accuracy']}, "
+              f"severity rank {result['severity_rank_correlation']}, CARF {result['carf_accuracy']}")
     OUT.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(f"wrote {OUT.relative_to(ROOT)}")
     return report

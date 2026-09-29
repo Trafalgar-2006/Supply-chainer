@@ -168,7 +168,7 @@ def test_api_reports_model_evaluation(client):
     body = client.get("/api/model").json()
     assert body["available"] is True
     assert set(body["quantiles"]) == {"p50", "p85", "p95"}
-    assert body["nlp"]["holdout"]["detection"]["auc"] > 0.9
+    assert body["nlp"]["real"]["detection"]["auc"] > 0.9
     ceiling = body["delay_ceiling"]["quantiles"]
     assert all(q["optimal"] <= q["model"] <= q["naive"] for q in ceiling.values())
     status = client.get("/api/status").json()

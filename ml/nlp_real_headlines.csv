@@ -1,0 +1,189 @@
+published,source,label,threat_type,modes,headline,severity
+2026-09-28,WorldCargo News,disrupted,labour,sea,Italian port workers begin 24-hour national strike,3
+2026-09-22,Kuehne+Nagel,disrupted,labour,sea,Italian port strike set for 28 September as wider industrial action looms,3
+2026-09-27,mezha.net,disrupted,geopolitical,sea,Russian Forces Strike Port and Civilian Infrastructure in Kiliia,3
+2026-07-31,In These Times,disrupted,labour,sea,Dockworkers Unions in Six Countries Announce Day of Strikes and Protests Against War and Genocide,2
+2026-02-11,"Breaking News, Latest News and Videos",safe,,,"Dockworkers strike suspended, tentative agreement includes 62% pay raise over 6 years - ABC News",
+2026-09-04,WorldCargo News,disrupted,labour,sea,"Dockworkers strike at Rotterdam, Amsterdam and Zeeland ports",3
+2026-02-06,Peoples Dispatch,disrupted,labour,sea,Mediterranean dockworkers launch historic international strike,3
+2026-02-09,People's World,disrupted,labour,sea,Dockworkers halt ports across Europe in strike against war,3
+2026-08-18,The Maritime Executive,disrupted,labour,sea,German Seaports Paralyzed by Daylong Strike Over Contract Impasse,3
+2026-07-22,FreightWaves,disrupted,labour,sea,Walkout by union dockworkers shuts down Oakland terminals,2
+2026-07-02,Journal of Commerce,disrupted,congestion,sea,"Asia port congestion worsens amid bad weather, vessel bunching",1
+2026-08-26,Marine Insight,disrupted,congestion,sea,Global Port Congestion Reaches New High With 4.3 Million TEU Vessel Capacity Waiting To Berth,2
+2026-09-10,Trans.INFO,disrupted,congestion,sea,China’s port backlog could turn Golden Week into a shipping squeeze,1
+2026-09-03,American Journal of Transportation,disrupted,congestion,sea,"Record port congestion exposes maritime’s collaboration problem, says PortXchange",2
+2026-09-04,Kuehne+Nagel,disrupted,congestion,sea,China port congestion forces carrier schedule changes as vessel delays mount,2
+2026-09-28,The Conversation,disrupted,geopolitical,sea,Yemen’s Houthis move to control crucial waterway – our research maps the countries most at risk,2
+2026-09-23,FreshPlaza,disrupted,geopolitical,sea,Red Sea tensions renew shipping risks for Egypt's Suez Canal,1
+2026-09-10,reuters.com,disrupted,geopolitical,sea,Yemen's Houthis close in on Bab el-Mandeb Strait in new threat to shipping,2
+2026-09-13,Somali Guardian,disrupted,geopolitical,sea,Somalis rethink trade routes as Houthis disrupt Red Sea shipping,2
+2026-09-11,Time Magazine,disrupted,geopolitical,sea,Yemen’s Houthis Reach Strategic Island in Key Shipping Route,2
+2026-09-15,Mining.com,disrupted,geopolitical,sea,Red Sea disruption puts global mining supplies at risk,1
+2026-09-25,downtoearth.org.in,disrupted,geopolitical,sea,"Disruptions across Strait of Hormuz, Black Sea and alternative routes raise global food and fuel security risks",2
+2026-09-28,Lloyd's List,disrupted,geopolitical,sea,The week in charts: Iran’s ship attacks show strategy of disruption not discrimination | Abu Dhabi emerges as container shipping’s Hormuz shuttle operator,2
+2026-09-23,The Times of Israel,disrupted,geopolitical,sea,"Two hurt, cargo ship ablaze in Strait of Hormuz attack, watchdog says",2
+2026-09-13,upi.com,disrupted,geopolitical,sea,"Container ship attacked in Strait of Hormuz; 1 dead, Iran says",2
+2026-09-23,united24media.com,disrupted,geopolitical,sea,"Russia Attacks Foreign-Flagged Civilian Cargo Ship in Black Sea, Kills Captain",2
+2026-09-25,Financial Times,safe,,,Houthis promise not to target European ships,
+2026-09-24,Marine Insight,disrupted,geopolitical,sea,Ukrainian Captain Killed After Russian Attack On Cargo Ship In Black Sea,2
+2026-07-13,FreightWaves,disrupted,geopolitical,sea,Container ship attacked in Strait of Hormuz as Iran widens war,3
+2026-08-11,NewsNation,disrupted,geopolitical,sea,US confirms Hellfire missile used to hit container ship off Pakistan,2
+2026-08-12,CNBC,disrupted,geopolitical,sea,Houthi attack kills six in Red Sea; Trump slams Iran as hopes for Hormuz Strait deal dim,3
+2026-09-28,gCaptain,safe,,,Panama Canal Adds Transit Capacity as Rainfall Brings Relief,
+2026-09-08,Marine Insight,disrupted,weather,sea,"Panama Canal Squeezes Daily Capacity To 29 Ships, Threatening Global Supply Chains",2
+2026-09-08,Al Jazeera,disrupted,weather,sea,Panama Canal may cut ship traffic further as El Niño strengthens,1
+2026-07-15,المنصة | ما رواه الناس,safe,,,Suez Canal forecasts 20% rise in ship traffic despite Iran conflict,
+2026-07-13,KOMO,disrupted,infrastructure,road,"Revive I-5 returns over Ship Canal Bridge, now with closure of 2 right lanes",1
+2026-09-23,KXXV,disrupted,infrastructure,rail,"Freight train derails in Marlin, cause of derailment unknown",2
+2026-08-13,ksla.com,disrupted,infrastructure,rail,"Freight train derailment in south Bossier Parish claims one life, injures two",2
+2026-09-20,KSDK,disrupted,infrastructure,rail,Hundreds still without power hours after Ferguson train derailment,2
+2026-04-15,ABC7 New York,disrupted,infrastructure,rail,"Freight train derails in North Bergen, New Jersey; cleanup continues",2
+2026-06-30,WCNC,disrupted,infrastructure,rail,Freight train derails in Pennsylvania,2
+2026-07-01,WHYY,disrupted,infrastructure,rail,"Freight train derails in Bensalem, Pennsylvania: ‘No threat to public safety’",2
+2026-09-21,St. Louis American,disrupted,infrastructure,rail,Train derails in Ferguson nearly 6 years after previous wreck,2
+2026-05-18,CNBC,disrupted,labour,rail,Riders navigate the first weekday of a strike that has shut down the largest US commuter rail system,3
+2026-09-01,The Florentine,disrupted,labour,rail+air+road,"September transport strikes set to disrupt trains, buses and flights across Tuscany",2
+2026-07-14,Travelers Today,disrupted,labour,air+sea+rail,"Italy Strike Wave Peaks July 21: Airport, Ferry, and Rail All Affected",2
+2026-07-30,trains.com,safe,,,Federal judge again blocks potential SMART-TD strike in dispute with CSX over attendance rules,
+2026-02-27,reuters.com,safe,,,"German rail operator and union reach wage agreement, averting strikes",
+2026-08-21,NBC 5 Chicago,disrupted,infrastructure,rail+road,"Roads closed, ‘extensive' Metra delays after freight train strikes car in Lake Forest",1
+2026-07-14,Railway PRO,disrupted,labour,rail,24-Hour strike at Renfe,2
+2026-09-29,NewsNation,safe,,,Trucking executive pushes back on nationwide strike rumors,
+2026-09-28,The Center Square,safe,,,No national truckers’ strike Thursday,
+2026-09-15,Congresswoman Harriet Hageman (.gov),safe,,,Trucking industry reacts to legislation for trucker appreciation week,
+2026-09-24,Boston Herald,disrupted,congestion,road,Hundreds of trucks jam Turkey-Iran border crossing as US blockade pushes trade overland,2
+2026-09-24,Euronews.com,disrupted,congestion,road,Video. Turkey Iran border crossing hit by severe truck delays,2
+2026-09-14,Latest news from Azerbaijan,disrupted,congestion,road,Nearly 600 trucks stuck in queue at Russia-Georgia border,2
+2026-09-14,modernghana.com,disrupted,congestion,road,Severe Gridlock at Paga Border as Truck Queue Stretches to Navrongo,2
+2026-09-15,srpske.rs,disrupted,congestion,road,"Batrovci Border: Trucks Wait 8 Hours, Cars Pass Freely",1
+2026-09-25,UzDaily.uz,disrupted,congestion,road,Truck queues form at S. Najimov border customs post,1
+2026-09-20,خبرگزاری اطلس,disrupted,congestion,road,"Long Queues at Dogharoun Border Disrupt Truck Traffic, Officials Say",1
+2026-07-12,Українські Національні Новини (УНН),disrupted,congestion,road,Large queues at the border with Poland: why they appeared and how to avoid them without wasting time,1
+2026-06-14,Caliber.Az,disrupted,congestion,road,Truck queue forms at Kazakhstan-Russia border crossing,1
+2026-09-14,,disrupted,infrastructure,air,Amazon suspends ties with cargo airline; MIA still faces delays after crash - The Spokesman-Review,1
+2026-09-07,NBC 6 South Florida,disrupted,infrastructure,air,Amazon cargo plane crash leads to travel disruptions at Miami International Airport,2
+2026-09-07,CBS News,disrupted,infrastructure,air,"Delays, cancellations mount at Miami International Airport after deadly Amazon cargo plane crash",2
+2026-09-07,WKMG,disrupted,infrastructure,air,Orlando International Airport experiences delays after Amazon cargo plane crash in Miami,1
+2026-07-25,STAT Times,disrupted,weather,air,Air cargo delays hit South China as Typhoon Noul nears coast,1
+2026-09-10,Air Cargo Week,disrupted,labour,air,Kenya Aviation Strike Exposes the Fragility of East Africa’s Air Cargo Gateway,2
+2026-07-28,Air Cargo News,safe,,,Saudia Cargo and Riyadh Cargo strike interline agreement,
+2026-04-13,The Loadstar,disrupted,labour,air,News Lufthansa Cargo maintains two-thirds capacity amid pilot strike disruption,2
+2026-08-07,The Maritime Executive,disrupted,weather,sea,China’s Ports Suspending Operations as Super Typhoon Approaches,3
+2026-09-10,The Loadstar,disrupted,congestion|weather,sea,News Typhoon-related port congestion keeps intra-Asia rates high and capacity tight,1
+2026-08-11,Yahoo Finance,disrupted,congestion|weather,sea,"Typhoon Dolphin Deepens China Port Congestion, Stranding 2.4M TEUs",2
+2026-07-16,Journal of Commerce,disrupted,congestion|weather,sea,Vessel delays worsen at key Chinese ports after typhoon moves through,2
+2026-08-30,Supply Chain Digital Magazine,disrupted,congestion,sea,Congested Chinese Ports Cause Supply Chain Operation Issues,1
+2026-08-27,WorldCargo News,disrupted,weather|congestion,sea,"New typhoon deals fresh blow to Shanghai, Ningbo recovery as congestion mounts",2
+2026-08-27,WWD,disrupted,weather|congestion,sea,Typhoon Saudel Piles More Pressure on China’s Congested Ports,2
+2026-08-11,DC Velocity,disrupted,weather,any,"Extreme weather cramps logistics flows in Europe, China",1
+2026-09-23,FreightWaves,disrupted,weather,sea,"Hurricane Polo disrupts Mexican Pacific ports with high winds, heavy rain",2
+2026-09-23,SupplyChainBrain,disrupted,weather,sea,Mexico Closes Pacific Ports as Hurricane Polo Forms Off Coast,3
+2026-09-18,Hawaii News Now,safe,,,Coast Guard officially reopens ports affected by Hurricane Lowell,
+2026-09-08,Kauai Now,disrupted,weather|infrastructure,sea,Port at Nāwiliwili closed until cleared for safe operations; barge arrival rescheduled,2
+2026-09-23,rustourismnews.com,disrupted,weather,sea,Hurricane Polo Reaches Category 5 as Mexico Closes Pacific Ports,3
+2026-09-09,Hawaii Public Radio,disrupted,weather,sea,"Lānaʻi harbor is closed with hurricane damage, barge delivery cancelled",2
+2026-09-28,rustourismnews.com,disrupted,weather,rail+air,Bangkok Flooding Disrupts Rail and Airport Transport as Heavy Rain Continues,2
+2026-07-22,Railway Supply,disrupted,weather,rail,BNSF Warns of Gulf Coast Freight Delays from Bertha,1
+2026-04-05,Moody on the Market,disrupted,weather,rail,"Flooding Washout Near Coloma Halts CSX Freight, Amtrak Service Chicago–Grand Rapids",2
+2025-12-15,trains.com,disrupted,weather,rail,News Photos: Flooding on BNSF in Washington,1
+2026-05-13,Rail Business Daily,safe,,,Industry-first Climate Change Risk Assessment Model launched to help rail freight sector manage growing safety risks,
+2026-02-22,ABC News & Headlines – Australian Broadcasting Corporation,disrupted,weather,rail,East West rail line closed after flooding washes away track,3
+2026-03-03,7NEWS,disrupted,weather,rail,Freight routes cut off as flooding severs major rail corridors across regional Australia,3
+2026-03-17,ARTC,safe,,,ARTC re-opens Sydney to Perth freight rail corridor,
+2026-09-17,Transport Topics,safe,,,Port of L.A. foiled 120 million cyberattacks in August,
+2026-09-17,Cybersecurity Dive,disrupted,cyber,sea,"FBI, Coast Guard probe suspected cyberattacks on ships entering US waters",1
+2026-09-11,The Loadstar,disrupted,cyber,sea,News Cyber-attack halts operations at Malaysia’s Tanjung Pelepas Port,3
+2026-09-15,WorldCargo News,safe,,,Port of Tanjung Pelepas resumes operations after cyber attack,
+2026-09-17,The Jerusalem Post,disrupted,cyber,sea,US probing Iran ties to cyberattack on energy tanker,1
+2026-08-09,Rescana,disrupted,cyber,sea,"North Carolina Ports Authority Cyberattack Disrupts IT Systems and Port Operations at Wilmington, Morehead City, and Charlotte Inland Port",2
+2026-06-25,DeXpose,disrupted,cyber,any,Nova Ransomware Targets Peruvian Logistics Firm Transvill SRL,1
+2026-06-17,Industrial Cyber,disrupted,cyber,sea,"Resecurity details Anubis ransomware attack on Adriatic Port Authority, exposing maritime infrastructure risks",1
+2026-07-23,Rescana,disrupted,cyber,any,Nichirei Cyberattack Analysis: RansomHouse Extortion Disrupts Japan’s Largest Frozen Food Logistics Network,2
+2025-07-21,,disrupted,cyber,any,Ransomware Shuts Down 158-Year-Old UK Logistics Firm - Halcyon Anti-Ransomware Platform,2
+2026-09-27,The Jerusalem Post,disrupted,infrastructure,sea,"Ship's engine catches fire while docked at Haifa port, 10 firefighting teams responding",1
+2026-09-21,wtsp.com,disrupted,infrastructure,sea,Tank fire at Port Tampa Bay caused 969 pounds of sulfur dioxide gas to be released,1
+2026-09-10,Al Jazeera,disrupted,infrastructure,sea,At least 25 dead in cargo ship fire at China’s Qingdao port,2
+2026-09-15,United States Coast Guard News (.mil),disrupted,infrastructure,sea,"Coast Guard, partner agencies respond to fallen shipping containers at Port of Los Angeles",1
+2026-05-12,PBS,safe,,,Ship operator and employee charged in 2024 collapse of Baltimore's Francis Scott Key Bridge,
+2026-05-12,BBC,safe,,,Baltimore Key Bridge collapse: Criminal charges filed against Dali cargo ship operator,
+2026-05-13,NPR,safe,,,Federal government files criminal charges in deadly Key Bridge collapse,
+2026-05-12,CNN,safe,,,Justice Department announces criminal charges in Baltimore’s deadly Key Bridge collapse,
+2026-09-25,Container Management,safe,,,Vancouver container volumes close on 2021 record as Roberts Bank expansions advance,
+2026-09-10,reuters.com,safe,,,"Busiest US seaport set new three-month volume record after early holiday import rush to avoid new tariffs, higher fuel costs",
+2026-09-23,WorldCargo News,safe,,,Port of Vancouver TEU volumes 1% up in H1 2026,
+2026-09-15,FreightWaves,safe,,,"U.S. container imports climb 3.8% to 2.6 million TEUs, 3rd highest monthly level",
+2026-09-22,American Journal of Transportation,safe,,,Strong commodity exports drive record cargo volumes at Port of Vancouver,
+2026-07-23,Seatrade Maritime News,safe,,,Record container volumes for Port of Houston in H1,
+2026-09-24,Container News,safe,,,Port of Oakland recorded export surge,
+2026-09-25,DatamarNews,safe,,,"Port of Santos container throughput hits August record at 538,200 TEUs",
+2026-09-09,Port Strategy,safe,,,Global container volumes hit record high,
+2026-09-15,WorldCargo News,safe,,,Construction starts on Delaware Container Terminal,
+2026-09-15,Savannah Morning News,safe,,,Colonial Terminals opens new Savannah river facility,
+2026-09-28,Telquel.ma,safe,,,Nador West Med opens its first terminal as gas project remains stalled,
+2026-07-13,Splash 24/7,safe,,,Burns Harbor brings ocean boxes to Chicago’s doorstep,
+2026-09-11,The New Arab,safe,,,Beirut port launches $100m container terminal expansion,
+2026-07-15,Nikkei Asia,safe,,,Indonesia container terminal opens with Japan's support,
+2026-07-06,Railway PRO,safe,,,DB opens the expansion of the container terminal in Ulm-Dornstadt,
+2026-05-01,CBS News,safe,,,Sparrows Point terminal breaks ground for major Baltimore port expansion,
+2026-09-09,Supply Chain Dive,safe,,,Ocean freight rates cool despite continued price elevation,
+2026-09-24,gCaptain,safe,,,Container Rates Edge Lower Ahead of Golden Week as Suez Traffic Returns,
+2026-09-26,ICIS,safe,,,Asia-US container rates still rising; liquid tanker rates ex-US Gulf largely stable,
+2026-09-17,reuters.com,safe,,,"Ocean container shipping rates could test record highs as Iran war fuel spike drives rise, analysts say",
+2026-09-25,The Loadstar,safe,,,News Shippers face rate hikes and 'a classic supply-demand mismatch' in Q4,
+2026-09-14,scangl.com,safe,,,Against the odds: A red-hot ocean freight market takes the headlines,
+2026-09-25,Fibre2Fashion,safe,,,Drewry WCI eases as Asia-Europe freight rates decline,
+2026-09-22,WWD,safe,,,"China-to-US East Coast Freight Tops $10,000 for First Time Since 2022",
+2026-09-26,IndexBox,safe,,,Air Cargo Volumes Rebound After Labour Day Dip | WorldACD Data - News and Statistics,
+2026-09-18,FreightWaves,safe,,,"Asia-US container rates soar past $11,000, near pandemic records",
+2026-09-26,Fortune,safe,,,GXO Logistics (GXO) Q1 2026 Earnings Call Transcript,
+2026-09-14,Yahoo Finance,safe,,,Radiant Logistics: Fiscal Q4 Earnings Snapshot,
+2026-09-16,StockStory,safe,,,Unpacking Q2 Earnings: Universal Logistics (NASDAQ:ULH) In The Context Of Other Ground Transportation Stocks,
+2026-09-25,simplywall.st,safe,,,"Yasuda Logistics Corporation (TSE:9324) Is About To Go Ex-Dividend, And It Pays A 2.7% Yield",
+2026-09-15,FreightWaves,safe,,,"Radiant Logistics sees double-digit growth in FQ4, shares up 16%",
+2026-09-28,Theinvestor,safe,,,Vietnam logistics earnings set to diverge as ports boom and fuel costs squeeze couriers,
+2026-07-28,UPS,safe,,,Top 5 takeaways from UPS’s Q2 2026 earnings announcement,
+2026-09-28,Air Cargo News,safe,,,Slower demand growth emerging in Asia Pacific,
+2026-09-28,Cargo Airports & Airline Services,safe,,,Global air cargo volumes rise 8% as demand rebounds in September,
+2026-09-28,IndexBox,safe,,,Asia Pacific Air Cargo Growth Slows in August 2026: AAPA Data - News and Statistics,
+2026-09-28,laranews.net,safe,,,Cargo demand rises as Asia-Pacific passenger traffic remains soft,
+2026-08-31,IATA,safe,,,Air Cargo Demand Grows 3.9% in July,
+2026-09-25,Aviation Pros,safe,,,dnata Reports Surge in Cargo Demand Amid Middle East Disruptions,
+2026-07-03,Xeneta,safe,,,"SOARING AI SHIPMENTS INVIGORATE AIR CARGO’S RESILIENCE AS GLOBAL DEMAND RISES +7% IN JUNE, BUT SPOT RATE GROWTH CONTINUES TO EASE",
+2026-08-14,,safe,,,Shipping from Asia to South America East Coast? Here’s our new AS3 service - hapag-lloyd.com,
+2026-05-22,Container News,safe,,,Emirates Shipping Line launches CSX2 service,
+2026-05-04,Yahoo Finance,safe,,,Shipping giant MSC opens new trade route to bypass Hormuz disruption,
+2026-04-28,Baird Maritime,safe,,,Pacific International Lines launches new Asia-South Africa service,
+2026-08-10,The Maritime Executive,safe,,,"China’s Sea Legend Poised to Launch First Regular “Ice Silk Road"" Service",
+2026-05-04,The New York Times,safe,,,Amazon Expands Logistics Arm to Outside Companies,
+2026-05-21,Business Insider Africa,safe,,,"Saudi Arabia launches new cargo shipping service linking Africa and the Middle East, avoiding the Strait of Hormuz for non-oil cargo",
+2026-09-24,,safe,,,Norfolk Southern merger should lead to expanded Atlanta freight rail hub - The Atlanta Journal-Constitution,
+2026-09-22,Railway Age,safe,,,VIP Rail Completes 750-Car Rail Yard Expansion in Sarnia,
+2026-09-23,arabnews.com,safe,,,"Saudi Arabia Railways signs deals to expand freight capacity, upgrade rail systems",
+2026-08-25,FreightWaves,safe,,,"Rail mega-merger revives proposal for new, expanded Atlanta passenger services - and there's a trucking angle",
+2026-07-01,mexicobusiness.news,safe,,,"Mexico Sets ATTRAPI’s 2030 Roadmap for Passenger Rail, Freight",
+2026-07-26,Railway PRO,safe,,,Two North American rail giants are linking their freight networks,
+2026-09-03,Transportation Today,safe,,,Norfolk Southern completes expansion work on Alabama rail capacity,
+2026-04-20,,safe,,,Jordan Moves to Expand Freight Rail Network as Hormuz Disruptions Reshape Supply Routes - Engineering News-Record,
+2026-03-25,California State Portal | CA.gov,safe,,,Governor Newsom announces nearly $900 million for cutting-edge transportation systems of the future,
+2026-09-28,DC Velocity,safe,,,Trade group criticizes California laws regulating cold chain warehouses,
+2026-09-28,The Business Journals,safe,,,Local investment firm pays $44M for warehouse leased to logistics giant,
+2026-09-27,BBC,safe,,,New Northampton warehouse pioneers system only used in China,
+2026-09-28,Pharmaceutical Commerce,safe,,,Cold Chain Consolidation Continues as Eutecma Acquires Tempaid,
+2026-09-28,Retail Customer Experience,safe,,,Aldi processing tons of produce at its UK automated warehouse,
+2026-09-23,maersk.com,safe,,,"Maersk launches successfully 72,000sqm warehouse in the heart of Germany",
+2026-09-21,Post and Courier,safe,,,This Spartanburg warehouse used by Amazon just sold for $103 million,
+2026-09-24,,safe,,,Prologis to build strategic warehouse in Barcelona Zona Franca area - ICEX-Invest in Spain,
+2026-09-28,Data Portuaria,safe,,,Palm Beach Port to invest $43m in cruise terminal expansion,
+2026-09-28,Offshore Wind,safe,,,"Subsea Micropiles to Invest GBP 5 Million in Expanding Manufacturing, Offshore Ops at Scottish Port",
+2026-09-22,,safe,,,Natchitoches Parish Port gets $2.55M for warehouse expansion - klax-tv.com,
+2026-09-15,BNamericas,safe,,,"Neltume, TCP and ANP drive Uruguay's port expansion",
+2026-09-16,arabnews.com,safe,,,United States to invest US$500m in Palau port expansion amid local concerns over conflict and environment,
+2026-09-23,Container Management,safe,,,Klaipėda launches construction tender for EUR 600m southern port expansion,
+2026-09-15,CBC,safe,,,"Port of Churchill, railway improvements would cost fraction of LNG project proposed by Manitoba premier",
+2026-08-04,Tacoma News Tribune,safe,,,$135 million investment in Port of Tacoma terminal will increase capacity,
+2026-09-28,Spectrum News,safe,,,Sargento trains Wisconsin truck drivers through apprenticeship program,
+2026-09-28,Heavy Duty Trucking,safe,,,Trimble: Taking Artificial Intelligence in Trucking Beyond Faster Tasks,
+2026-09-28,The Loadstar,safe,,,"News CH Robinson in hot water again, as truckers bring 'racketeering' suit",
+2026-09-25,Investor's Business Daily,safe,,,Tesla Semi Hits The Road As $6 Diesel Bites Trucking Industry,
+2026-09-21,mprnews.org,safe,,,High diesel prices take a toll on Minnesota trucking industry,

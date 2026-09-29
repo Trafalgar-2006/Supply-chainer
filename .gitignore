@@ -1,6 +1,7 @@
 *.csv
 # Hand-labelled evaluation data (the delay dataset is generated, so stays ignored)
 !ml/nlp_headlines.csv
+!ml/nlp_real_headlines.csv
 *.xlsx
 __pycache__/
 *.pyc

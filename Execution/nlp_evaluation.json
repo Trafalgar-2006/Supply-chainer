@@ -4,12 +4,13 @@
     "disrupted": 46,
     "safe": 50,
     "detection": {
-      "auc": 0.999,
-      "recall": 0.978,
+      "auc": 1.0,
+      "recall": 1.0,
       "false_alarm_rate": 0.0,
       "precision": 1.0
     },
     "type_accuracy": 1.0,
+    "severity_rank_correlation": 0.889,
     "type_accuracy_by_type": {
       "congestion": 1.0,
       "cyber": 1.0,
@@ -20,9 +21,7 @@
     },
     "carf_accuracy": 1.0,
     "errors": {
-      "missed": [
-        "Vessel queue outside Singapore anchorage grows to 60 ships"
-      ],
+      "missed": [],
       "false_alarms": [],
       "wrong_type": [],
       "carf_wrongly_dropped": [],
@@ -34,12 +33,13 @@
     "disrupted": 46,
     "safe": 50,
     "detection": {
-      "auc": 0.993,
-      "recall": 0.913,
-      "false_alarm_rate": 0.02,
-      "precision": 0.977
+      "auc": 1.0,
+      "recall": 1.0,
+      "false_alarm_rate": 0.0,
+      "precision": 1.0
     },
     "type_accuracy": 0.978,
+    "severity_rank_correlation": 0.901,
     "type_accuracy_by_type": {
       "congestion": 1.0,
       "cyber": 0.8,
@@ -50,15 +50,8 @@
     },
     "carf_accuracy": 0.94,
     "errors": {
-      "missed": [
-        "Sandstorm grounds flights at Dubai airport",
-        "Australian wharfies take industrial action at Sydney terminals",
-        "Customs officers work to rule, causing long lorry delays at Dover",
-        "Export controls on chips tighten and shipments are held at customs"
-      ],
-      "false_alarms": [
-        "Container line posts an on-time performance record"
-      ],
+      "missed": [],
+      "false_alarms": [],
       "wrong_type": [
         "IT attack on the customs authority leaves shipments stuck at borders (cyber read as geopolitical)"
       ],
@@ -84,43 +77,26 @@
     "disrupted": 46,
     "safe": 50,
     "detection": {
-      "auc": 0.967,
-      "recall": 0.826,
-      "false_alarm_rate": 0.08,
-      "precision": 0.905
+      "auc": 1.0,
+      "recall": 1.0,
+      "false_alarm_rate": 0.0,
+      "precision": 1.0
     },
-    "type_accuracy": 0.935,
+    "type_accuracy": 1.0,
+    "severity_rank_correlation": 0.888,
     "type_accuracy_by_type": {
       "congestion": 1.0,
       "cyber": 1.0,
-      "geopolitical": 0.88,
+      "geopolitical": 1.0,
       "infrastructure": 1.0,
-      "labour": 0.88,
-      "weather": 0.88
+      "labour": 1.0,
+      "weather": 1.0
     },
     "carf_accuracy": 0.946,
     "errors": {
-      "missed": [
-        "Ice storm grounds cargo jets at Memphis airport overnight",
-        "Swedish dockers expand their blockade to all major ports",
-        "Cargo airlines avoid conflict-zone airspace, adding hours to Asia-Europe flights",
-        "Sinkhole swallows highway lanes, closing the main truck route to Chennai port",
-        "Vessel queue at the Shanghai anchorage climbs past 200 ships",
-        "Container yards at the Port of Los Angeles near capacity as dwell times climb",
-        "Air freight backlog at Hong Kong airport stretches to ten days",
-        "Congested rail terminal at Duisburg delays trains from China"
-      ],
-      "false_alarms": [
-        "Typhoon passes without damage as Hong Kong port reopens",
-        "Air cargo rates edge down as capacity grows",
-        "Cybersecurity experts share tips at a port technology summit",
-        "Container dwell times at Los Angeles fall to record lows"
-      ],
-      "wrong_type": [
-        "Wildfire smoke forces closure of a rail line through British Columbia (weather read as infrastructure)",
-        "Swedish dockers expand their blockade to all major ports (labour read as geopolitical)",
-        "Rebels attack a freight train on the Kenya-Uganda line (geopolitical read as weather)"
-      ],
+      "missed": [],
+      "false_alarms": [],
+      "wrong_type": [],
       "carf_wrongly_dropped": [],
       "carf_wrongly_kept": [
         "Drone strikes on Black Sea grain terminals halt exports (air)",
@@ -136,12 +112,113 @@
       ]
     }
   },
-  "baseline_holdout": {
-    "auc": 0.863,
-    "recall": 0.696,
-    "false_alarm_rate": 0.1,
-    "precision": 0.865,
-    "type_accuracy": 0.761,
-    "carf_accuracy": 0.929
+  "real": {
+    "headlines": 188,
+    "disrupted": 91,
+    "safe": 97,
+    "detection": {
+      "auc": 0.967,
+      "recall": 0.824,
+      "false_alarm_rate": 0.062,
+      "precision": 0.926
+    },
+    "type_accuracy": 0.89,
+    "severity_rank_correlation": 0.553,
+    "type_accuracy_by_type": {
+      "congestion": 0.8,
+      "congestion|weather": 1.0,
+      "cyber": 1.0,
+      "geopolitical": 0.94,
+      "infrastructure": 0.94,
+      "labour": 0.79,
+      "weather": 0.87,
+      "weather|congestion": 1.0,
+      "weather|infrastructure": 1.0
+    },
+    "carf_accuracy": 0.915,
+    "errors": {
+      "missed": [
+        "Record port congestion exposes maritime\u2019s collaboration problem, says PortXchange",
+        "China port congestion forces carrier schedule changes as vessel delays mount",
+        "Red Sea tensions renew shipping risks for Egypt's Suez Canal",
+        "Panama Canal may cut ship traffic further as El Ni\u00f1o strengthens",
+        "Revive I-5 returns over Ship Canal Bridge, now with closure of 2 right lanes",
+        "Hundreds still without power hours after Ferguson train derailment",
+        "Italy Strike Wave Peaks July 21: Airport, Ferry, and Rail All Affected",
+        "Roads closed, \u2018extensive' Metra delays after freight train strikes car in Lake Forest",
+        "24-Hour strike at Renfe",
+        "News Lufthansa Cargo maintains two-thirds capacity amid pilot strike disruption",
+        "News Typhoon-related port congestion keeps intra-Asia rates high and capacity tight",
+        "New typhoon deals fresh blow to Shanghai, Ningbo recovery as congestion mounts",
+        "Port at N\u0101wiliwili closed until cleared for safe operations; barge arrival rescheduled",
+        "Freight routes cut off as flooding severs major rail corridors across regional Australia",
+        "Tank fire at Port Tampa Bay caused 969 pounds of sulfur dioxide gas to be released",
+        "Coast Guard, partner agencies respond to fallen shipping containers at Port of Los Angeles"
+      ],
+      "false_alarms": [
+        "Houthis promise not to target European ships",
+        "Trucking executive pushes back on nationwide strike rumors",
+        "No national truckers\u2019 strike Thursday",
+        "Port of L.A. foiled 120 million cyberattacks in August",
+        "Ship operator and employee charged in 2024 collapse of Baltimore's Francis Scott Key Bridge",
+        "Baltimore Key Bridge collapse: Criminal charges filed against Dali cargo ship operator"
+      ],
+      "wrong_type": [
+        "Asia port congestion worsens amid bad weather, vessel bunching (congestion read as weather)",
+        "US confirms Hellfire missile used to hit container ship off Pakistan (geopolitical read as infrastructure)",
+        "Panama Canal Squeezes Daily Capacity To 29 Ships, Threatening Global Supply Chains (weather read as geopolitical)",
+        "Italy Strike Wave Peaks July 21: Airport, Ferry, and Rail All Affected (labour read as weather)",
+        "Hundreds of trucks jam Turkey-Iran border crossing as US blockade pushes trade overland (congestion read as geopolitical)",
+        "Video. Turkey Iran border crossing hit by severe truck delays (congestion read as geopolitical)",
+        "Amazon suspends ties with cargo airline; MIA still faces delays after crash - The Spokesman-Review (infrastructure read as geopolitical)",
+        "Kenya Aviation Strike Exposes the Fragility of East Africa\u2019s Air Cargo Gateway (labour read as geopolitical)",
+        "News Lufthansa Cargo maintains two-thirds capacity amid pilot strike disruption (labour read as infrastructure)",
+        "BNSF Warns of Gulf Coast Freight Delays from Bertha (weather read as congestion)"
+      ],
+      "carf_wrongly_dropped": [
+        "Revive I-5 returns over Ship Canal Bridge, now with closure of 2 right lanes (road)",
+        "September transport strikes set to disrupt trains, buses and flights across Tuscany (road)",
+        "Italy Strike Wave Peaks July 21: Airport, Ferry, and Rail All Affected (sea)"
+      ],
+      "carf_wrongly_kept": [
+        "Red Sea disruption puts global mining supplies at risk (air)",
+        "Red Sea disruption puts global mining supplies at risk (rail)",
+        "Red Sea disruption puts global mining supplies at risk (road)",
+        "Revive I-5 returns over Ship Canal Bridge, now with closure of 2 right lanes (sea)",
+        "24-Hour strike at Renfe (sea)",
+        "24-Hour strike at Renfe (air)",
+        "24-Hour strike at Renfe (road)",
+        "Large queues at the border with Poland: why they appeared and how to avoid them without wasting time (sea)",
+        "Large queues at the border with Poland: why they appeared and how to avoid them without wasting time (air)",
+        "Large queues at the border with Poland: why they appeared and how to avoid them without wasting time (rail)",
+        "Air cargo delays hit South China as Typhoon Noul nears coast (sea)",
+        "Air cargo delays hit South China as Typhoon Noul nears coast (rail)",
+        "Air cargo delays hit South China as Typhoon Noul nears coast (road)",
+        "News Lufthansa Cargo maintains two-thirds capacity amid pilot strike disruption (sea)",
+        "News Lufthansa Cargo maintains two-thirds capacity amid pilot strike disruption (rail)",
+        "News Lufthansa Cargo maintains two-thirds capacity amid pilot strike disruption (road)",
+        "New typhoon deals fresh blow to Shanghai, Ningbo recovery as congestion mounts (air)",
+        "New typhoon deals fresh blow to Shanghai, Ningbo recovery as congestion mounts (rail)",
+        "New typhoon deals fresh blow to Shanghai, Ningbo recovery as congestion mounts (road)",
+        "BNSF Warns of Gulf Coast Freight Delays from Bertha (sea)",
+        "BNSF Warns of Gulf Coast Freight Delays from Bertha (air)",
+        "BNSF Warns of Gulf Coast Freight Delays from Bertha (road)",
+        "Flooding Washout Near Coloma Halts CSX Freight, Amtrak Service Chicago\u2013Grand Rapids (sea)",
+        "Flooding Washout Near Coloma Halts CSX Freight, Amtrak Service Chicago\u2013Grand Rapids (air)",
+        "Flooding Washout Near Coloma Halts CSX Freight, Amtrak Service Chicago\u2013Grand Rapids (road)",
+        "News Photos: Flooding on BNSF in Washington (sea)",
+        "News Photos: Flooding on BNSF in Washington (air)",
+        "News Photos: Flooding on BNSF in Washington (road)"
+      ]
+    }
+  },
+  "baseline_real": {
+    "auc": 0.859,
+    "recall": 0.681,
+    "false_alarm_rate": 0.165,
+    "precision": 0.795,
+    "type_accuracy": 0.758,
+    "severity_rank_correlation": 0.242,
+    "carf_accuracy": 0.882
   }
 }

@@ -14,6 +14,8 @@ const THREAT_TYPE_LABELS = {
   cyber: 'Cyber', congestion: 'Congestion', general: 'General', none: 'No threat',
 };
 const MODE_ICONS = { AIR: Plane, SEA: Ship, RAIL: Train, ROAD: Truck, TRANSFER: ArrowRightLeft };
+// The engine's learned severity, 1 (minor) to 3 (severe).
+const severityWord = s => (s >= 2.5 ? 'severe' : s >= 1.5 ? 'significant' : 'minor');
 // Engine status pushed over the WebSocket: [state for the indicator, what to show].
 const ENGINE_STATES = {
   'FULLY OPERATIONAL': ['ready', 'Engine ready'],
@@ -661,7 +663,10 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
             <div key={r.place} className={`report ${r.score > 0 ? 'hot' : ''}`}>
               <h3>
                 {r.place}
-                <span>{THREAT_TYPE_LABELS[r.threat_type] || r.threat_type}{r.score > 0 ? `, ${pct(r.score)}` : ''}</span>
+                <span>
+                  {THREAT_TYPE_LABELS[r.threat_type] || r.threat_type}
+                  {r.score > 0 ? `, ${severityWord(r.severity)} (${pct(r.score)})` : ''}
+                </span>
               </h3>
               <p>{r.headline || r.headlines}</p>
               {r.condition !== 'clear' && <p className="muted">The delay model treats the weather here as {r.condition}.</p>}

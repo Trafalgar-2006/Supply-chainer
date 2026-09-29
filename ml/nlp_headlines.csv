@@ -1,289 +1,289 @@
-split,label,threat_type,modes,headline
-dev,disrupted,weather,sea,"Typhoon Koinu forces Kaohsiung port to suspend container operations"
-dev,disrupted,weather,road,"Blizzard closes Interstate 80 across Wyoming, stranding hundreds of trucks"
-dev,disrupted,weather,rail,"Monsoon floods wash away rail tracks between Mumbai and Pune"
-dev,disrupted,weather,air,"Thick fog grounds cargo flights at Delhi airport for a second day"
-dev,disrupted,weather,sea,"Hurricane Ida shuts Gulf Coast ports and refineries"
-dev,disrupted,weather,sea,"Record drought cuts Panama Canal daily transits to 24 ships"
-dev,disrupted,weather,rail,"Heavy snow and ice halt freight trains across southern Sweden"
-dev,disrupted,weather,sea,"Cyclone Mocha makes landfall and Chittagong port is closed"
-dev,disrupted,weather,air,"Severe storms ground flights at Frankfurt as the air cargo backlog builds"
-dev,disrupted,labour,sea,"Dockworkers at Hamburg and Bremerhaven stage a 24-hour strike"
-dev,disrupted,labour,rail,"French rail freight halted as unions launch rolling strikes"
-dev,disrupted,labour,air,"Air cargo handlers at Heathrow airport walk out over pay"
-dev,disrupted,labour,road,"Truck drivers in South Korea strike, stalling cement and steel deliveries"
-dev,disrupted,labour,sea,"Port of Santos workers begin an indefinite strike"
-dev,disrupted,labour,rail,"Canadian rail network shuts down as lockout begins at CN and CPKC"
-dev,disrupted,labour,sea,"Longshore union halts work at Oakland port terminals"
-dev,disrupted,labour,road,"Lorry drivers blockade fuel depots in protest over diesel prices"
-dev,disrupted,geopolitical,sea,"Houthi forces seize a cargo ship in the Red Sea"
-dev,disrupted,geopolitical,sea,"Shipping lines suspend Black Sea calls after port is shelled"
-dev,disrupted,geopolitical,any,"New export ban on rare earths disrupts electronics supply"
-dev,disrupted,geopolitical,air,"Airspace closure over the Middle East forces cargo flights to reroute"
-dev,disrupted,geopolitical,sea,"Pirates board a bulk carrier vessel off the Somali coast"
-dev,disrupted,geopolitical,rail,"Border closed between Kazakhstan and China, leaving rail freight stranded"
-dev,disrupted,geopolitical,sea,"Sanctions freeze shipping through a major Baltic port"
-dev,disrupted,geopolitical,sea,"Naval exercises close the Taiwan Strait to commercial traffic"
-dev,disrupted,infrastructure,sea,"Container ship loses power and blocks Bosphorus traffic"
-dev,disrupted,infrastructure,rail,"Freight train derailment closes main line through Ohio"
-dev,disrupted,infrastructure,sea,"Explosion at Beirut port destroys grain silos and warehouses"
-dev,disrupted,infrastructure,sea,"Power outage halts cranes at Colombo container port"
-dev,disrupted,infrastructure,road,"Highway bridge collapse cuts key trucking route to Genoa"
-dev,disrupted,infrastructure,sea,"Fire in cargo hold forces vessel to divert to Port Louis"
-dev,disrupted,infrastructure,air,"Runway closure at Hong Kong airport disrupts freighter schedules"
-dev,disrupted,infrastructure,road,"Tunnel fire closes Mont Blanc route to trucks"
-dev,disrupted,infrastructure,sea,"Lock gate failure closes the Kiel Canal to shipping"
-dev,disrupted,cyber,sea,"Ransomware attack halts operations at the Port of Nagoya"
-dev,disrupted,cyber,any,"Cyberattack takes down freight forwarder's booking systems worldwide"
-dev,disrupted,cyber,rail,"Hackers disrupt rail signalling systems in Denmark"
-dev,disrupted,cyber,air,"Airline cargo IT systems hit by cyberattack, shipments delayed"
-dev,disrupted,cyber,road,"Malware attack cripples trucking company's dispatch network"
-dev,disrupted,congestion,sea,"Vessel queue outside Singapore anchorage grows to 60 ships"
-dev,disrupted,congestion,sea,"Yard congestion at Felixstowe port pushes container dwell time to 14 days"
-dev,disrupted,congestion,rail,"Rail terminals in Chicago overwhelmed as container backlog swells"
-dev,disrupted,congestion,air,"Air cargo backlog at Shanghai Pudong airport leaves freight waiting a week"
-dev,disrupted,congestion,road,"Border truck queues stretch 40 km at the Polish-Belarus crossing"
-dev,disrupted,congestion,sea+road,"Chassis shortage slows container pickups by trucks at Savannah port"
-dev,disrupted,congestion,sea,"Congestion at Durban port leaves ships waiting three weeks"
-dev,safe,,,"Maersk reports higher quarterly profit on strong demand"
-dev,safe,,,"Port of Antwerp-Bruges opens new container terminal"
-dev,safe,,,"DP World completes acquisition of logistics firm in India"
-dev,safe,,,"Air cargo volumes rise 8% in August as e-commerce grows"
-dev,safe,,,"Rail freight operator adds new daily service between Duisburg and Milan"
-dev,safe,,,"Truck manufacturer unveils electric long-haul model"
-dev,safe,,,"Singapore port signs green shipping corridor agreement with Rotterdam"
-dev,safe,,,"FedEx names new chief operating officer"
-dev,safe,,,"Container freight rates steady for third consecutive week"
-dev,safe,,,"Panama Canal lifts draft restrictions as water levels recover"
-dev,safe,,,"Union and port employers strike a deal, averting walkout"
-dev,safe,,,"Storm of criticism greets new shipping emissions rule"
-dev,safe,,,"Shipping stocks rally as freight rates climb"
-dev,safe,,,"Congestion eases at Los Angeles as vessel queue clears"
-dev,safe,,,"Suez Canal traffic back to normal after grounded ship refloated"
-dev,safe,,,"Cybersecurity startup raises $40 million to protect port systems"
-dev,safe,,,"Strike action called off after pay agreement at Antwerp"
-dev,safe,,,"Typhoon season forecast to be milder than average"
-dev,safe,,,"Trucking company wins national road safety award"
-dev,safe,,,"Airport opens new cold-chain facility for pharmaceuticals"
-dev,safe,,,"Railway completes electrification of freight corridor"
-dev,safe,,,"Carrier orders six methanol-powered container ships"
-dev,safe,,,"Customs agency launches single-window digital clearance"
-dev,safe,,,"Logistics park in Pune adds 1 million square feet of warehousing"
-dev,safe,,,"Airline expands freighter fleet with two new Boeing 777Fs"
-dev,safe,,,"Port authority completes dredging project ahead of schedule"
-dev,safe,,,"Warehouse automation firm reports record orders"
-dev,safe,,,"Global trade volumes expected to grow 3% next year"
-dev,safe,,,"New rail bridge opens, cutting freight journey times"
-dev,safe,,,"Shipping line launches direct service from Vietnam to Mexico"
-dev,safe,,,"Port of Jebel Ali handles a record 15 million containers"
-dev,safe,,,"Freight forwarder partners with startup on AI route planning"
-dev,safe,,,"Drivers praise new truck stops along national highway"
-dev,safe,,,"Port workers celebrate 100 years of the harbour"
-dev,safe,,,"Air traffic returns to normal after morning fog lifts"
-dev,safe,,,"Rail operator reports 99% on-time performance for freight trains"
-dev,safe,,,"Government approves funding for new deep-water port"
-dev,safe,,,"Shipping industry conference opens in Hamburg"
-dev,safe,,,"Retailers stock up early for the holiday season"
-dev,safe,,,"Carrier's schedule reliability improves to 65%"
-dev,safe,,,"Firefighters hold safety drill at container terminal"
-dev,safe,,,"Tanker rates fall as oil demand softens"
-dev,safe,,,"E-commerce giant opens fulfilment centre near Chennai"
-dev,safe,,,"Port of Long Beach unveils zero-emission truck program"
-dev,safe,,,"Trade ministers sign agreement to cut tariffs on machinery"
-dev,safe,,,"Cargo airline celebrates its 50th anniversary"
-dev,safe,,,"Flood of orders lifts shipbuilder's shares"
-dev,safe,,,"Blockbuster film scenes shot at Rotterdam port"
-dev,safe,,,"Rail freight grows as shippers shift from road"
-dev,safe,,,"Port community system upgrade completed without downtime"
-test,disrupted,weather,sea,"Typhoon Doksuri shuts Xiamen and Fuzhou ports as winds reach 175 km/h"
-test,disrupted,weather,rail,"Winter storm freezes rail switches, halting freight across Texas"
-test,disrupted,weather,road,"Flash floods submerge highway near Chennai, leaving cargo trucks stranded"
-test,disrupted,weather,air,"Sandstorm grounds flights at Dubai airport"
-test,disrupted,weather,sea,"Hurricane Milton forces closure of the Port of Tampa"
-test,disrupted,weather,sea,"Rhine water levels fall so low that barges carry a third of their load"
-test,disrupted,weather,rail,"Heatwave buckles rail lines, slowing freight trains across Britain"
-test,disrupted,weather,sea,"Cyclone Freddy batters Beira port and operations are suspended"
-test,disrupted,weather,air,"Snowstorm closes Chicago O'Hare airport and air freight is delayed"
-test,disrupted,labour,sea+rail,"Finnish port and rail workers begin a week-long political strike"
-test,disrupted,labour,air,"Air traffic controllers strike in France and cargo flights are cancelled"
-test,disrupted,labour,sea,"Belgian dockers stage a national strike, bringing Antwerp to a standstill"
-test,disrupted,labour,road,"Nationwide truckers' strike in Brazil blocks highways"
-test,disrupted,labour,rail,"German train drivers' union calls a 50-hour freight strike"
-test,disrupted,labour,sea,"Australian wharfies take industrial action at Sydney terminals"
-test,disrupted,labour,sea+road,"Customs officers work to rule, causing long lorry delays at Dover"
-test,disrupted,labour,any,"Warehouse workers walk out at a logistics hub ahead of peak season"
-test,disrupted,geopolitical,sea,"Missile strike hits a tanker near the Bab el-Mandeb strait"
-test,disrupted,geopolitical,sea,"Insurers raise war-risk premiums for shipping as conflict spreads to the Black Sea"
-test,disrupted,geopolitical,any,"Export controls on chips tighten and shipments are held at customs"
-test,disrupted,geopolitical,air,"Russia closes its airspace to Western carriers, forcing cargo flights onto longer routes"
-test,disrupted,geopolitical,sea,"Armed robbery attacks on ships rise in the Singapore Strait"
-test,disrupted,geopolitical,any,"Trade embargo halts all cargo shipments to the region"
-test,disrupted,geopolitical,sea,"Military blockade of Hormuz feared as tensions escalate"
-test,disrupted,geopolitical,rail,"Rail freight to Europe via Belarus suspended amid sanctions"
-test,disrupted,infrastructure,sea+road,"Cargo ship collides with a bridge, closing the Baltimore shipping channel"
-test,disrupted,infrastructure,rail,"Derailment of a chemical train shuts a border rail crossing"
-test,disrupted,infrastructure,any,"Warehouse fire at a Singapore logistics park destroys cargo"
-test,disrupted,infrastructure,sea,"Blackout at Jawaharlal Nehru Port halts vessel loading"
-test,disrupted,infrastructure,sea,"Crane collapse at Busan port injures workers and berths are closed"
-test,disrupted,infrastructure,rail,"Tunnel collapse closes the main freight rail line through the Alps"
-test,disrupted,infrastructure,air,"Air cargo terminal roof collapses under snow at Anchorage airport"
-test,disrupted,infrastructure,sea,"Grounded bulk carrier blocks the Parana River waterway"
-test,disrupted,infrastructure,road,"Gas explosion forces closure of a major highway"
-test,disrupted,cyber,sea,"Cyberattack on DP World Australia halts container movements"
-test,disrupted,cyber,air,"Ransomware shuts down an airline's cargo booking platform"
-test,disrupted,cyber,rail,"Hackers target railway freight scheduling systems"
-test,disrupted,cyber,any,"IT attack on the customs authority leaves shipments stuck at borders"
-test,disrupted,cyber,sea+road,"Cyber incident disrupts the truck appointment system at Rotterdam port"
-test,disrupted,congestion,sea,"Ships wait up to 10 days to berth at Chittagong as congestion worsens"
-test,disrupted,congestion,sea,"Container backlog at Rotterdam grows as barge waiting times hit 70 hours"
-test,disrupted,congestion,rail,"Freight trains stack up outside congested Los Angeles rail yards"
-test,disrupted,congestion,air,"Air freight piles up at Frankfurt airport as handling capacity runs short"
-test,disrupted,congestion,road,"Trucks queue for three days at the Chinese-Kyrgyz border"
-test,disrupted,congestion,sea,"Port of Manila congestion forces carriers to skip calls"
-test,disrupted,congestion,sea,"Equipment shortage leaves exporters without empty containers"
-test,safe,,,"Hapag-Lloyd lifts full-year earnings guidance"
-test,safe,,,"New container terminal at Tuas begins operations"
-test,safe,,,"Air cargo demand rises for a sixth straight month"
-test,safe,,,"India opens western dedicated freight corridor section to Mundra"
-test,safe,,,"Port of Valencia reports steady throughput in July"
-test,safe,,,"Logistics firm invests in an electric truck fleet"
-test,safe,,,"Cargo airline receives its first Airbus A350F"
-test,safe,,,"Kuehne+Nagel appoints a new chief executive"
-test,safe,,,"Rail line reopens after scheduled maintenance is completed on time"
-test,safe,,,"Dockers approve new contract, ending months of talks"
-test,safe,,,"Calm seas expected across the Atlantic this week"
-test,safe,,,"Shipping line settles dispute with port authority over fees"
-test,safe,,,"Congestion at Chittagong eases after a new berth opens"
-test,safe,,,"Freight rates on Asia-Europe routes ease slightly"
-test,safe,,,"Port of Gdansk expands its rail connection capacity"
-test,safe,,,"Truckers welcome new rest-area rules"
-test,safe,,,"Strike threat lifted as airport handlers accept pay offer"
-test,safe,,,"Customs clearance times fall to a record low"
-test,safe,,,"Canal authority announces discounts for container ships"
-test,safe,,,"Ship-to-shore cranes arrive at the new terminal"
-test,safe,,,"Warehouse rents rise on strong demand for logistics space"
-test,safe,,,"Railway orders 200 new freight wagons"
-test,safe,,,"Container line posts an on-time performance record"
-test,safe,,,"Port of Hamburg celebrates its annual harbour birthday festival"
-test,safe,,,"Freight forwarders see steady bookings ahead of the holiday season"
-test,safe,,,"Logistics startup raises funds for last-mile delivery robots"
-test,safe,,,"Government cuts highway tolls for freight vehicles"
-test,safe,,,"New air cargo route links Nairobi and Liege"
-test,safe,,,"Port of Houston breaks its monthly container record"
-test,safe,,,"Shipping companies agree on a common emissions reporting standard"
-test,safe,,,"Storm-proof warehouse design wins architecture prize"
-test,safe,,,"Truck platooning trial completed successfully on the autobahn"
-test,safe,,,"Suez Canal Authority reports rising revenue"
-test,safe,,,"Rail operator introduces longer freight trains to boost capacity"
-test,safe,,,"Cybersecurity drill at the port finds no vulnerabilities"
-test,safe,,,"Airline cargo division returns to profit"
-test,safe,,,"Port signs deal to supply shore power to berthed ships"
-test,safe,,,"Freight volumes on the Middle Corridor double"
-test,safe,,,"Delivery firm hires 20,000 seasonal workers"
-test,safe,,,"Shipping index edges up on steady demand"
-test,safe,,,"Bridge reopens to trucks after inspection finds no damage"
-test,safe,,,"Port launches an app to book truck arrival slots"
-test,safe,,,"Record harvest boosts grain shipments from Brazil"
-test,safe,,,"Port of Durban improves crane productivity"
-test,safe,,,"Flights resume at Dubai after a brief sandstorm"
-test,safe,,,"Carrier completes fleet upgrade ahead of schedule"
-test,safe,,,"Airport freight village adds new warehouses"
-test,safe,,,"Container shipping sees stable schedules in September"
-test,safe,,,"Trade fair for logistics technology opens in Munich"
-test,safe,,,"Wind farm components shipped safely to Taiwan"
-holdout,disrupted,weather,sea,"Super typhoon Mangkhut forces Hong Kong port to halt all terminal operations"
-holdout,disrupted,weather,air,"Ice storm grounds cargo jets at Memphis airport overnight"
-holdout,disrupted,weather,rail,"Record rainfall floods freight yards and suspends trains in northern Italy"
-holdout,disrupted,weather,road,"Dust storm cuts visibility to zero on the Riyadh-Dammam highway, halting trucks"
-holdout,disrupted,weather,sea,"Tropical storm closes the Houston Ship Channel to vessel traffic"
-holdout,disrupted,weather,sea,"Drought leaves Mississippi barges grounded on sandbars"
-holdout,disrupted,weather,rail,"Wildfire smoke forces closure of a rail line through British Columbia"
-holdout,disrupted,weather,sea,"Cyclone warning shuts Mundra and Kandla ports for 48 hours"
-holdout,disrupted,labour,sea,"Port of Montreal longshore workers launch strike, freezing container traffic"
-holdout,disrupted,labour,air,"Cargo ground staff strike grounds freighters at Frankfurt airport"
-holdout,disrupted,labour,road,"Indian truckers begin a nationwide strike over new driving law"
-holdout,disrupted,labour,rail,"Belgian rail unions walk out, halting freight trains for three days"
-holdout,disrupted,labour,sea,"Stevedores in Chile stop work at San Antonio and Valparaiso ports"
-holdout,disrupted,labour,road,"Customs officials in Italy strike, leaving trucks stuck at the border"
-holdout,disrupted,labour,sea,"Swedish dockers expand their blockade to all major ports"
-holdout,disrupted,labour,any,"Warehouse staff at a major e-commerce hub stage a walkout during peak week"
-holdout,disrupted,geopolitical,sea,"Drone strikes on Black Sea grain terminals halt exports"
-holdout,disrupted,geopolitical,sea,"Commercial ships turned away as a navy enforces a blockade of the gulf"
-holdout,disrupted,geopolitical,any,"New tariffs and export licences stall shipments of machine tools"
-holdout,disrupted,geopolitical,air,"Cargo airlines avoid conflict-zone airspace, adding hours to Asia-Europe flights"
-holdout,disrupted,geopolitical,rail,"Rebels attack a freight train on the Kenya-Uganda line"
-holdout,disrupted,geopolitical,road,"Border crossing between Georgia and Russia closed to trucks amid tensions"
-holdout,disrupted,geopolitical,sea,"Tanker seized by armed forces near the Strait of Hormuz"
-holdout,disrupted,geopolitical,air,"Sanctions ban Western cargo flights from the region's airspace"
-holdout,disrupted,infrastructure,sea,"Crane collapse at a Long Beach terminal shuts two berths"
-holdout,disrupted,infrastructure,rail,"Signal system failure halts all freight trains on the West Coast main line"
-holdout,disrupted,infrastructure,air,"Runway damage closes Kuala Lumpur airport to widebody freighters"
-holdout,disrupted,infrastructure,sea,"Container ship fire at berth forces evacuation of the Jebel Ali terminal"
-holdout,disrupted,infrastructure,road,"Sinkhole swallows highway lanes, closing the main truck route to Chennai port"
-holdout,disrupted,infrastructure,sea,"Power blackout paralyses Karachi port operations"
-holdout,disrupted,infrastructure,rail,"Derailed freight train blocks the main line through the Rockies"
-holdout,disrupted,infrastructure,sea,"Lock failure on the Panama Canal cuts daily transits"
-holdout,disrupted,cyber,sea,"Ransomware attack forces the Port of Lisbon to switch to manual operations"
-holdout,disrupted,cyber,rail,"Cyberattack cripples the national railway's freight booking system"
-holdout,disrupted,cyber,air,"Hackers breach an air cargo tracking platform and shipments are delayed worldwide"
-holdout,disrupted,cyber,road,"Malware outage at a trucking giant leaves fleets idle for two days"
-holdout,disrupted,cyber,any,"Cyberattack disrupts customs systems, freezing import clearance nationwide"
-holdout,disrupted,cyber,any,"IT systems at a global freight forwarder hit by ransomware"
-holdout,disrupted,congestion,sea,"Vessel queue at the Shanghai anchorage climbs past 200 ships"
-holdout,disrupted,congestion,sea,"Container yards at the Port of Los Angeles near capacity as dwell times climb"
-holdout,disrupted,congestion,rail,"Freight trains back up for miles outside the Kansas City rail yard"
-holdout,disrupted,congestion,air,"Air freight backlog at Hong Kong airport stretches to ten days"
-holdout,disrupted,congestion,road,"Truck queue at the Mexico-US border crossing reaches 20 hours"
-holdout,disrupted,congestion,sea,"Shortage of empty containers strands exporters in Southeast Asia"
-holdout,disrupted,congestion,sea,"Berth waiting time at Colombo port rises to five days"
-holdout,disrupted,congestion,rail,"Congested rail terminal at Duisburg delays trains from China"
-holdout,safe,,,"Port of Montreal and union reach a deal, averting a strike"
-holdout,safe,,,"Typhoon passes without damage as Hong Kong port reopens"
-holdout,safe,,,"Shanghai anchorage queue falls to its lowest level this year"
-holdout,safe,,,"Rail freight resumes on the Kenya-Uganda line after repairs"
-holdout,safe,,,"Panama Canal raises daily transit slots as rains return"
-holdout,safe,,,"Lufthansa Cargo reports record first-half results"
-holdout,safe,,,"New automated terminal opens at the Port of Tanger Med"
-holdout,safe,,,"Air cargo rates edge down as capacity grows"
-holdout,safe,,,"DHL invests in a new hub at Cincinnati airport"
-holdout,safe,,,"Indian Railways adds 500 new container wagons"
-holdout,safe,,,"Truck drivers welcome new rest stops on the Mumbai-Pune expressway"
-holdout,safe,,,"Maersk appoints a new head of Asia-Pacific operations"
-holdout,safe,,,"Port of Salalah reports steady volumes"
-holdout,safe,,,"Cargo airline signs a sustainability pledge"
-holdout,safe,,,"Container line launches a new India-Europe express service"
-holdout,safe,,,"Customs agency cuts clearance time with a paperless system"
-holdout,safe,,,"Shipping stocks slip on a quiet trading day"
-holdout,safe,,,"Freight forwarder acquires a regional trucking firm"
-holdout,safe,,,"Airport celebrates 40 years of cargo operations"
-holdout,safe,,,"Rail operator tests a hydrogen locomotive on a freight line"
-holdout,safe,,,"Port authority unveils a plan to double capacity by 2030"
-holdout,safe,,,"Warehouse developer breaks ground on a new logistics park near Delhi"
-holdout,safe,,,"Trade talks make progress on reducing shipping fees"
-holdout,safe,,,"Logistics conference in Singapore draws record attendance"
-holdout,safe,,,"E-commerce firm expands same-day delivery to ten cities"
-holdout,safe,,,"Shipbuilder delivers the largest container ship yet"
-holdout,safe,,,"Airline cargo arm adds weekly flights to Nairobi"
-holdout,safe,,,"Weather service forecasts calm conditions for the shipping lanes"
-holdout,safe,,,"Firefighters praised for a quick response in a port safety exercise"
-holdout,safe,,,"Cybersecurity experts share tips at a port technology summit"
-holdout,safe,,,"Strike-free year for Rotterdam as labour relations improve"
-holdout,safe,,,"Truckers' association elects a new president"
-holdout,safe,,,"Bridge inspection finds the structure sound and traffic continues normally"
-holdout,safe,,,"Backlog cleared at Frankfurt cargo centre after a new sorting system"
-holdout,safe,,,"Container dwell times at Los Angeles fall to record lows"
-holdout,safe,,,"Freight rail volumes up 4% on a strong grain harvest"
-holdout,safe,,,"Port of Busan wins an award for smart port technology"
-holdout,safe,,,"Global container index stable for a fourth week"
-holdout,safe,,,"Airline pilots approve a new contract without dispute"
-holdout,safe,,,"New rail link connects Chinese and Lao freight networks"
-holdout,safe,,,"Logistics startup launches a drone delivery trial"
-holdout,safe,,,"Coastal shipping service expands along India's west coast"
-holdout,safe,,,"Retail imports expected to rise ahead of the holidays"
-holdout,safe,,,"Port of Tacoma hosts a community open day"
-holdout,safe,,,"Car carrier completes its maiden voyage to Europe"
-holdout,safe,,,"Freight broker reports strong demand for refrigerated trucks"
-holdout,safe,,,"Government announces funding for highway widening"
-holdout,safe,,,"Air freight demand steady in September"
-holdout,safe,,,"Ship emissions fall as vessels switch to cleaner fuel"
-holdout,safe,,,"Cold chain operator opens a facility in Rotterdam"
+split,label,threat_type,modes,headline,severity
+dev,disrupted,weather,sea,Typhoon Koinu forces Kaohsiung port to suspend container operations,3
+dev,disrupted,weather,road,"Blizzard closes Interstate 80 across Wyoming, stranding hundreds of trucks",2
+dev,disrupted,weather,rail,Monsoon floods wash away rail tracks between Mumbai and Pune,3
+dev,disrupted,weather,air,Thick fog grounds cargo flights at Delhi airport for a second day,2
+dev,disrupted,weather,sea,Hurricane Ida shuts Gulf Coast ports and refineries,3
+dev,disrupted,weather,sea,Record drought cuts Panama Canal daily transits to 24 ships,2
+dev,disrupted,weather,rail,Heavy snow and ice halt freight trains across southern Sweden,2
+dev,disrupted,weather,sea,Cyclone Mocha makes landfall and Chittagong port is closed,3
+dev,disrupted,weather,air,Severe storms ground flights at Frankfurt as the air cargo backlog builds,2
+dev,disrupted,labour,sea,Dockworkers at Hamburg and Bremerhaven stage a 24-hour strike,2
+dev,disrupted,labour,rail,French rail freight halted as unions launch rolling strikes,2
+dev,disrupted,labour,air,Air cargo handlers at Heathrow airport walk out over pay,2
+dev,disrupted,labour,road,"Truck drivers in South Korea strike, stalling cement and steel deliveries",3
+dev,disrupted,labour,sea,Port of Santos workers begin an indefinite strike,3
+dev,disrupted,labour,rail,Canadian rail network shuts down as lockout begins at CN and CPKC,3
+dev,disrupted,labour,sea,Longshore union halts work at Oakland port terminals,2
+dev,disrupted,labour,road,Lorry drivers blockade fuel depots in protest over diesel prices,2
+dev,disrupted,geopolitical,sea,Houthi forces seize a cargo ship in the Red Sea,2
+dev,disrupted,geopolitical,sea,Shipping lines suspend Black Sea calls after port is shelled,3
+dev,disrupted,geopolitical,any,New export ban on rare earths disrupts electronics supply,2
+dev,disrupted,geopolitical,air,Airspace closure over the Middle East forces cargo flights to reroute,2
+dev,disrupted,geopolitical,sea,Pirates board a bulk carrier vessel off the Somali coast,2
+dev,disrupted,geopolitical,rail,"Border closed between Kazakhstan and China, leaving rail freight stranded",3
+dev,disrupted,geopolitical,sea,Sanctions freeze shipping through a major Baltic port,3
+dev,disrupted,geopolitical,sea,Naval exercises close the Taiwan Strait to commercial traffic,3
+dev,disrupted,infrastructure,sea,Container ship loses power and blocks Bosphorus traffic,3
+dev,disrupted,infrastructure,rail,Freight train derailment closes main line through Ohio,2
+dev,disrupted,infrastructure,sea,Explosion at Beirut port destroys grain silos and warehouses,3
+dev,disrupted,infrastructure,sea,Power outage halts cranes at Colombo container port,2
+dev,disrupted,infrastructure,road,Highway bridge collapse cuts key trucking route to Genoa,3
+dev,disrupted,infrastructure,sea,Fire in cargo hold forces vessel to divert to Port Louis,1
+dev,disrupted,infrastructure,air,Runway closure at Hong Kong airport disrupts freighter schedules,2
+dev,disrupted,infrastructure,road,Tunnel fire closes Mont Blanc route to trucks,3
+dev,disrupted,infrastructure,sea,Lock gate failure closes the Kiel Canal to shipping,3
+dev,disrupted,cyber,sea,Ransomware attack halts operations at the Port of Nagoya,3
+dev,disrupted,cyber,any,Cyberattack takes down freight forwarder's booking systems worldwide,2
+dev,disrupted,cyber,rail,Hackers disrupt rail signalling systems in Denmark,2
+dev,disrupted,cyber,air,"Airline cargo IT systems hit by cyberattack, shipments delayed",1
+dev,disrupted,cyber,road,Malware attack cripples trucking company's dispatch network,2
+dev,disrupted,congestion,sea,Vessel queue outside Singapore anchorage grows to 60 ships,1
+dev,disrupted,congestion,sea,Yard congestion at Felixstowe port pushes container dwell time to 14 days,2
+dev,disrupted,congestion,rail,Rail terminals in Chicago overwhelmed as container backlog swells,2
+dev,disrupted,congestion,air,Air cargo backlog at Shanghai Pudong airport leaves freight waiting a week,2
+dev,disrupted,congestion,road,Border truck queues stretch 40 km at the Polish-Belarus crossing,1
+dev,disrupted,congestion,sea+road,Chassis shortage slows container pickups by trucks at Savannah port,1
+dev,disrupted,congestion,sea,Congestion at Durban port leaves ships waiting three weeks,2
+dev,safe,,,Maersk reports higher quarterly profit on strong demand,
+dev,safe,,,Port of Antwerp-Bruges opens new container terminal,
+dev,safe,,,DP World completes acquisition of logistics firm in India,
+dev,safe,,,Air cargo volumes rise 8% in August as e-commerce grows,
+dev,safe,,,Rail freight operator adds new daily service between Duisburg and Milan,
+dev,safe,,,Truck manufacturer unveils electric long-haul model,
+dev,safe,,,Singapore port signs green shipping corridor agreement with Rotterdam,
+dev,safe,,,FedEx names new chief operating officer,
+dev,safe,,,Container freight rates steady for third consecutive week,
+dev,safe,,,Panama Canal lifts draft restrictions as water levels recover,
+dev,safe,,,"Union and port employers strike a deal, averting walkout",
+dev,safe,,,Storm of criticism greets new shipping emissions rule,
+dev,safe,,,Shipping stocks rally as freight rates climb,
+dev,safe,,,Congestion eases at Los Angeles as vessel queue clears,
+dev,safe,,,Suez Canal traffic back to normal after grounded ship refloated,
+dev,safe,,,Cybersecurity startup raises $40 million to protect port systems,
+dev,safe,,,Strike action called off after pay agreement at Antwerp,
+dev,safe,,,Typhoon season forecast to be milder than average,
+dev,safe,,,Trucking company wins national road safety award,
+dev,safe,,,Airport opens new cold-chain facility for pharmaceuticals,
+dev,safe,,,Railway completes electrification of freight corridor,
+dev,safe,,,Carrier orders six methanol-powered container ships,
+dev,safe,,,Customs agency launches single-window digital clearance,
+dev,safe,,,Logistics park in Pune adds 1 million square feet of warehousing,
+dev,safe,,,Airline expands freighter fleet with two new Boeing 777Fs,
+dev,safe,,,Port authority completes dredging project ahead of schedule,
+dev,safe,,,Warehouse automation firm reports record orders,
+dev,safe,,,Global trade volumes expected to grow 3% next year,
+dev,safe,,,"New rail bridge opens, cutting freight journey times",
+dev,safe,,,Shipping line launches direct service from Vietnam to Mexico,
+dev,safe,,,Port of Jebel Ali handles a record 15 million containers,
+dev,safe,,,Freight forwarder partners with startup on AI route planning,
+dev,safe,,,Drivers praise new truck stops along national highway,
+dev,safe,,,Port workers celebrate 100 years of the harbour,
+dev,safe,,,Air traffic returns to normal after morning fog lifts,
+dev,safe,,,Rail operator reports 99% on-time performance for freight trains,
+dev,safe,,,Government approves funding for new deep-water port,
+dev,safe,,,Shipping industry conference opens in Hamburg,
+dev,safe,,,Retailers stock up early for the holiday season,
+dev,safe,,,Carrier's schedule reliability improves to 65%,
+dev,safe,,,Firefighters hold safety drill at container terminal,
+dev,safe,,,Tanker rates fall as oil demand softens,
+dev,safe,,,E-commerce giant opens fulfilment centre near Chennai,
+dev,safe,,,Port of Long Beach unveils zero-emission truck program,
+dev,safe,,,Trade ministers sign agreement to cut tariffs on machinery,
+dev,safe,,,Cargo airline celebrates its 50th anniversary,
+dev,safe,,,Flood of orders lifts shipbuilder's shares,
+dev,safe,,,Blockbuster film scenes shot at Rotterdam port,
+dev,safe,,,Rail freight grows as shippers shift from road,
+dev,safe,,,Port community system upgrade completed without downtime,
+test,disrupted,weather,sea,Typhoon Doksuri shuts Xiamen and Fuzhou ports as winds reach 175 km/h,3
+test,disrupted,weather,rail,"Winter storm freezes rail switches, halting freight across Texas",2
+test,disrupted,weather,road,"Flash floods submerge highway near Chennai, leaving cargo trucks stranded",2
+test,disrupted,weather,air,Sandstorm grounds flights at Dubai airport,2
+test,disrupted,weather,sea,Hurricane Milton forces closure of the Port of Tampa,3
+test,disrupted,weather,sea,Rhine water levels fall so low that barges carry a third of their load,2
+test,disrupted,weather,rail,"Heatwave buckles rail lines, slowing freight trains across Britain",1
+test,disrupted,weather,sea,Cyclone Freddy batters Beira port and operations are suspended,3
+test,disrupted,weather,air,Snowstorm closes Chicago O'Hare airport and air freight is delayed,2
+test,disrupted,labour,sea+rail,Finnish port and rail workers begin a week-long political strike,3
+test,disrupted,labour,air,Air traffic controllers strike in France and cargo flights are cancelled,2
+test,disrupted,labour,sea,"Belgian dockers stage a national strike, bringing Antwerp to a standstill",3
+test,disrupted,labour,road,Nationwide truckers' strike in Brazil blocks highways,3
+test,disrupted,labour,rail,German train drivers' union calls a 50-hour freight strike,2
+test,disrupted,labour,sea,Australian wharfies take industrial action at Sydney terminals,2
+test,disrupted,labour,sea+road,"Customs officers work to rule, causing long lorry delays at Dover",1
+test,disrupted,labour,any,Warehouse workers walk out at a logistics hub ahead of peak season,1
+test,disrupted,geopolitical,sea,Missile strike hits a tanker near the Bab el-Mandeb strait,2
+test,disrupted,geopolitical,sea,Insurers raise war-risk premiums for shipping as conflict spreads to the Black Sea,1
+test,disrupted,geopolitical,any,Export controls on chips tighten and shipments are held at customs,2
+test,disrupted,geopolitical,air,"Russia closes its airspace to Western carriers, forcing cargo flights onto longer routes",2
+test,disrupted,geopolitical,sea,Armed robbery attacks on ships rise in the Singapore Strait,1
+test,disrupted,geopolitical,any,Trade embargo halts all cargo shipments to the region,3
+test,disrupted,geopolitical,sea,Military blockade of Hormuz feared as tensions escalate,2
+test,disrupted,geopolitical,rail,Rail freight to Europe via Belarus suspended amid sanctions,3
+test,disrupted,infrastructure,sea+road,"Cargo ship collides with a bridge, closing the Baltimore shipping channel",3
+test,disrupted,infrastructure,rail,Derailment of a chemical train shuts a border rail crossing,2
+test,disrupted,infrastructure,any,Warehouse fire at a Singapore logistics park destroys cargo,2
+test,disrupted,infrastructure,sea,Blackout at Jawaharlal Nehru Port halts vessel loading,2
+test,disrupted,infrastructure,sea,Crane collapse at Busan port injures workers and berths are closed,2
+test,disrupted,infrastructure,rail,Tunnel collapse closes the main freight rail line through the Alps,3
+test,disrupted,infrastructure,air,Air cargo terminal roof collapses under snow at Anchorage airport,2
+test,disrupted,infrastructure,sea,Grounded bulk carrier blocks the Parana River waterway,3
+test,disrupted,infrastructure,road,Gas explosion forces closure of a major highway,2
+test,disrupted,cyber,sea,Cyberattack on DP World Australia halts container movements,3
+test,disrupted,cyber,air,Ransomware shuts down an airline's cargo booking platform,2
+test,disrupted,cyber,rail,Hackers target railway freight scheduling systems,1
+test,disrupted,cyber,any,IT attack on the customs authority leaves shipments stuck at borders,3
+test,disrupted,cyber,sea+road,Cyber incident disrupts the truck appointment system at Rotterdam port,1
+test,disrupted,congestion,sea,Ships wait up to 10 days to berth at Chittagong as congestion worsens,2
+test,disrupted,congestion,sea,Container backlog at Rotterdam grows as barge waiting times hit 70 hours,1
+test,disrupted,congestion,rail,Freight trains stack up outside congested Los Angeles rail yards,1
+test,disrupted,congestion,air,Air freight piles up at Frankfurt airport as handling capacity runs short,1
+test,disrupted,congestion,road,Trucks queue for three days at the Chinese-Kyrgyz border,2
+test,disrupted,congestion,sea,Port of Manila congestion forces carriers to skip calls,2
+test,disrupted,congestion,sea,Equipment shortage leaves exporters without empty containers,1
+test,safe,,,Hapag-Lloyd lifts full-year earnings guidance,
+test,safe,,,New container terminal at Tuas begins operations,
+test,safe,,,Air cargo demand rises for a sixth straight month,
+test,safe,,,India opens western dedicated freight corridor section to Mundra,
+test,safe,,,Port of Valencia reports steady throughput in July,
+test,safe,,,Logistics firm invests in an electric truck fleet,
+test,safe,,,Cargo airline receives its first Airbus A350F,
+test,safe,,,Kuehne+Nagel appoints a new chief executive,
+test,safe,,,Rail line reopens after scheduled maintenance is completed on time,
+test,safe,,,"Dockers approve new contract, ending months of talks",
+test,safe,,,Calm seas expected across the Atlantic this week,
+test,safe,,,Shipping line settles dispute with port authority over fees,
+test,safe,,,Congestion at Chittagong eases after a new berth opens,
+test,safe,,,Freight rates on Asia-Europe routes ease slightly,
+test,safe,,,Port of Gdansk expands its rail connection capacity,
+test,safe,,,Truckers welcome new rest-area rules,
+test,safe,,,Strike threat lifted as airport handlers accept pay offer,
+test,safe,,,Customs clearance times fall to a record low,
+test,safe,,,Canal authority announces discounts for container ships,
+test,safe,,,Ship-to-shore cranes arrive at the new terminal,
+test,safe,,,Warehouse rents rise on strong demand for logistics space,
+test,safe,,,Railway orders 200 new freight wagons,
+test,safe,,,Container line posts an on-time performance record,
+test,safe,,,Port of Hamburg celebrates its annual harbour birthday festival,
+test,safe,,,Freight forwarders see steady bookings ahead of the holiday season,
+test,safe,,,Logistics startup raises funds for last-mile delivery robots,
+test,safe,,,Government cuts highway tolls for freight vehicles,
+test,safe,,,New air cargo route links Nairobi and Liege,
+test,safe,,,Port of Houston breaks its monthly container record,
+test,safe,,,Shipping companies agree on a common emissions reporting standard,
+test,safe,,,Storm-proof warehouse design wins architecture prize,
+test,safe,,,Truck platooning trial completed successfully on the autobahn,
+test,safe,,,Suez Canal Authority reports rising revenue,
+test,safe,,,Rail operator introduces longer freight trains to boost capacity,
+test,safe,,,Cybersecurity drill at the port finds no vulnerabilities,
+test,safe,,,Airline cargo division returns to profit,
+test,safe,,,Port signs deal to supply shore power to berthed ships,
+test,safe,,,Freight volumes on the Middle Corridor double,
+test,safe,,,"Delivery firm hires 20,000 seasonal workers",
+test,safe,,,Shipping index edges up on steady demand,
+test,safe,,,Bridge reopens to trucks after inspection finds no damage,
+test,safe,,,Port launches an app to book truck arrival slots,
+test,safe,,,Record harvest boosts grain shipments from Brazil,
+test,safe,,,Port of Durban improves crane productivity,
+test,safe,,,Flights resume at Dubai after a brief sandstorm,
+test,safe,,,Carrier completes fleet upgrade ahead of schedule,
+test,safe,,,Airport freight village adds new warehouses,
+test,safe,,,Container shipping sees stable schedules in September,
+test,safe,,,Trade fair for logistics technology opens in Munich,
+test,safe,,,Wind farm components shipped safely to Taiwan,
+holdout,disrupted,weather,sea,Super typhoon Mangkhut forces Hong Kong port to halt all terminal operations,3
+holdout,disrupted,weather,air,Ice storm grounds cargo jets at Memphis airport overnight,1
+holdout,disrupted,weather,rail,Record rainfall floods freight yards and suspends trains in northern Italy,2
+holdout,disrupted,weather,road,"Dust storm cuts visibility to zero on the Riyadh-Dammam highway, halting trucks",1
+holdout,disrupted,weather,sea,Tropical storm closes the Houston Ship Channel to vessel traffic,3
+holdout,disrupted,weather,sea,Drought leaves Mississippi barges grounded on sandbars,2
+holdout,disrupted,weather,rail,Wildfire smoke forces closure of a rail line through British Columbia,2
+holdout,disrupted,weather,sea,Cyclone warning shuts Mundra and Kandla ports for 48 hours,2
+holdout,disrupted,labour,sea,"Port of Montreal longshore workers launch strike, freezing container traffic",3
+holdout,disrupted,labour,air,Cargo ground staff strike grounds freighters at Frankfurt airport,2
+holdout,disrupted,labour,road,Indian truckers begin a nationwide strike over new driving law,3
+holdout,disrupted,labour,rail,"Belgian rail unions walk out, halting freight trains for three days",2
+holdout,disrupted,labour,sea,Stevedores in Chile stop work at San Antonio and Valparaiso ports,2
+holdout,disrupted,labour,road,"Customs officials in Italy strike, leaving trucks stuck at the border",2
+holdout,disrupted,labour,sea,Swedish dockers expand their blockade to all major ports,3
+holdout,disrupted,labour,any,Warehouse staff at a major e-commerce hub stage a walkout during peak week,1
+holdout,disrupted,geopolitical,sea,Drone strikes on Black Sea grain terminals halt exports,3
+holdout,disrupted,geopolitical,sea,Commercial ships turned away as a navy enforces a blockade of the gulf,3
+holdout,disrupted,geopolitical,any,New tariffs and export licences stall shipments of machine tools,1
+holdout,disrupted,geopolitical,air,"Cargo airlines avoid conflict-zone airspace, adding hours to Asia-Europe flights",1
+holdout,disrupted,geopolitical,rail,Rebels attack a freight train on the Kenya-Uganda line,2
+holdout,disrupted,geopolitical,road,Border crossing between Georgia and Russia closed to trucks amid tensions,2
+holdout,disrupted,geopolitical,sea,Tanker seized by armed forces near the Strait of Hormuz,2
+holdout,disrupted,geopolitical,air,Sanctions ban Western cargo flights from the region's airspace,2
+holdout,disrupted,infrastructure,sea,Crane collapse at a Long Beach terminal shuts two berths,1
+holdout,disrupted,infrastructure,rail,Signal system failure halts all freight trains on the West Coast main line,2
+holdout,disrupted,infrastructure,air,Runway damage closes Kuala Lumpur airport to widebody freighters,2
+holdout,disrupted,infrastructure,sea,Container ship fire at berth forces evacuation of the Jebel Ali terminal,2
+holdout,disrupted,infrastructure,road,"Sinkhole swallows highway lanes, closing the main truck route to Chennai port",2
+holdout,disrupted,infrastructure,sea,Power blackout paralyses Karachi port operations,2
+holdout,disrupted,infrastructure,rail,Derailed freight train blocks the main line through the Rockies,2
+holdout,disrupted,infrastructure,sea,Lock failure on the Panama Canal cuts daily transits,2
+holdout,disrupted,cyber,sea,Ransomware attack forces the Port of Lisbon to switch to manual operations,2
+holdout,disrupted,cyber,rail,Cyberattack cripples the national railway's freight booking system,2
+holdout,disrupted,cyber,air,Hackers breach an air cargo tracking platform and shipments are delayed worldwide,1
+holdout,disrupted,cyber,road,Malware outage at a trucking giant leaves fleets idle for two days,2
+holdout,disrupted,cyber,any,"Cyberattack disrupts customs systems, freezing import clearance nationwide",3
+holdout,disrupted,cyber,any,IT systems at a global freight forwarder hit by ransomware,2
+holdout,disrupted,congestion,sea,Vessel queue at the Shanghai anchorage climbs past 200 ships,2
+holdout,disrupted,congestion,sea,Container yards at the Port of Los Angeles near capacity as dwell times climb,1
+holdout,disrupted,congestion,rail,Freight trains back up for miles outside the Kansas City rail yard,1
+holdout,disrupted,congestion,air,Air freight backlog at Hong Kong airport stretches to ten days,2
+holdout,disrupted,congestion,road,Truck queue at the Mexico-US border crossing reaches 20 hours,1
+holdout,disrupted,congestion,sea,Shortage of empty containers strands exporters in Southeast Asia,1
+holdout,disrupted,congestion,sea,Berth waiting time at Colombo port rises to five days,1
+holdout,disrupted,congestion,rail,Congested rail terminal at Duisburg delays trains from China,1
+holdout,safe,,,"Port of Montreal and union reach a deal, averting a strike",
+holdout,safe,,,Typhoon passes without damage as Hong Kong port reopens,
+holdout,safe,,,Shanghai anchorage queue falls to its lowest level this year,
+holdout,safe,,,Rail freight resumes on the Kenya-Uganda line after repairs,
+holdout,safe,,,Panama Canal raises daily transit slots as rains return,
+holdout,safe,,,Lufthansa Cargo reports record first-half results,
+holdout,safe,,,New automated terminal opens at the Port of Tanger Med,
+holdout,safe,,,Air cargo rates edge down as capacity grows,
+holdout,safe,,,DHL invests in a new hub at Cincinnati airport,
+holdout,safe,,,Indian Railways adds 500 new container wagons,
+holdout,safe,,,Truck drivers welcome new rest stops on the Mumbai-Pune expressway,
+holdout,safe,,,Maersk appoints a new head of Asia-Pacific operations,
+holdout,safe,,,Port of Salalah reports steady volumes,
+holdout,safe,,,Cargo airline signs a sustainability pledge,
+holdout,safe,,,Container line launches a new India-Europe express service,
+holdout,safe,,,Customs agency cuts clearance time with a paperless system,
+holdout,safe,,,Shipping stocks slip on a quiet trading day,
+holdout,safe,,,Freight forwarder acquires a regional trucking firm,
+holdout,safe,,,Airport celebrates 40 years of cargo operations,
+holdout,safe,,,Rail operator tests a hydrogen locomotive on a freight line,
+holdout,safe,,,Port authority unveils a plan to double capacity by 2030,
+holdout,safe,,,Warehouse developer breaks ground on a new logistics park near Delhi,
+holdout,safe,,,Trade talks make progress on reducing shipping fees,
+holdout,safe,,,Logistics conference in Singapore draws record attendance,
+holdout,safe,,,E-commerce firm expands same-day delivery to ten cities,
+holdout,safe,,,Shipbuilder delivers the largest container ship yet,
+holdout,safe,,,Airline cargo arm adds weekly flights to Nairobi,
+holdout,safe,,,Weather service forecasts calm conditions for the shipping lanes,
+holdout,safe,,,Firefighters praised for a quick response in a port safety exercise,
+holdout,safe,,,Cybersecurity experts share tips at a port technology summit,
+holdout,safe,,,Strike-free year for Rotterdam as labour relations improve,
+holdout,safe,,,Truckers' association elects a new president,
+holdout,safe,,,Bridge inspection finds the structure sound and traffic continues normally,
+holdout,safe,,,Backlog cleared at Frankfurt cargo centre after a new sorting system,
+holdout,safe,,,Container dwell times at Los Angeles fall to record lows,
+holdout,safe,,,Freight rail volumes up 4% on a strong grain harvest,
+holdout,safe,,,Port of Busan wins an award for smart port technology,
+holdout,safe,,,Global container index stable for a fourth week,
+holdout,safe,,,Airline pilots approve a new contract without dispute,
+holdout,safe,,,New rail link connects Chinese and Lao freight networks,
+holdout,safe,,,Logistics startup launches a drone delivery trial,
+holdout,safe,,,Coastal shipping service expands along India's west coast,
+holdout,safe,,,Retail imports expected to rise ahead of the holidays,
+holdout,safe,,,Port of Tacoma hosts a community open day,
+holdout,safe,,,Car carrier completes its maiden voyage to Europe,
+holdout,safe,,,Freight broker reports strong demand for refrigerated trucks,
+holdout,safe,,,Government announces funding for highway widening,
+holdout,safe,,,Air freight demand steady in September,
+holdout,safe,,,Ship emissions fall as vessels switch to cleaner fuel,
+holdout,safe,,,Cold chain operator opens a facility in Rotterdam,

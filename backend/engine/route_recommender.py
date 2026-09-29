@@ -6,7 +6,7 @@ import numpy as np
 from .delay_features import CONDITIONS, FEATURES, arrival_kind
 from .delay_model import DelayQuantileModel, label as feature_label
 from .multimodal_network import MODE_PROFILES, create_multimodal_network
-from .threat_intelligence import ContrastiveNLPEngine, CARFFilter
+from .threat_intelligence import MINOR_SCORE, ContrastiveNLPEngine, CARFFilter
 from .news_ingestion import DynamicNewsIngestor
 from .node_resolver import NodeResolver
 
@@ -76,10 +76,11 @@ class RouteRecommender:
 
             # Enrich unified graph with baseline intelligence. Every edge of a mode
             # shares that mode's baseline report, so score each report once rather
-            # than running the transformer for all ~5,600 edges.
+            # than running the transformer for all ~5,600 edges. A standing report
+            # describes routine conditions, so it counts as minor at most.
             baseline = {}
             for mode, news in self.news_ingestor.fallback_news.items():
-                score = self.nlp.get_semantic_score(news)
+                score = min(self.nlp.get_semantic_score(news), MINOR_SCORE)
                 baseline[mode] = (self.carf.apply_filter(score, news, mode), news)
             for u, v, d in self.unified_graph.edges(data=True):
                 mode = d.get("transport_mode", "road")
@@ -213,6 +214,7 @@ class RouteRecommender:
                 condition = "stormy" if score >= STORM_SCORE else "rainy"
             report = {"place": place, "hubs": sorted(self._city_hubs.get(place, ())), "headlines": headlines,
                       "headline": assessment["headline"], "score": round(score, 3),
+                      "severity": assessment["severity"] if score > 0 else 0.0,
                       "threat_type": threat_type, "condition": condition}
             for hub_id in report["hubs"]:
                 intel[hub_id] = report

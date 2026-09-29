@@ -49,12 +49,25 @@ THREAT_TYPE_ANCHORS = {
                    "Equipment shortage slows cargo pickups."],
 }
 MIN_TYPE_SIMILARITY = 0.30  # below this the report matches no category well
-# The type is learned (logistic regression on the embeddings) from these
-# archetypes plus the labelled disruptions in ml/nlp_headlines.csv. Only the dev
-# and test splits are used; the holdout split stays out so it can measure the
-# result. Cross-split accuracy on dev/test: 0.95, vs 0.90 for the nearest archetype.
-TYPE_EXAMPLES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "ml", "nlp_headlines.csv")
-TYPE_REGULARISATION = 4.0  # accuracy was flat from C=1 to C=32
+
+# The 288 labelled synthetic headlines in ml/nlp_headlines.csv teach the engine
+# three things (the real headlines in ml/nlp_real_headlines.csv are never read,
+# so they can measure it):
+# - detection: labelled disruptions join the disaster anchors, labelled routine
+#   news the safe anchors (3-fold CV: false alarms 8.0% -> 1.3%, AUC 0.986 -> 0.994)
+# - threat type: logistic regression on the embeddings (CV accuracy 0.94 vs
+#   0.90 for the nearest archetype; flat from C=1 to C=32)
+# - severity: ridge regression on the 1-3 severity labels (CV rank correlation
+#   with the labels 0.63, vs 0.27 for the old margin ramp)
+# Place and other proper names are stripped from the examples first, as they
+# were from the anchors: otherwise "Singapore port throughput rises" resembles
+# "Vessel queue outside Singapore anchorage grows" and reads as a threat.
+LABELLED_HEADLINES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "ml", "nlp_headlines.csv")
+TYPE_REGULARISATION = 4.0
+SEVERITY_REGULARISATION = 0.1  # CV rank correlation was flat from 0.03 to 0.5
+# Severity 1 (minor), 2 (significant) and 3 (severe) map to scores 0.2, 0.6 and 1.0.
+# The score is the incident severity the delay model expects.
+MINOR_SCORE, SEVERE_SCORE = 0.2, 1.0
 
 # Historical anchor corpus from the starter's Code/precompute_nlp.py, with place
 # and company names removed. The named originals leaked location into the score:
@@ -116,6 +129,11 @@ MIN_REPORT_WORDS = 4  # shorter fragments ("Light rain forecast") carry no relia
 EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
 DOWNLOAD_ATTEMPTS = 3  # the Hugging Face Hub drops connections now and then
 
+def strip_proper_nouns(headline: str) -> str:
+    """Drop every capitalised word or number after the first word of a sentence-case headline."""
+    words = headline.split()
+    return " ".join(words[:1] + [w for w in words[1:] if not re.match(r"[A-Z0-9]", w.strip("\"'(\u201c\u2018"))])
+
 def split_reports(news_text: str) -> List[str]:
     """One chunk per headline or sentence, so unrelated headlines are not blended."""
     parts = re.split(r"\s+\|\s+|(?<=[.!?])\s+", news_text or "")
@@ -126,14 +144,10 @@ class ContrastiveNLPEngine:
     def __init__(self, lazy_load=False):
         self._ready = False
         # Threat margin = best cosine similarity to a disaster anchor minus the mean
-        # of the two best to safe anchors, per headline. The floor is set on the dev
-        # split of ml/nlp_headlines.csv: above 0.08 it caught 98% of disruptions
-        # with no false alarm. A full canal closure reaches ~0.34, strikes and
-        # attacks ~0.17, routine congestion ~0.13, so the ramp to 0.35 keeps a
-        # closure near 1 and routine congestion low. The score feeds the delay
-        # model as incident severity.
-        self.noise_floor = 0.08
-        self.saturation_margin = 0.35
+        # of the two best to safe anchors, per headline. A headline is a disruption
+        # above this margin, chosen on out-of-fold margins of the labelled
+        # headlines (best balanced accuracy: 95.7% of disruptions, 1.3% false alarms).
+        self.noise_floor = 0.047
         if not lazy_load:
             self.warmup()
 
@@ -160,13 +174,19 @@ class ContrastiveNLPEngine:
             self.util = util
             pairs = [(t, s) for t, sentences in THREAT_TYPE_ANCHORS.items() for s in sentences]
             self._type_matrix = self.model.encode([s for _, s in pairs], convert_to_tensor=True)
-            self._type_model = self._fit_type_model(pairs)
-            # Historical incidents plus the category archetypes as disaster anchors;
-            # routine operations plus positive business news as safe ones. Encoded
-            # from text at start-up, so the anchors stay readable and auditable.
+            disrupted, routine = self._load_labelled()
+            dis_emb = self.model.encode([strip_proper_nouns(r["headline"]) for r in disrupted], convert_to_tensor=True)
+            routine_emb = self.model.encode([strip_proper_nouns(r["headline"]) for r in routine], convert_to_tensor=True)
+            self._type_model = self._fit_type_model(pairs, disrupted, dis_emb)
+            self._severity_model = self._fit_severity_model(disrupted, dis_emb)
+            # Disaster anchors: historical incidents, the category archetypes and
+            # the labelled disruptions. Safe anchors: routine operations, business
+            # news and the labelled routine headlines. Encoded from text at
+            # start-up, so the anchors stay readable and auditable.
             self.disaster_matrix = torch.cat([self.model.encode(HISTORICAL_DISASTERS, convert_to_tensor=True),
-                                              self._type_matrix])
-            self.safe_matrix = self.model.encode(HISTORICAL_SAFE + SAFE_ARCHETYPES, convert_to_tensor=True)
+                                              self._type_matrix] + ([dis_emb] if disrupted else []))
+            self.safe_matrix = torch.cat([self.model.encode(HISTORICAL_SAFE + SAFE_ARCHETYPES, convert_to_tensor=True)]
+                                         + ([routine_emb] if routine else []))
             self._ready = True
             print("NLP Brain: Anchor matrices ready.")
         except Exception as e:
@@ -185,7 +205,7 @@ class ContrastiveNLPEngine:
         """
         chunks = split_reports(news_text)
         if not self._ready or not chunks:
-            return {"score": 0.0, "margin": 0.0, "type": "none", "confidence": 0.0, "headline": None}
+            return {"score": 0.0, "margin": 0.0, "severity": 0.0, "type": "none", "confidence": 0.0, "headline": None}
         embeddings = self.model.encode(chunks, convert_to_tensor=True)
         d_scores = self.util.cos_sim(embeddings, self.disaster_matrix).cpu().numpy().max(axis=1)
         safe_sims = np.sort(self.util.cos_sim(embeddings, self.safe_matrix).cpu().numpy(), axis=1)
@@ -193,26 +213,39 @@ class ContrastiveNLPEngine:
         margins = d_scores - s_scores
         top = int(np.argmax(margins))
         margin = float(margins[top])
-        score = 0.0 if margin <= self.noise_floor else float(
-            min(1.0, (margin - self.noise_floor) / (self.saturation_margin - self.noise_floor)))
+        top_embedding = embeddings[top:top + 1].cpu().numpy()
+        severity = 2.0 if self._severity_model is None else float(np.clip(self._severity_model.predict(top_embedding)[0], 1, 3))
+        score = 0.0 if margin <= self.noise_floor else MINOR_SCORE + (SEVERE_SCORE - MINOR_SCORE) * (severity - 1) / 2
         similarity = self.util.cos_sim(embeddings[top:top + 1], self._type_matrix).cpu().numpy()[0]
-        probabilities = self._type_model.predict_proba(embeddings[top:top + 1].cpu().numpy())[0]
+        probabilities = self._type_model.predict_proba(top_embedding)[0]
         best = int(np.argmax(probabilities))
         threat_type = self._type_model.classes_[best] if similarity.max() >= MIN_TYPE_SIMILARITY else "general"
-        return {"score": score, "margin": round(margin, 4), "type": str(threat_type),
-                "confidence": round(float(probabilities[best]), 3), "headline": chunks[top]}
+        return {"score": float(score), "margin": round(margin, 4), "severity": round(severity, 2),
+                "type": str(threat_type), "confidence": round(float(probabilities[best]), 3), "headline": chunks[top]}
 
-    def _fit_type_model(self, pairs):
-        """Threat-type classifier over the archetypes and the labelled dev/test disruptions."""
+    @staticmethod
+    def _load_labelled():
+        """Labelled synthetic headlines as (disruptions, routine news); empty if the file is missing."""
+        if not os.path.exists(LABELLED_HEADLINES):
+            return [], []
+        with open(LABELLED_HEADLINES, newline="", encoding="utf-8") as f:
+            rows = list(csv.DictReader(f))
+        return [r for r in rows if r["label"] == "disrupted"], [r for r in rows if r["label"] == "safe"]
+
+    def _fit_type_model(self, pairs, disrupted, dis_emb):
+        """Threat-type classifier over the archetypes and the labelled disruptions."""
         from sklearn.linear_model import LogisticRegression
-        texts, labels = [s for _, s in pairs], [t for t, _ in pairs]
-        if os.path.exists(TYPE_EXAMPLES):
-            with open(TYPE_EXAMPLES, newline="", encoding="utf-8") as f:
-                for row in csv.DictReader(f):
-                    if row["label"] == "disrupted" and row["split"] in ("dev", "test"):
-                        texts.append(row["headline"])
-                        labels.append(row["threat_type"])
-        return LogisticRegression(C=TYPE_REGULARISATION, max_iter=4000).fit(self.model.encode(texts), labels)
+        X = np.concatenate([self._type_matrix.cpu().numpy()] + ([dis_emb.cpu().numpy()] if disrupted else []))
+        labels = [t for t, _ in pairs] + [r["threat_type"] for r in disrupted]
+        return LogisticRegression(C=TYPE_REGULARISATION, max_iter=4000).fit(X, labels)
+
+    @staticmethod
+    def _fit_severity_model(disrupted, dis_emb):
+        """Severity (1-3) regressor over the labelled disruptions, or None without them."""
+        if not disrupted:
+            return None
+        from sklearn.linear_model import Ridge
+        return Ridge(alpha=SEVERITY_REGULARISATION).fit(dis_emb.cpu().numpy(), [int(r["severity"]) for r in disrupted])
 
     def get_semantic_score(self, news_text: str) -> float:
         return self.assess(news_text)["score"]

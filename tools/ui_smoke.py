@@ -100,7 +100,7 @@ def main():
 
         page.click("text=Model evaluation")
         page.wait_for_selector(".panel .recharts-surface", timeout=15_000)
-        check(page.locator(".scores tbody tr").count() == 6, "threat-intelligence scores missing")
+        check(page.locator(".scores tbody tr").count() == 7, "threat-intelligence scores missing")
         check(page.locator("text=Best possible").count() >= 1, "delay-model ceiling missing")
         time.sleep(1)
         page.screenshot(path=str(out / "model.png"))

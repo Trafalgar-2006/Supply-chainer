@@ -19,6 +19,7 @@ const NLP_METRICS = [
   ['Precision', 'precision', pct, true],
   ['Detection AUC', 'auc', x => x.toFixed(2), true],
   ['Threat type correct', 'type_accuracy', pct, true],
+  ['Severity ranking (rank correlation)', 'severity_rank_correlation', x => x.toFixed(2), true],
   ['CARF: right call per mode', 'carf_accuracy', pct, true],
 ];
 
@@ -46,8 +47,11 @@ export default function ModelEvaluation({ onNavigate }) {
     ? Object.entries(report.delay_ceiling.quantiles).map(([name, q]) => ({ name, ...q }))
     : [];
   const nlp = report?.nlp;
-  const holdout = nlp?.holdout;
-  const nlpNow = holdout && { ...holdout.detection, type_accuracy: holdout.type_accuracy, carf_accuracy: holdout.carf_accuracy };
+  const real = nlp?.real;
+  const nlpNow = real && {
+    ...real.detection, type_accuracy: real.type_accuracy,
+    severity_rank_correlation: real.severity_rank_correlation, carf_accuracy: real.carf_accuracy,
+  };
   const importance = report ? Object.entries(report.p85_permutation_importance).map(([feature, value]) => ({ feature, value })) : [];
 
   return (
@@ -126,12 +130,13 @@ export default function ModelEvaluation({ onNavigate }) {
               </section>
             )}
 
-            {holdout && (
+            {real && (
               <section className="panel">
-                <h2>Threat intelligence on held-out headlines</h2>
+                <h2>Threat intelligence on real news</h2>
                 <p className="note">
-                  {holdout.headlines} labelled headlines written after all tuning and scored once: {holdout.disrupted} disruptions
-                  and {holdout.safe} pieces of routine news, including disruptions that have ended.
+                  {real.headlines} real headlines from Google News, labelled before the engine saw them and never used to
+                  train it: {real.disrupted} disruptions and {real.safe} pieces of routine news. Before is the engine this
+                  project started from.
                 </p>
                 <table className="scores">
                   <thead>
@@ -139,7 +144,7 @@ export default function ModelEvaluation({ onNavigate }) {
                   </thead>
                   <tbody>
                     {NLP_METRICS.map(([label, key, format, higherIsBetter]) => {
-                      const before = nlp.baseline_holdout?.[key];
+                      const before = nlp.baseline_real?.[key];
                       const now = nlpNow[key];
                       const better = before !== undefined && (higherIsBetter ? now > before : now < before);
                       return (
@@ -153,8 +158,8 @@ export default function ModelEvaluation({ onNavigate }) {
                   </tbody>
                 </table>
                 <p className="note">
-                  Still missed: {holdout.errors.missed.map(h => `"${h}"`).join('; ') || 'none'}.
-                  {' '}False alarms: {holdout.errors.false_alarms.map(h => `"${h}"`).join('; ') || 'none'}.
+                  False alarms: {real.errors.false_alarms.map(h => `"${h}"`).join('; ') || 'none'}.
+                  {' '}Missed: {real.errors.missed.length} of {real.disrupted}.
                 </p>
               </section>
             )}
