@@ -291,7 +291,6 @@ class ContrastiveNLPEngine:
                         time.sleep(2 ** attempt)
             self.util = util
             pairs = [(t, s) for t, sentences in THREAT_TYPE_ANCHORS.items() for s in sentences]
-            self._type_names = [t for t, _ in pairs]
             self._type_matrix = self.model.encode([s for _, s in pairs], convert_to_tensor=True)
             self._type_model = self._fit_type_model(pairs)
             # Historical incidents plus the category archetypes as disaster anchors;

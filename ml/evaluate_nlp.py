@@ -99,7 +99,8 @@ def main():
     rows = load()
     report = {split: evaluate([r for r in rows if r["split"] == split], nlp, carf) for split in SPLITS}
     report["baseline_holdout"] = BASELINE_HOLDOUT
-    for split, result in ((s, report[s]) for s in SPLITS):
+    for split in SPLITS:
+        result = report[split]
         d = result["detection"]
         print(f"{split}: AUC {d['auc']}, recall {d['recall']}, false alarms {d['false_alarm_rate']}, "
               f"precision {d['precision']}, type accuracy {result['type_accuracy']}, CARF {result['carf_accuracy']}")
