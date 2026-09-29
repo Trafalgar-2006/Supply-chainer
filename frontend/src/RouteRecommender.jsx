@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { animate, stagger } from 'animejs';
 import { Truck, Ship, Plane, Train, ArrowRightLeft, ArrowUpDown, Navigation, Download, Printer } from 'lucide-react';
 import RouteMap, { PERSONA_COLOURS, personaLabel, prefersReducedMotion } from './RouteMap.jsx';
+import { readJson, requestError } from './api.js';
 
 // `forbids`: the mode the engine never uses for this cargo (MODE_PROFILES' cargo_restrictions).
 const CARGO_TYPES = [
@@ -36,7 +37,7 @@ const EXAMPLES = [
   { label: 'Chennai to Singapore during the monsoon floods', source: 'PORT-CHENNAI', destination: 'PORT-SINGAPORE',
     scenario: 'CHENNAI_FLOOD', mode: 'any' },
 ];
-const RECENT_KEY = 'supplychainer.recent-plans';
+export const RECENT_KEY = 'supplychainer.recent-plans';
 const RECENT_LIMIT = 8;
 const SEARCH_MAX = 100; // the API's limit on a hub search
 
@@ -70,18 +71,43 @@ function modeSummary(route) {
 const planKey = p => JSON.stringify([p.source, p.destination, p.transportMode, p.routingPolicy,
   p.cargoType, p.priority, p.liveIntel, [...p.avoid].sort()]);
 
-// A saved result that does not look like a planner response (an older version,
-// edited storage) is dropped, keeping the plan.
-const validResult = r => r && Array.isArray(r.live_intel) && Array.isArray(r.recommendations) && r.recommendations.length > 0
-  && r.recommendations.every(x => x && Array.isArray(x.legs) && x.legs.length > 0 && x.eta_band && x.audit_trace
-    && typeof x.total_cost === 'number');
+// Saved plans come back from storage that an older version or a person may
+// have changed, so everything the page reads is checked: a plan with an unknown
+// value is dropped, and a result that doesn't look like a planner response is
+// dropped while its plan is kept.
+const isNum = x => typeof x === 'number' && Number.isFinite(x);
+const isStr = x => typeof x === 'string';
+const numbers = (o, keys) => Boolean(o) && typeof o === 'object' && keys.every(k => isNum(o[k]));
+const QUANTILES = ['p50', 'p85', 'p95'];
+const validLeg = l => Boolean(l) && isStr(l.from) && isStr(l.to) && isStr(l.to_name) && isStr(l.mode)
+  && (l.type === 'transit' || l.type === 'transfer') && isNum(l.eta) && isNum(l.cost) && isNum(l.threat)
+  && isStr(l.reason) && isStr(l.intel_source) && numbers(l.delay, QUANTILES);
+const validRoute = r => Boolean(r) && isStr(r.persona) && Array.isArray(r.personas) && r.personas.every(isStr)
+  && isStr(r.explanation) && Array.isArray(r.legs) && r.legs.length > 0 && r.legs.every(validLeg)
+  && numbers(r.eta_band, QUANTILES) && isNum(r.adjusted_eta) && isNum(r.total_cost) && isNum(r.threat_level)
+  && Boolean(r.audit_trace) && numbers(r.audit_trace.eta, ['transit', 'transfer', 'delay', 'scenario'])
+  && numbers(r.audit_trace.cost, ['transit', 'transfer', 'scenario']) && numbers(r.audit_trace.risk, ['baseline', 'scenario', 'live'])
+  && (r.delay_drivers == null || (Array.isArray(r.delay_drivers.drivers)
+    && r.delay_drivers.drivers.every(d => d && isStr(d.factor) && isNum(d.hours))));
+const validReport = r => Boolean(r) && isStr(r.place) && Array.isArray(r.hubs) && isNum(r.score) && isNum(r.severity)
+  && isStr(r.threat_type) && isStr(r.condition) && (r.headline == null || isStr(r.headline))
+  && (r.headlines == null || isStr(r.headlines))
+  && (r.weather == null || (isStr(r.weather.description) && isNum(r.weather.wind_kmh)));
+const validResult = r => Boolean(r) && Array.isArray(r.recommendations) && r.recommendations.length > 0
+  && r.recommendations.every(validRoute) && Array.isArray(r.live_intel) && r.live_intel.every(validReport)
+  && (r.pending == null || (Array.isArray(r.pending) && r.pending.every(isStr)));
+const MODES = ['any', 'sea', 'air', 'rail', 'road'];
+const validPlan = p => Boolean(p) && isStr(p.source) && isStr(p.destination) && isStr(p.sourceName) && isStr(p.destName)
+  && MODES.includes(p.transportMode) && ['STRICT', 'PREFERRED'].includes(p.routingPolicy)
+  && CARGO_TYPES.some(c => c.value === p.cargoType) && ['low', 'normal', 'urgent'].includes(p.priority)
+  && typeof p.liveIntel === 'boolean' && (p.scenario === null || isStr(p.scenario))
+  && Array.isArray(p.avoid) && p.avoid.every(isStr) && Array.isArray(p.hubs) && p.hubs.every(isStr);
 
 function loadRecent() {
   try {
     const saved = JSON.parse(localStorage.getItem(RECENT_KEY));
-    return Array.isArray(saved) ? saved.filter(p => p && typeof p.source === 'string' && typeof p.destination === 'string'
-      && typeof p.sourceName === 'string' && typeof p.destName === 'string' && Array.isArray(p.avoid) && Array.isArray(p.hubs))
-      .map(({ result, plannedAt, ...p }) => (validResult(result) && !Number.isNaN(Date.parse(plannedAt))
+    return Array.isArray(saved) ? saved.filter(validPlan)
+      .map(({ result, plannedAt, ...p }) => (validResult(result) && isStr(plannedAt) && !Number.isNaN(Date.parse(plannedAt))
         ? { ...p, result, plannedAt } : p)) : [];
   } catch {
     return [];
@@ -89,7 +115,7 @@ function loadRecent() {
 }
 
 // A plan's inputs alone, without its saved result.
-const planOnly = ({ result, plannedAt, saved, ...plan }) => plan;
+const planOnly = ({ result, plannedAt, saved, example, ...plan }) => plan;
 
 function saveRecent(plans) {
   try {
@@ -143,11 +169,15 @@ function downloadCsv(route, hubName) {
   const origin = hubName(route.legs[0].from);
   const destination = route.legs[route.legs.length - 1].to_name;
   const rows = [
-    ['leg', 'type', 'mode', 'from', 'to', 'hours', 'delay_p50_h', 'delay_p85_h', 'delay_p95_h', 'cost_usd_estimate', 'threat', 'intel_source', 'reason'],
+    // A leg's hours already include its typical (p50) delay; the delay columns are
+    // for reference and must not be added to them.
+    ['leg', 'type', 'mode', 'from', 'to', 'hours_incl_p50_delay', 'delay_p50_h', 'delay_p85_h', 'delay_p95_h',
+      'cost_usd_estimate', 'threat', 'intel_source', 'reason'],
     ...route.legs.map((l, i) => [i + 1, l.type, l.mode, hubName(l.from), l.to_name, l.eta, l.delay.p50, l.delay.p85, l.delay.p95,
       l.cost, l.threat, l.intel_source, l.reason]),
     ['total', '', '', origin, destination, route.adjusted_eta, '', '', '', route.total_cost, route.threat_level, '',
-      `Typical ${route.adjusted_eta} h; plan for ${route.eta_band.p85} h (p85); up to ${route.eta_band.p95} h (p95)`],
+      `Typical ${route.adjusted_eta} h (the legs' hours added up); simulated whole trip: median ${route.eta_band.p50} h, `
+        + `plan for ${route.eta_band.p85} h (p85), up to ${route.eta_band.p95} h (p95)`],
   ];
   // The byte-order mark lets Excel read accented hub names as UTF-8.
   download(`route-${slug(origin)}-to-${slug(destination)}.csv`,
@@ -171,7 +201,7 @@ const apiRequest = plan => ({
   overrides: plan.avoid.length ? { avoid_chokepoints: plan.avoid } : null,
 });
 
-const RouteRecommender = ({ onNavigate, engineStatus }) => {
+const RouteRecommender = ({ onNavigate, engineStatus, visible = true }) => {
   const [source, setSource] = useState('');
   const [destination, setDestination] = useState('');
   const [transportMode, setTransportMode] = useState('any');
@@ -190,6 +220,9 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState({ source: '', dest: '' });
   const [searchResults, setSearchResults] = useState({ source: [], dest: [] });
+  const [activeOption, setActiveOption] = useState({ source: -1, dest: -1 }); // highlighted suggestion
+  const [searchNote, setSearchNote] = useState({ source: '', dest: '' }); // no matches, or search unavailable
+  const [pendingIntel, setPendingIntel] = useState([]); // places whose news was still loading
   const [scenarios, setScenarios] = useState([]);
   const [hubs, setHubs] = useState([]);
   const [recent, setRecent] = useState(loadRecent);
@@ -266,6 +299,8 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
     setSearchQuery({ source: plan.sourceName, dest: plan.destName });
     latestQuery.current = { source: plan.sourceName, dest: plan.destName };
     setSearchResults({ source: [], dest: [] });
+    setActiveOption({ source: -1, dest: -1 });
+    setSearchNote({ source: '', dest: '' });
     setTransportMode(plan.transportMode);
     setRoutingPolicy(plan.routingPolicy);
     setCargoType(plan.cargoType);
@@ -291,11 +326,12 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
     setChanges(null);
     setRecommendations(result.recommendations);
     setIntelReports(result.live_intel);
+    setPendingIntel(result.pending || []);
     setResultContext({ ...plan, saved: true });
     setSelected(0);
   };
 
-  const runPlan = async request => {
+  const runPlan = async (request, { example = false } = {}) => {
     const plan = planOnly(request);
     applyPlan(plan);
     setLoading(true);
@@ -306,22 +342,24 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(apiRequest(plan)),
       });
-      const data = await res.json();
-      if (!res.ok || data.error) {
-        const detail = Array.isArray(data.detail) ? data.detail.map(d => d.msg).join('; ') : data.detail;
-        setError(data.error || detail || `Request failed (${res.status})`);
+      const data = await readJson(res);
+      const result = data && { recommendations: data.recommendations, live_intel: data.live_intel || [],
+        pending: data.live_intel_pending || [] };
+      if (!res.ok || !validResult(result)) {
+        setError(res.ok ? 'The routing engine sent a reply this page could not read. Plan again.' : requestError(res, data));
         setRecommendations([]);
         setIntelReports([]);
+        setPendingIntel([]);
         setResultContext(null);
         setChanges(null);
       } else {
         const planned = { ...plan, plannedAt: new Date().toISOString() };
-        const result = { recommendations: data.recommendations, live_intel: data.live_intel || [] };
         const before = recent.find(p => sameAs(plan)(p) && p.result);
         setChanges(before ? { since: before.plannedAt, before: before.result.recommendations } : null);
         setRecommendations(result.recommendations);
         setIntelReports(result.live_intel);
-        setResultContext(planned);
+        setPendingIntel(result.pending);
+        setResultContext({ ...planned, example });
         setSelected(0);
         remember(planned, result);
       }
@@ -336,43 +374,85 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
     source, sourceName: searchQuery.source, destination, destName: searchQuery.dest,
     transportMode, routingPolicy, cargoType, priority, scenario: selectedScenario, liveIntel, avoid,
   });
-  // Plans the engine would refuse, explained before they are sent.
-  const cargoRule = CARGO_TYPES.find(c => c.value === cargoType);
+  // Plans the engine would refuse, explained before they are sent, and a note
+  // when the preferred mode is one this cargo can't use.
+  const cargoRule = CARGO_TYPES.find(c => c.value === cargoType) || CARGO_TYPES[0];
+  const cargoName = cargoRule.label.split(' (')[0];
   const conflict = source && source === destination ? 'Choose a destination different from the origin.'
     : cargoRule.forbids === transportMode && routingPolicy === 'STRICT'
-      ? `${cargoRule.label.split(' (')[0]} cargo can't go by ${transportMode}. Choose another mode, or set the mode policy to prefer it.`
+      ? `${cargoName} cargo can't go by ${transportMode}. Choose another mode, or set the mode policy to prefer it.`
       : null;
+  const planNote = !conflict && cargoRule.forbids === transportMode
+    ? `${cargoName} cargo can't go by ${transportMode}, so the routes use other modes.` : null;
+  const unpicked = ['source', 'dest'].filter(t => searchQuery[t].trim() && !(t === 'source' ? source : destination));
+  const policyHint = transportMode === 'any' ? 'Choose a transport mode to set a policy.'
+    : routingPolicy === 'STRICT'
+      ? transportMode === 'road' ? 'Road only.' : `At least one ${transportMode} leg; road only to reach it and to leave it.`
+      : `Favours ${transportMode}; other modes only when they are clearly better.`;
   // The routes shown no longer match the controls: they are dimmed and can't be exported.
   const inputsChanged = resultContext && planKey(planFromControls()) !== planKey(resultContext);
   const stale = !loading && (inputsChanged || scenarioChanged);
   const changeLines = changes ? changesSince(changes.before, recommendations, fmtMoney) : [];
 
+  const setFor = (setter, type, value) => setter(prev => ({ ...prev, [type]: value }));
+  const closeSuggestions = type => {
+    setFor(setSearchResults, type, []);
+    setFor(setActiveOption, type, -1);
+  };
+
   const handleSearch = async (type, query) => {
-    setSearchQuery(prev => ({ ...prev, [type]: query }));
+    setFor(setSearchQuery, type, query);
     // Editing the text un-selects the hub, so a stale choice is never submitted.
     if (type === 'source') setSource(''); else setDestination('');
     latestQuery.current[type] = query;
-    if (query.length < 2) {
-      setSearchResults(prev => ({ ...prev, [type]: [] }));
+    const q = query.trim();
+    if (q.length < 2) {
+      closeSuggestions(type);
+      setFor(setSearchNote, type, '');
       return;
     }
+    let results = [];
+    let note = '';
     try {
-      const res = await fetch(`/api/hubs/search?q=${encodeURIComponent(query)}`);
-      const data = await res.json();
-      // Responses can arrive out of order while typing; keep only the latest.
-      if (latestQuery.current[type] === query && Array.isArray(data)) {
-        setSearchResults(prev => ({ ...prev, [type]: data }));
-      }
+      const res = await fetch(`/api/hubs/search?q=${encodeURIComponent(q)}`);
+      const data = await readJson(res);
+      if (!res.ok || !Array.isArray(data)) note = `Place search failed. ${requestError(res, data)}`;
+      else if (!data.length) note = `No place matches "${q}".`;
+      else results = data;
     } catch {
-      console.error('Hub search failed');
+      note = 'Place search is unavailable: the routing engine cannot be reached.';
+    }
+    // Responses can arrive out of order while typing; keep only the latest.
+    if (latestQuery.current[type] === query) {
+      setFor(setSearchResults, type, results);
+      setFor(setActiveOption, type, -1);
+      setFor(setSearchNote, type, note);
     }
   };
 
   const selectHub = (type, hub) => {
     if (type === 'source') setSource(hub.id); else setDestination(hub.id);
-    setSearchQuery(prev => ({ ...prev, [type]: hub.display_name }));
+    setFor(setSearchQuery, type, hub.display_name);
     latestQuery.current[type] = hub.display_name;
-    setSearchResults(prev => ({ ...prev, [type]: [] }));
+    closeSuggestions(type);
+    setFor(setSearchNote, type, '');
+  };
+
+  // Up and down move through the suggestions, Enter picks one, Escape closes them.
+  const onSearchKey = (type, e) => {
+    const options = searchResults[type];
+    if (e.key === 'Escape' && options.length) {
+      e.preventDefault();
+      closeSuggestions(type);
+    } else if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && options.length) {
+      e.preventDefault();
+      const step = e.key === 'ArrowDown' ? 1 : -1;
+      setFor(setActiveOption, type, (activeOption[type] + step + options.length + (activeOption[type] < 0 && step < 0 ? 1 : 0))
+        % options.length);
+    } else if (e.key === 'Enter' && options.length) {
+      e.preventDefault();
+      selectHub(type, options[Math.max(activeOption[type], 0)]);
+    }
   };
 
   const toggleAvoid = id => setAvoid(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
@@ -383,14 +463,17 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
     setSearchQuery({ source: searchQuery.dest, dest: searchQuery.source });
     latestQuery.current = { source: searchQuery.dest, dest: searchQuery.source };
     setSearchResults({ source: [], dest: [] });
+    setActiveOption({ source: -1, dest: -1 });
+    setSearchNote({ source: '', dest: '' });
   };
 
+  // An example fills in the whole form, so the notice says so (see `example`).
   const runExample = example => runPlan({
     source: example.source, sourceName: hubName(example.source),
     destination: example.destination, destName: hubName(example.destination),
     transportMode: example.mode, routingPolicy: 'STRICT', cargoType: 'general', priority: 'normal',
     scenario: example.scenario, liveIntel, avoid: [],
-  });
+  }, { example: true });
 
   // Pointing at a leg (mouse or keyboard) highlights its stretch on the map.
   const pointAt = leg => ({
@@ -401,23 +484,34 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
 
   const [engineState, engineText] = ENGINE_STATES[engineStatus] || ['warming', 'Connecting to the engine'];
 
-  const renderHubSearch = (type, label, placeholder) => (
-    <div className="field">
-      <label htmlFor={`hub-${type}`}>{label}</label>
-      <input
-        id={`hub-${type}`} type="text" value={searchQuery[type]} autoComplete="off" maxLength={SEARCH_MAX}
-        onChange={e => handleSearch(type, e.target.value)}
-        className="control" placeholder={placeholder}
-      />
-      {searchResults[type].length > 0 && (
-        <div className="suggestions">
-          {searchResults[type].map((h, idx) => (
-            <button key={`${h.id}-${idx}`} type="button" onClick={() => selectHub(type, h)}>{h.display_name}</button>
+  const renderHubSearch = (type, label, placeholder) => {
+    const options = searchResults[type];
+    const id = `hub-${type}`;
+    const note = searchNote[type] || (unpicked.includes(type) && !options.length ? 'Pick a place from the list.' : '');
+    return (
+      <div className="field">
+        <label htmlFor={id}>{label}</label>
+        <input
+          id={id} type="text" value={searchQuery[type]} autoComplete="off" maxLength={SEARCH_MAX}
+          role="combobox" aria-autocomplete="list" aria-expanded={options.length > 0} aria-controls={`${id}-list`}
+          aria-activedescendant={activeOption[type] >= 0 ? `${id}-option-${activeOption[type]}` : undefined}
+          aria-describedby={note ? `${id}-note` : undefined}
+          onChange={e => handleSearch(type, e.target.value)} onKeyDown={e => onSearchKey(type, e)}
+          onBlur={() => closeSuggestions(type)}
+          className="control" placeholder={placeholder}
+        />
+        <ul id={`${id}-list`} role="listbox" aria-label={`${label} suggestions`} className="suggestions" hidden={!options.length}>
+          {options.map((h, idx) => (
+            <li key={h.id} id={`${id}-option-${idx}`} role="option" aria-selected={idx === activeOption[type]}
+                onMouseDown={e => e.preventDefault()} onClick={() => selectHub(type, h)}>
+              {h.display_name}
+            </li>
           ))}
-        </div>
-      )}
-    </div>
-  );
+        </ul>
+        {note && <p id={`${id}-note`} className="field-hint" role="status">{note}</p>}
+      </div>
+    );
+  };
 
   const renderLeg = (leg, idx) => {
     const exposure = leg.intel_source === 'SCENARIO' ? 'scenario' : leg.intel_source === 'LIVE' ? 'live' : '';
@@ -504,10 +598,11 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
         <div className="field">
           <label htmlFor="policy">Mode policy</label>
           <select id="policy" value={routingPolicy} onChange={e => setRoutingPolicy(e.target.value)} className="control"
-                  disabled={transportMode === 'any'}>
-            <option value="STRICT" title="Road is still allowed for the first and last mile">Only this mode</option>
+                  disabled={transportMode === 'any'} aria-describedby="policy-hint">
+            <option value="STRICT">Only this mode</option>
             <option value="PREFERRED">Prefer this mode</option>
           </select>
+          <p id="policy-hint" className="field-hint">{policyHint}</p>
         </div>
 
         <div className="field">
@@ -566,6 +661,7 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
           {loading ? 'Planning routes…' : 'Plan routes'}
         </button>
         {conflict && <p id="plan-conflict" className="field-error" role="status">{conflict}</p>}
+        {planNote && <p className="field-hint" role="status">{planNote}</p>}
 
         {recent.length > 0 && (
           <>
@@ -607,6 +703,13 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
             Mode: {resultContext.transportMode}. Live news and weather: {resultContext.liveIntel ? 'on' : 'off'}.
           </p>
         )}
+        {resultContext?.example && !stale && (
+          <div className="notice">
+            <strong>Example plan.</strong> The form on the left now holds its settings
+            ({resultContext.transportMode === 'any' ? 'any mode' : `${resultContext.transportMode} only`},
+            {' '}{resultScenario ? resultScenario.name : 'normal operations'}, general cargo). Change them to plan your own shipment.
+          </div>
+        )}
         {resultContext?.saved && !stale && (
           <div className="notice warn">
             <strong>Saved result from {fmtTime(resultContext.plannedAt)}.</strong> Conditions may have changed since; plan
@@ -642,7 +745,7 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
         )}
         {error && <div className="error" role="alert">{error}</div>}
 
-        <RouteMap hubs={hubs} routes={recommendations} selected={selected} onSelect={setSelected}
+        <RouteMap hubs={hubs} routes={recommendations} selected={selected} onSelect={setSelected} visible={visible}
                   disrupted={disruptedHubs} liveHubs={liveHubs} focusLeg={focusLeg} />
 
         {recommendations.length > 0 ? (
@@ -654,13 +757,14 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
               <h2>Route options</h2>
               <p className="note">
                 Bars run from the typical door-to-door time to the worst case (p95), on one scale for all options.
-                The coloured mark is the time to plan for: 85% of simulated trips arrive by then.
+                The coloured mark is the time to plan for: 85% of simulated trips arrive by then. Typical adds up
+                each leg's median delay; the simulated median of the whole trip is a little higher, because delays are skewed.
               </p>
             </section>
             <div className="options-head options-grid" aria-hidden="true">
               <span /><span>Route</span><span>Door-to-door time</span><span>Estimated cost</span><span>Peak risk</span>
             </div>
-            <ul className={`options ${loading || stale ? 'busy' : ''}`} ref={optionList} aria-busy={loading}>
+            <ul className={`options ${loading ? 'busy' : ''} ${stale ? 'stale' : ''}`} ref={optionList} aria-busy={loading}>
               {recommendations.map((rec, idx) => {
                 const colour = PERSONA_COLOURS[rec.persona];
                 const band = rec.eta_band;
@@ -677,7 +781,7 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
                         <span className="modes">{modeSummary(rec)}</span>
                       </span>
                       <span className="gauge"
-                            title={`Typical ${Math.round(rec.adjusted_eta)} h. Simulated p50 ${Math.round(band.p50)} h, p85 ${Math.round(band.p85)} h, p95 ${Math.round(band.p95)} h.`}>
+                            title={`Typical ${Math.round(rec.adjusted_eta)} h (each leg's median delay added up). Simulated whole trip: median ${Math.round(band.p50)} h, p85 ${Math.round(band.p85)} h, p95 ${Math.round(band.p95)} h.`}>
                         <span className="reading">
                           <span><strong>{fmtH(rec.adjusted_eta, days)}</strong> typical</span>
                           <span>up to {fmtH(band.p95, days)}</span>
@@ -816,6 +920,12 @@ const RouteRecommender = ({ onNavigate, engineStatus }) => {
           {resultContext && !resultContext.liveIntel && <p className="note">These routes were planned with live news off.</p>}
           {resultContext?.liveIntel && intelReports.length === 0 && (
             <p className="note">No live reports: the feeds are quiet or offline, or the news model is still warming up.</p>
+          )}
+          {resultContext?.liveIntel && pendingIntel.length > 0 && (
+            <p className="note" role="status">
+              News for {pendingIntel.join(' and ')} was still loading when these routes were planned. Plan again in a few
+              seconds to include it.
+            </p>
           )}
           {intelReports.some(r => r.weather) && <p className="note">Weather data by Open-Meteo.com (CC BY 4.0).</p>}
           {intelReports.map(r => (

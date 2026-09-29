@@ -49,7 +49,7 @@ function pulse(className, label, latlng) {
   }).bindTooltip(label);
 }
 
-export default function RouteMap({ hubs, routes, selected, onSelect, disrupted, liveHubs, focusLeg }) {
+export default function RouteMap({ hubs, routes, selected, onSelect, disrupted, liveHubs, focusLeg, visible = true }) {
   const container = useRef(null);
   const map = useRef(null);
   const layers = useRef({});
@@ -72,6 +72,12 @@ export default function RouteMap({ hubs, routes, selected, onSelect, disrupted, 
     return () => { clearTimeout(resize); map.current.remove(); map.current = null; };
   }, []);
 
+  // The planner stays mounted while another page is shown; the map measures its
+  // container again when it comes back, as the window may have changed size.
+  useEffect(() => {
+    if (visible && map.current) map.current.invalidateSize();
+  }, [visible]);
+
   useEffect(() => {
     const group = layers.current.hubs;
     group.clearLayers();
@@ -79,7 +85,7 @@ export default function RouteMap({ hubs, routes, selected, onSelect, disrupted, 
       const choke = h.type === 'choke_point';
       L.circleMarker([h.lat, h.lon], {
         radius: choke ? 4 : 2, color: choke ? '#DCE6EE' : '#8FA3B5', weight: choke ? 1.5 : 1,
-        fillColor: choke ? '#0B1622' : '#8FA3B5', fillOpacity: choke ? 1 : 0.5,
+        fillColor: choke ? '#0B1622' : '#8FA3B5', fillOpacity: choke ? 1 : 0.5, className: 'hub-dot',
       }).bindTooltip(h.display_name).addTo(group);
     });
   }, [hubs]);
@@ -181,5 +187,7 @@ export default function RouteMap({ hubs, routes, selected, onSelect, disrupted, 
     ).addTo(group);
   }, [focusLeg, routes, selected, hubs]);
 
-  return <div ref={container} className="route-map" role="region" aria-label="Route map" />;
+  // A picture of the options listed below it; every action on it (choosing a
+  // route, pointing at a leg) has a keyboard equivalent in those lists.
+  return <div ref={container} className="route-map" role="region" aria-label="Route map of the options listed below" />;
 }

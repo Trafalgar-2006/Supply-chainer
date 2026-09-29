@@ -13,4 +13,4 @@ node_modules/
 .pytest_cache/
 *.log
 frontend/dist/
-ui-screens/
+ui-screens*/

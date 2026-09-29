@@ -50,11 +50,11 @@ def main():
     if os.getenv("SUPPLYCHAINER_API_KEY"):
         # The key stays on the server: only the development proxy adds it to requests.
         print("Note: SUPPLYCHAINER_API_KEY is set, so the dashboard served here can't plan routes. "
-              "Unset it, or use the development setup in the README.")
+              "Unset it, or use the development setup in the README.", flush=True)
 
     import uvicorn
     print(f"Supplychainer: http://{'127.0.0.1' if args.host == '0.0.0.0' else args.host}:{args.port} "
-          "(the news model warms up for a few seconds after start-up)")
+          "(the news model warms up for a few seconds after start-up)", flush=True)
     uvicorn.run("backend.main:app", host=args.host, port=args.port)
 
 

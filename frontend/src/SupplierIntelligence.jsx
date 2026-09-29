@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
+import { readJson, requestError } from './api.js';
 
 // Inputs keep whatever the user typed. A count must be a whole number from 0 to
 // the API's limit; anything else is flagged on its field, and no advice is
@@ -18,7 +19,7 @@ const REQUEST_DELAY_MS = 300;
 const sentence = s => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase().replace(/_/g, ' ');
 
 export default function SupplierIntelligence({ onNavigate }) {
-  const [suppliers, setSuppliers] = useState([]);
+  const [suppliers, setSuppliers] = useState(null); // null until the first reply, and after a failed one
   const [advice, setAdvice] = useState(null);
   const [disruptions, setDisruptions] = useState({});
   const [inventory, setInventory] = useState('1000');
@@ -47,6 +48,12 @@ export default function SupplierIntelligence({ onNavigate }) {
   useEffect(() => {
     // Wait for typing to pause before asking the API, and drop superseded requests.
     // While a count is invalid only the ranking is asked for; it doesn't use the counts.
+    // A failed reply clears the table, so it never shows another category's suppliers.
+    const fail = message => {
+      setError(message);
+      setSuppliers(null);
+      setAdvice(null);
+    };
     const controller = new AbortController();
     const timer = setTimeout(() => fetch('/api/suppliers', {
       method: 'POST',
@@ -63,14 +70,18 @@ export default function SupplierIntelligence({ onNavigate }) {
       signal: controller.signal,
     })
       .then(async res => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(Array.isArray(data.detail) ? data.detail.map(d => d.msg).join('; ') : data.detail || `Request failed (${res.status})`);
-        setSuppliers(data.suppliers || []);
+        const data = await readJson(res);
+        if (!res.ok || !data || !Array.isArray(data.suppliers)) {
+          fail(res.ok ? 'The server sent a reply this page could not read.' : requestError(res, data));
+          return;
+        }
+        setSuppliers(data.suppliers);
         setAdvice(invalid ? null : data.advice);
         setDisruptions(data.active_disruptions || {});
         setError(null);
       })
-      .catch(e => { if (e.name !== 'AbortError') setError(e.message); }), REQUEST_DELAY_MS);
+      .catch(e => { if (e.name !== 'AbortError') fail('The server cannot be reached. Check that the backend is running.'); }),
+    REQUEST_DELAY_MS);
     return () => { clearTimeout(timer); controller.abort(); };
   }, [category, scenario, inventory, safetyStock, forecast, invalid]);
 
@@ -166,10 +177,14 @@ export default function SupplierIntelligence({ onNavigate }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {suppliers.length === 0 && (
-                    <tr><td colSpan={6} className="muted">No suppliers in this category.</td></tr>
+                  {!suppliers?.length && (
+                    <tr>
+                      <td colSpan={6} className="muted">
+                        {suppliers ? 'No suppliers in this category.' : error ? 'Could not load the suppliers.' : 'Loading suppliers…'}
+                      </td>
+                    </tr>
                   )}
-                  {suppliers.map(s => {
+                  {(suppliers || []).map(s => {
                     const reliability = s.audit_trace.effective_metrics.stability_index;
                     const penalty = s.audit_trace.penalties.lead_time_impact;
                     return (
@@ -197,6 +212,10 @@ export default function SupplierIntelligence({ onNavigate }) {
                 </tbody>
               </table>
             </div>
+            <p className="note">
+              A disruption at a supplier's hub or on its shipping route adds 10% of the disruption's delay to the lead time
+              (a 10-day Suez closure adds a day) and takes up to 30 points off its reliability.
+            </p>
           </section>
         </div>
       </main>

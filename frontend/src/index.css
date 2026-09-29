@@ -96,21 +96,20 @@ h3 { font-size: 1.05rem; }
 .control[aria-invalid="true"] { border-color: var(--signal); }
 .field-error { color: var(--signal); font-size: 0.85rem; }
 
-.suggestions { border: 1px solid var(--rule); border-radius: var(--radius); background: var(--chart); overflow: hidden; }
+.field-hint { color: var(--muted); font-size: 0.85rem; }
 
-.suggestions button {
-  display: block;
-  width: 100%;
-  text-align: left;
-  background: none;
-  border: none;
+.suggestions { list-style: none; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--chart); overflow: hidden; }
+
+.suggestions [role="option"] {
   border-bottom: 1px solid var(--rule);
   padding: 0.45rem 0.7rem;
   font-size: 0.92rem;
+  cursor: pointer;
 }
 
-.suggestions button:last-child { border-bottom: none; }
-.suggestions button:hover { background: var(--raised); }
+.suggestions [role="option"]:last-child { border-bottom: none; }
+.suggestions [role="option"]:hover, .suggestions [aria-selected="true"] { background: var(--raised); }
+.suggestions [aria-selected="true"] { box-shadow: inset 3px 0 0 var(--contour); }
 
 .chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
 
@@ -214,6 +213,7 @@ h3 { font-size: 1.05rem; }
 .route-map .leaflet-control-attribution { background: rgba(11, 22, 34, 0.85); color: var(--muted); }
 .route-map .leaflet-control-attribution a { color: var(--contour); }
 .route-map .leaflet-tooltip.endpoint { font-weight: 600; }
+.route-map path.hub-dot { cursor: default; } /* hover shows the name; there is nothing to click */
 
 .pulse-marker { border-radius: 50%; }
 .pulse-signal { background: var(--signal); animation: pulse-signal 1.8s infinite; }
@@ -246,7 +246,10 @@ h3 { font-size: 1.05rem; }
 .options-head { padding: 0 0.75rem 0.4rem 0; border-bottom: 1px solid var(--rule); font-size: 0.85rem; color: var(--muted); }
 .options-head span:nth-child(n + 4) { text-align: right; }
 .options { list-style: none; transition: opacity 0.2s; }
-.options.busy { opacity: 0.45; }
+.options.busy { opacity: 0.45; } /* only while a plan is loading */
+/* Results that no longer match the form lose their colour but keep full text
+   contrast; the notice and the disabled exports say why. */
+.options.stale, .voyage.stale > * { filter: grayscale(1); }
 
 .option {
   width: 100%;
@@ -278,7 +281,6 @@ h3 { font-size: 1.05rem; }
 
 /* ---- Voyage plan (selected route) ---- */
 .voyage section { display: flex; flex-direction: column; gap: 0.6rem; }
-.voyage.stale > * { opacity: 0.5; }
 .exports { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .voyage .lead { font-size: 0.95rem; }
 
@@ -382,6 +384,10 @@ h3 { font-size: 1.05rem; }
 }
 
 .print-only { display: none; }
+
+.view:focus { outline: none; } /* focused only to move screen readers to the page just opened */
+
+.crash { max-width: 60ch; margin: 15vh auto; padding: 0 1.5rem; display: flex; flex-direction: column; gap: 1rem; align-items: flex-start; }
 
 /* The printed report (Print report, or save as PDF): the chosen plan, all
    options and the selected route, dark ink on white paper. The map is left

@@ -22,19 +22,31 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
-URL = "http://localhost:5173/"
+OPTION = ".suggestions [role=option]"
 
 
 def pick_hub(page, field, text):
     page.fill(field, text)
-    page.wait_for_selector(".suggestions button", timeout=10_000)
-    page.locator(".suggestions button").first.click()
+    page.wait_for_selector(OPTION, timeout=10_000)
+    page.locator(OPTION).first.click()
+
+
+def go(page, name):
+    """Click a page link; every page is kept in the document, so pick the visible one."""
+    page.locator("button.nav-button:visible", has_text=name).first.click()
+
+
+def expected_refusal(url, status):
+    # The engine refuses impossible plans with 422 and the reason, which the page shows.
+    return status == 422 and url.endswith("/api/recommend")
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("out_dir", nargs="?", default="ui-screens")
     parser.add_argument("--browser", default="msedge")
+    parser.add_argument("--url", default="http://localhost:5173/",
+                        help="the dev server, or http://127.0.0.1:8000/ for the dashboard run.py serves")
     args = parser.parse_args()
     out = Path(args.out_dir)
     out.mkdir(exist_ok=True)
@@ -48,11 +60,15 @@ def main():
         channel = None if args.browser == "chromium" else args.browser
         browser = p.chromium.launch(channel=channel, headless=True)
         page = browser.new_page(viewport={"width": 1680, "height": 1000}, accept_downloads=True)
-        page.on("console", lambda m: m.type == "error" and problems.append(f"console: {m.text}"))
+        page.on("console", lambda m: m.type == "error" and "status of 422" not in m.text
+                and problems.append(f"console: {m.text}"))
         page.on("pageerror", lambda e: problems.append(f"page error: {e}"))
-        page.on("response", lambda r: r.status >= 400 and problems.append(f"{r.status} {r.url}"))
+        page.on("response", lambda r: r.status >= 400 and not expected_refusal(r.url, r.status)
+                and problems.append(f"{r.status} {r.url}"))
+        tiles = []  # OpenStreetMap blocks tile requests that carry no Referer
+        page.on("request", lambda r: "tile.openstreetmap.org" in r.url and tiles.append(r))
 
-        page.goto(URL)
+        page.goto(args.url)
         page.wait_for_selector(".route-map .leaflet-tile-loaded", timeout=20_000)
         for _ in range(60):  # let the NLP warm-up finish so live news is scored
             if "Engine ready" in page.inner_text("header"):
@@ -66,7 +82,14 @@ def main():
         check(page.locator(".route-map .leaflet-tooltip.endpoint").count() == 2, "origin and destination not labelled")
 
         pick_hub(page, "#hub-source", "Shanghai")
-        pick_hub(page, "#hub-dest", "Rotterdam")
+        # The destination by keyboard: arrows move through the suggestions, Enter picks.
+        page.fill("#hub-dest", "Rotterdam")
+        page.wait_for_selector(OPTION, timeout=10_000)
+        page.press("#hub-dest", "ArrowDown")
+        check(page.get_attribute("#hub-dest", "aria-activedescendant") == "hub-dest-option-0", "arrow keys do not move through suggestions")
+        page.press("#hub-dest", "Enter")
+        check(page.input_value("#hub-dest") == "Port of Rotterdam" and page.locator(OPTION).count() == 0,
+              "Enter does not pick the highlighted suggestion")
         check(page.locator(".notice.warn", has_text="Inputs changed").count() == 1,
               "editing an input does not mark the routes shown as stale")
         check(page.locator("button", has_text="Export CSV").is_disabled(), "stale routes can still be exported")
@@ -123,15 +146,18 @@ def main():
         page.wait_for_selector("text=Since your plan of", timeout=30_000)
         check(page.locator(".recent li").count() == 3, "planning the same thing again added a duplicate recent plan")
 
-        page.click("text=Model evaluation")
+        go(page, "Model evaluation")
+        check(page.url.endswith("#model"), "the model page has no address of its own")
         page.wait_for_selector(".panel .recharts-surface", timeout=15_000)
         check(page.locator(".scores tbody tr").count() == 7, "threat-intelligence scores missing")
         check(page.locator("text=Best possible").count() >= 1, "delay-model ceiling missing")
         time.sleep(1)
         page.screenshot(path=str(out / "model.png"))
 
-        page.click("text=Route planner")
-        page.click("text=Supplier intelligence")
+        page.go_back()  # the browser's Back button returns to the planner, results intact
+        page.wait_for_selector(".option:visible", timeout=15_000)
+        check(page.locator(".notice", has_text="Since your plan of").count() == 1, "coming back lost the planned routes")
+        go(page, "Supplier intelligence")
         page.wait_for_selector(".supplier-table tbody tr", timeout=15_000)
         page.wait_for_selector(".advice .urgency", timeout=15_000)
         time.sleep(0.5)
@@ -141,11 +167,15 @@ def main():
         check(page.locator(".advice", has_text="Fix the highlighted inputs").count() == 1, "advice shown for a negative inventory")
         page.fill("#inventory", "1000")
         page.wait_for_selector(".advice .urgency", timeout=15_000)
+        page.reload()  # a reload stays on the page it was on
+        page.wait_for_selector(".supplier-table tbody tr", timeout=15_000)
+        check(page.url.endswith("#suppliers") and page.locator(".supplier-table:visible").count() == 1,
+              "reloading the supplier page went back to the planner")
 
         # Phone width: reopen the newest recent plan as saved (kept in localStorage).
-        page.click("text=Route planner")
+        go(page, "Route planner")
         page.set_viewport_size({"width": 420, "height": 900})
-        page.locator(".recent button").first.click()
+        page.locator(".recent li").first.locator("button").first.click()
         page.wait_for_selector(".option", timeout=30_000)
         check(page.locator(".notice.warn", has_text="Saved result from").count() == 1, "a saved plan does not say it is saved")
         time.sleep(2)
@@ -153,15 +183,16 @@ def main():
         check(overflow <= 0, f"page scrolls sideways at phone width by {overflow}px")
         page.screenshot(path=str(out / "phone.png"), full_page=True)
 
-        # Leaving the planner right after a plan: the map must tear down cleanly
-        # (a zoom animation still running once threw from Leaflet here).
+        # Leaving the planner right after a plan, several times: nothing may throw
+        # (a Leaflet zoom animation still running once did), and the plan stays.
         page.set_viewport_size({"width": 1680, "height": 1000})
-        for i in range(6):
-            page.click("text=Model evaluation")
-            page.click("text=Route planner")
-            page.wait_for_selector(".examples button", timeout=20_000)
-            page.locator(".examples button").nth(i % 3).click()
-            page.wait_for_selector(".option", timeout=60_000)
+        for _ in range(4):
+            page.locator(".recent li").first.locator("button.again").click()
+            go(page, "Model evaluation")
+            go(page, "Route planner")
+            page.wait_for_selector(".option:visible", timeout=60_000)
+        check(tiles and all(t.all_headers().get("referer") for t in tiles[:5]),
+              "map tiles are requested without a Referer, so OpenStreetMap serves 'Access blocked'")
         browser.close()
 
     for problem in problems:
